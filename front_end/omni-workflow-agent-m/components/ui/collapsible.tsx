@@ -7,9 +7,13 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
+// 组件 点击展开/收起
+//  @param children 折叠面板展开后显示的内容
+//  @param title 折叠面板的标题
+
 export function Collapsible({ children, title }: PropsWithChildren & { title: string }) {
   const [isOpen, setIsOpen] = useState(false);
-  const theme = useColorScheme() ?? 'light';
+  const theme = useColorScheme() ?? 'dark';  // 获取当前主题（亮色/暗色），默认为dark（Android/web）
 
   return (
     <ThemedView>
@@ -18,10 +22,10 @@ export function Collapsible({ children, title }: PropsWithChildren & { title: st
         onPress={() => setIsOpen((value) => !value)}
         activeOpacity={0.8}>
         <IconSymbol
-          name="chevron.right"
+          name="chevron-right"
           size={18}
-          weight="medium"
-          color={theme === 'light' ? Colors.light.icon : Colors.dark.icon}
+          // weight="medium"
+          color={theme === 'light' ? Colors.light.icon : Colors.dark.icon} // 测试
           style={{ transform: [{ rotate: isOpen ? '90deg' : '0deg' }] }}
         />
 
@@ -32,6 +36,7 @@ export function Collapsible({ children, title }: PropsWithChildren & { title: st
   );
 }
 
+// 样式定义
 const styles = StyleSheet.create({
   heading: {
     flexDirection: 'row',

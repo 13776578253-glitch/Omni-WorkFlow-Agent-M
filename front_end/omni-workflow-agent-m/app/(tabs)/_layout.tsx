@@ -1,33 +1,45 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
-
-import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import { Tabs } from 'expo-router';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+
+  const activeColor = useThemeColor({}, 'tint');        // 选中色
+  const bgColor = useThemeColor({}, 'background');      // 背景色
+  const textColor = useThemeColor({}, 'text');          // 文字色
+  const borderColor = useThemeColor({}, 'tabBorder');   // 边框色
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
+    <Tabs screenOptions= {{ 
+        tabBarActiveTintColor: activeColor,
+        tabBarStyle: { 
+          backgroundColor: bgColor,
+          borderTopColor: borderColor,
+          // borderTopWidth: 0,      
+          elevation: 0,           
+        }, 
+        headerStyle: { backgroundColor: bgColor },
+        headerTintColor: textColor,
+      }}>  
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: '首页',
+          tabBarIcon: ({ color }) => <IconSymbol name="home" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="workflow"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: '工作流',
+          tabBarIcon: ({ color }) => <IconSymbol name="rebase-edit" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="user"
+        options={{
+          title: '用户',
+          tabBarIcon: ({ color }) => <IconSymbol name="person" color={color} />,
         }}
       />
     </Tabs>

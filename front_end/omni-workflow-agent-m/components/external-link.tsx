@@ -23,3 +23,5 @@ export function ExternalLink({ href, ...rest }: Props) {
     />
   );
 }
+
+// 保留 模板功能  应用内 浏览器 外联跳转
