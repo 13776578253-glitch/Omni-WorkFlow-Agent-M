@@ -22,7 +22,7 @@ export default function TabLayout() {
         headerTintColor: textColor,
       }}>  
       <Tabs.Screen
-        name="index"
+        name="home"
         options={{
           title: '首页',
           tabBarIcon: ({ color }) => <IconSymbol name="home" color={color} />,

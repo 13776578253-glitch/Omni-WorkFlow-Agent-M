@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as Linking from 'expo-linking'; // 测试 -
+import * as Linking from 'expo-linking'; // 测试 -link模块 连接外部网站 -需要内嵌网站替代
 import React, { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -8,69 +8,16 @@ import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
 // import { Colors } from '@/constants/Colors'; 
 
-type SettingItemProps = {
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  value?: string;
-  isDestructive?: boolean; // 是否是危险操作(如退出登录)
-  hasArrow?: boolean;      // 是否显示右侧箭头
-  onPress?: () => void;
-};
+import { SettingItem } from '@/components/user/Setting_Item';
+import { SettingSection } from '@/components/user/Setting_section';
 
-function SettingItem({ icon, title, value, isDestructive, hasArrow = true, onPress }: SettingItemProps) {
-  const textColor = useThemeColor({}, 'text');
-  const iconColor = useThemeColor({}, 'icon');
-  const borderColor = useThemeColor({}, 'border');
-  
-  return (
-    <TouchableOpacity 
-      style={[styles.itemContainer, { borderBottomColor: borderColor }]} 
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <View style={styles.itemLeft}>
-        <Ionicons 
-          name={icon} 
-          size={22} 
-          color={isDestructive ? '#ff453a' : iconColor} 
-          style={styles.itemIcon} 
-        />
-        <ThemedText style={[styles.itemTitle, isDestructive && { color: '#ff453a' }]}>
-          {title}
-        </ThemedText>
-      </View>
-      
-      <View style={styles.itemRight}>
-        {value && (
-          <ThemedText style={styles.itemValue}>{value}</ThemedText>
-        )}
-        {hasArrow && (
-          <Ionicons name="chevron-forward" size={20} color={useThemeColor({}, 'icon')} style={{ opacity: 0.5 }} />
-        )}
-      </View>
-    </TouchableOpacity>
-  );
-}
 
-// --- 2. 封装分组卡片组件 ---
-function SettingSection({ children, title }: { children: React.ReactNode; title?: string }) {
-  const cardColor = useThemeColor({}, 'card');
-  
-  return (
-    <View style={styles.sectionContainer}>
-      {title && <ThemedText style={styles.sectionHeader}>{title}</ThemedText>}
-      <View style={[styles.sectionCard, { backgroundColor: cardColor }]}>
-        {children}
-      </View>
-    </View>
-  );
-}
 
 // --- 3. 用户主界面 ---
 export default function UserScreen() {
   const backgroundColor = useThemeColor({}, 'background');
   const cardColor = useThemeColor({}, 'card');
-  const textColor = useThemeColor({}, 'text');
+  // const textColor = useThemeColor({}, 'text');
   
   // 模拟登录状态
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -209,49 +156,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.6,
     marginTop: 4,
-  },
-  // 分组样式
-  sectionContainer: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    fontSize: 14,
-    opacity: 0.6,
-    marginBottom: 8,
-    marginLeft: 4,
-    textTransform: 'uppercase', // 字母大写，增加高级感
-  },
-  sectionCard: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  // 列表项样式
-  itemContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth, // 极细分割线
-  },
-  itemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  itemIcon: {
-    marginRight: 12,
-  },
-  itemTitle: {
-    fontSize: 16,
-  },
-  itemRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  itemValue: {
-    fontSize: 15,
-    opacity: 0.6,
-    marginRight: 8,
   },
   // 退出按钮样式
   logoutButton: {
