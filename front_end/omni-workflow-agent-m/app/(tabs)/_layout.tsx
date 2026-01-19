@@ -1,6 +1,8 @@
+import { Tabs } from 'expo-router';
+
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { Tabs } from 'expo-router';
+
 
 export default function TabLayout() {
 
@@ -12,6 +14,8 @@ export default function TabLayout() {
   return (
     <Tabs screenOptions= {{ 
         tabBarActiveTintColor: activeColor,
+        headerShown: false,  // 默认关闭头部显示
+        
         tabBarStyle: { 
           backgroundColor: bgColor,
           borderTopColor: borderColor,
@@ -20,6 +24,7 @@ export default function TabLayout() {
         }, 
         headerStyle: { backgroundColor: bgColor },
         headerTintColor: textColor,
+        // lazy: true,
       }}>  
       <Tabs.Screen
         name="home"
@@ -39,7 +44,12 @@ export default function TabLayout() {
         name="user"
         options={{
           title: '用户',
+          headerShown: true,
           tabBarIcon: ({ color }) => <IconSymbol name="person" color={color} />,
+          // headerShadowVisible: false, // 测试
+          // headerStyle: { 
+          //   backgroundColor: bgColor, // 测试
+          // },
         }}
       />
     </Tabs>

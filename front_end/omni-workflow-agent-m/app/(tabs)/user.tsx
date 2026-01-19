@@ -1,7 +1,10 @@
-import { Ionicons } from '@expo/vector-icons';
-import * as Linking from 'expo-linking'; // 测试 -link模块 连接外部网站 -需要内嵌网站替代
 import React, { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+// import { SafeAreaView } from 'react-native-safe-area-context'; // 软件头部区域 组件
+
+import { Ionicons } from '@expo/vector-icons';
+import * as Linking from 'expo-linking'; // link 组件 -需要内嵌网站替代
+import { router } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -11,13 +14,15 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { SettingItem } from '@/components/user/Setting_Item';
 import { SettingSection } from '@/components/user/Setting_section';
 
-
-
-// --- 3. 用户主界面 ---
+//  用户主界面 
 export default function UserScreen() {
   const backgroundColor = useThemeColor({}, 'background');
   const cardColor = useThemeColor({}, 'card');
   // const textColor = useThemeColor({}, 'text');
+
+  // 初始状态头像背景色：暗色背景下浅灰，亮色背景下深灰
+  const avatarBg = useThemeColor({ light: '#E5E5EA', dark: '#3A3A3C' }, 'background');
+  const iconColor = useThemeColor({}, 'icon');
   
   // 模拟登录状态
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -39,7 +44,7 @@ export default function UserScreen() {
     <ThemedView style={[styles.container, { backgroundColor }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         
-        {/* === 模块1: 用户信息 (仿歌单样式) === */}
+        {/*模块 用户信息*/}
         <TouchableOpacity 
           style={[styles.userCard, { backgroundColor: cardColor }]}
           onPress={handleAuthAction}
@@ -60,29 +65,35 @@ export default function UserScreen() {
           <Ionicons name="chevron-forward" size={24} color={useThemeColor({}, 'icon')} style={{ opacity: 0.5 }} />
         </TouchableOpacity>
 
-        {/* === 模块2: 应用设置 === */}
+        {/*模块 应用*/}
         <SettingSection title="应用">
           <SettingItem 
             icon="language" 
             title="语言" 
-            value="简体中文" 
+            // value="简体中文" 
             onPress={() => {}} 
           />
           {/* 主题通常是一个二级菜单，或者在这里做一个简单的展示 */}
           <SettingItem 
             icon="moon" 
             title="主题" 
-            value="跟随系统" 
-            onPress={() => Alert.alert('提示', '目前跟随系统设置，如需强制切换请在系统设置中更改')} 
+            // value="跟随系统" 
+            onPress={() => router.push('/user/theme')} 
+          />
+          <SettingItem 
+            icon="hardware-chip-outline" 
+            title="模型" 
+            // value="" 
+            onPress={() => Alert.alert('提示', '目前无法设置，敬请期待')} 
           />
         </SettingSection>
 
-        {/* === 模块3: 关于 === */}
+        {/*模块 关于*/}
         <SettingSection title="关于">
           <SettingItem 
             icon="logo-github" 
             title="项目仓库" 
-            onPress={() => Linking.openURL('https://github.com/your-repo')} 
+            onPress={() => Linking.openURL('https://github.com/13776578253-glitch/Omni-WorkFlow-Agent-M')} 
           />
           <SettingItem 
             icon="information-circle" 
@@ -93,11 +104,12 @@ export default function UserScreen() {
           <SettingItem 
             icon="document-text" 
             title="遵循协议" 
-            value="MIT" 
+            // value="MIT" 
+            onPress={() => Alert.alert('提示', '目前无法查看，敬请期待')} 
           />
         </SettingSection>
 
-        {/* === 模块4: 退出登录 (仅登录时显示) === */}
+        {/*模块 退出登录(仅登录时显示)*/}
         {isLoggedIn && (
           <View style={{ marginTop: 24 }}>
              <TouchableOpacity 

@@ -29,7 +29,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     marginBottom: 8,
     marginLeft: 4,
-    textTransform: 'uppercase', // 字母大写，增加高级感
+    textTransform: 'uppercase', // 字母大写
   },
   sectionCard: {
     borderRadius: 12,

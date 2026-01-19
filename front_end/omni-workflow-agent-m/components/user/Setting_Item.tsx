@@ -6,41 +6,55 @@ import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 type SettingItemProps = {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon?: keyof typeof Ionicons.glyphMap;  // 图标 /可选
   title: string;
-  value?: string;          // 右侧值
-  isDestructive?: boolean; // 是否是危险操作(如退出登录)
-  hasArrow?: boolean;      // 是否显示右侧箭头
-  onPress?: () => void;    // 点击事件
+  value?: string | React.ReactNode;       // 右侧值 /支持传入文字或组件 //测试！
+  isDestructive?: boolean;                // 是否是危险操作(如退出登录)
+  hasArrow?: boolean;                     // 是否显示右侧箭头
+  onPress?: () => void;                   // 点击事件
+  selected?: boolean;                     // 选中状态事件
 };
 
-export function SettingItem({ icon, title, value, isDestructive, hasArrow = true, onPress }: SettingItemProps) {
+// 卡片内样式
+export function SettingItem({ icon, title, value, isDestructive, hasArrow = true, onPress, selected }: SettingItemProps) {
   // const textColor = useThemeColor({}, 'text');
   const iconColor = useThemeColor({}, 'icon');
   const borderColor = useThemeColor({}, 'border');
+  const tintColor = '#519cd9';  // 蓝色
+  const isPressable = !!onPress;  // 判断是否可点击
   
   return (
     <TouchableOpacity 
       style={[styles.itemContainer, { borderBottomColor: borderColor }]} 
       onPress={onPress}
-      activeOpacity={0.7}
+      disabled={!isPressable}
+      activeOpacity={isPressable ? 0.7 : 1}
     >
       <View style={styles.itemLeft}>
         <Ionicons 
           name={icon} 
           size={22} 
-          color={isDestructive ? '#ff453a' : iconColor} 
+          color={isDestructive ? '#ff453a' : iconColor}           // 危险操作 红色
           style={styles.itemIcon} 
         />
-        <ThemedText style={[styles.itemTitle, isDestructive && { color: '#ff453a' }]}>
+        <ThemedText style={[
+            styles.itemTitle, 
+            isDestructive && { color: '#ff453a' },
+            selected && { color: tintColor, fontWeight: '600' }      // 选中状态变色 /加粗
+        ]}>
           {title}
         </ThemedText>
       </View>
       
       <View style={styles.itemRight}>
-        {value && (
-          <ThemedText style={styles.itemValue}>{value}</ThemedText>
+        {selected ? (
+          <Ionicons name="checkmark" size={20} color={tintColor} />  // 选中状态
+        ) : (
+          typeof value === 'string' ? <ThemedText style={styles.itemValue}>{value}</ThemedText> : value
         )}
+        {/* {value && (
+          <ThemedText style={styles.itemValue}>{value}</ThemedText>
+        )} */}
         {hasArrow && (
           <Ionicons name="chevron-forward" size={20} color={useThemeColor({}, 'icon')} style={{ opacity: 0.5 }} />
         )}

@@ -1,14 +1,54 @@
+import { useEffect } from 'react';
+
 import { Stack } from 'expo-router';
+import * as SystemUI from 'expo-system-ui';
+// import { StatusBar } from 'expo-status-bar';
 
-// 核心路由 类SPA 堆叠切换
+import { Colors } from '@/constants/theme';
+import { ThemeProvider, useThemeContext } from '@/constants/Theme-Context';
 
-// 定义 层级容器
-// 标准层级 tabs  /单独界面  name/options
+function RootStack() {
+  const { effectiveColorScheme } = useThemeContext();
+  const themeColors = Colors[effectiveColorScheme];
+
+  //  主题变化时，更新安卓原生窗口背景色  // 必要修复
+  useEffect(() => {
+    const bgColor = Colors[effectiveColorScheme].background;
+    SystemUI.setBackgroundColorAsync(bgColor);
+  }, [effectiveColorScheme]);
+  
+  return (
+    <>
+      {/*状态栏适配 信号、时间图标根据背景变色*/}
+      {/* <StatusBar style={effectiveColorScheme === 'dark' ? 'light' : 'dark'} />   */}
+      
+      <Stack 
+        // 封装的头部样式
+        screenOptions={{ 
+          headerBackTitle: '返回',                     
+          headerStyle: {
+            backgroundColor: themeColors.background,  // 导航栏背景色
+          },
+          headerTintColor: themeColors.text,          // 导航栏文字颜色
+          headerShadowVisible: false,                 // 隐藏导航栏阴影
+          contentStyle: {                             
+            backgroundColor: themeColors.background   // 页面内容区背景色
+          } 
+        }}
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="user" options={{ headerShown: false }} />
+        {/* 待添加 */}
+      </Stack>
+    </>
+  );
+}
+
+// 提供 全局环境
 export default function RootLayout() {
   return (
-    <Stack>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      {/* <Stack.Screen name="details" options={{ title: '详情内容' }} />      */}
-    </Stack>
+    <ThemeProvider>
+      <RootStack />
+    </ThemeProvider>
   );
 }
