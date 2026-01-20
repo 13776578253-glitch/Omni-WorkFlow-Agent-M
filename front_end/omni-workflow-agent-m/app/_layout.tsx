@@ -25,7 +25,8 @@ function RootStack() {
       <Stack 
         // 封装的头部样式
         screenOptions={{ 
-          headerBackTitle: '返回',                     
+          headerBackTitle: '返回',  
+          headerShown: false,                   
           headerStyle: {
             backgroundColor: themeColors.background,  // 导航栏背景色
           },
@@ -33,11 +34,14 @@ function RootStack() {
           headerShadowVisible: false,                 // 隐藏导航栏阴影
           contentStyle: {                             
             backgroundColor: themeColors.background   // 页面内容区背景色
-          } 
+          },
+          animation: 'slide_from_right',              // 测试
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="user" options={{ headerShown: false }} />
+        <Stack.Screen name="workflow_assistant" options={{ headerShown: false }} />
+        {/* <Stack.Screen name="workflow_list" options={{ headerShown: false }} />    */}
         {/* 待添加 */}
       </Stack>
     </>

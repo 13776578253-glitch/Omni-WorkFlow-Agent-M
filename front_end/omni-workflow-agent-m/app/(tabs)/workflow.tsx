@@ -1,16 +1,30 @@
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible'; 
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export default function WorkflowScreen() {
+import { useRouter } from 'expo-router';
+
+import { WorkflowList } from '@/components/workflow/workflow-list/workflow-list';
+
+export default function WorkflowTabPage() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+
+  // 初始跳转逻辑 点击加号跳转
+  const handleNewChat = () => {
+    console.log("Navigating to assistant...");
+    router.push({ pathname:'/workflow_assistant'}); 
+  };
+
   return (
-    <ThemedView style={{ flex: 1, padding: 20, paddingTop: 60 }}>
-      <ThemedText type="title">我的工作流</ThemedText>
-      
-      {/* 这里就可以直接用你那个 Collapsible UI 组件了 */}
-      <Collapsible title="查看待办事项">
-        <ThemedText>这里是折叠面板内部的内容...</ThemedText>
-      </Collapsible>
-    </ThemedView>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <WorkflowList onNewChat={handleNewChat} />
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});
