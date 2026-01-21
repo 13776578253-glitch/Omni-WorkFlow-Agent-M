@@ -1,13 +1,11 @@
 // app/(main)/user.tsx
 import React from 'react';
-import { Dimensions, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, {
-    interpolate,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring
-} from 'react-native-reanimated';
+import Animated, { interpolate, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+
+import { ThemedText } from '@/components/themed-text';
+import { useThemeColor } from '@/hooks/use-theme-color';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -21,6 +19,9 @@ const MECHANICAL_SPRING = {
 };
 
 export default function HomeScreen() {
+  const bgColor = useThemeColor({}, 'background');
+  const cardColor = useThemeColor({}, 'card');
+
   const translateY = useSharedValue(0);
   const context = useSharedValue(0);
 
@@ -73,31 +74,30 @@ export default function HomeScreen() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <GestureDetector gesture={gesture}>
-        <View style={styles.container}>
+        <Animated.View style={[styles.container, { backgroundColor: bgColor }]}>
           
           {/* 底层：浅色功能区 */}
-          <Animated.View style={[styles.layer, styles.portalLayer, portalStyle]}>
+          <Animated.View style={[styles.layer, styles.portalLayer, portalStyle, { backgroundColor: bgColor }]}>
             {/* 下拉指示条：提示用户可以往下拉 */}
             <View style={styles.handleBar} />
             
-            <Text style={styles.darkText}>Settings & Profile</Text>
-            <View style={styles.lightList}>
-              {['Account', 'Security', 'Privacy', 'About'].map((item) => (
+            <ThemedText type="title">Settings & Profile</ThemedText>
+            {/* <View style={styles.lightList}> {['Account', 'Security', 'Privacy', 'About'].map((item) => (
                 <View key={item} style={styles.lightItem}>
                   <Text style={{color: '#333'}}>{item}</Text>
                 </View>
               ))}
-            </View>
+            </View> */}
           </Animated.View>
 
           {/* 顶层：浅色首页入口 */}
-          <Animated.View style={[styles.layer, styles.homeLayer, homeStyle]}>
-            <View style={styles.lightAvatar} />
-            <Text style={styles.darkUserName}>Welcome Back</Text>
-            <Text style={styles.lightTipText}>↑ Swipe up for details</Text>
+          <Animated.View style={[styles.layer, styles.homeLayer, homeStyle, { backgroundColor: bgColor }]}>
+            <View style={[styles.lightAvatar, { backgroundColor: cardColor }]} />
+            <ThemedText type="title">Welcome Back</ThemedText>
+            <ThemedText style={{ opacity: 0.6 }}>↑ Swipe up for details</ThemedText>
           </Animated.View>
 
-        </View>
+        </Animated.View>
       </GestureDetector>
     </GestureHandlerRootView>
   );

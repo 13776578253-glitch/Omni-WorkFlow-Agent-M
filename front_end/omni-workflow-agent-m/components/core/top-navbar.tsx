@@ -1,17 +1,15 @@
 // components/core/top-navbar.tsx
-import { BlurView } from 'expo-blur';
 import React from 'react';
 import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
-import Animated, {
-    SharedValue,
-    interpolateColor,
-    useAnimatedStyle,
-    useDerivedValue
-} from 'react-native-reanimated';
+import Animated, { SharedValue, interpolateColor, useAnimatedStyle, useDerivedValue } from 'react-native-reanimated';
 
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
-import { SymbolView } from 'expo-symbols'; // 或者使用 @expo/vector-icons
+import { SymbolView } from 'expo-symbols';
+
+import { useThemeContext } from '@/constants/Theme-Context';
+import { Colors } from '@/constants/theme';
 
 const { width } = Dimensions.get('window');
 
@@ -29,8 +27,13 @@ interface TopNavBarProps {
 
 export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress }: TopNavBarProps) => {
   const router = useRouter();
-  // 1. 缩小容器宽度：不再占满全屏，而是占中间一部分
-  const NAV_WIDTH = width * 0.7; // 导航区域只占屏幕 70%
+
+  // 1. 获取主题状态
+  const { effectiveColorScheme } = useThemeContext();
+  const isDark = effectiveColorScheme === 'dark';
+  const themeColors = Colors[effectiveColorScheme];
+  
+  const NAV_WIDTH = width * 0.7;  // 导航区域只占屏幕 70%
   const tabWidth = NAV_WIDTH / tabs.length;
 
   const progress = useDerivedValue(() => {
@@ -38,17 +41,17 @@ export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress }: TopNavBa
   });
 
   const indicatorStyle = useAnimatedStyle(() => ({
-    width: tabWidth * 0.6, // 下划线只占 Tab 宽度的 60%
-    transform: [
-      { translateX: (progress.value * tabWidth) + (tabWidth * 0.2) } // 居中补偿
-    ],
+    width: tabWidth * 0.4, 
+    left: tabWidth * 0.3 + progress.value * tabWidth,
+    // transform: [{ translateX: (progress.value * tabWidth) + (tabWidth * 0.2) }],
+    backgroundColor: themeColors.text,
   }));
 
   return (
-    <BlurView intensity={25} tint="light" style={styles.absoluteContainer}>
-      <View style={styles.headerContent}>
-        
-        {/* 1. 左侧占位*/}
+    <BlurView intensity={80} tint={isDark ? 'dark' : 'light'} style={styles.container}>
+      <View style={styles.safeContent}>
+
+        {/*左侧占位*/}
         <View style={styles.iconButton}>
           <SymbolView name="arrow.clockwise" size={20} tintColor="#000" />
         </View>
@@ -58,10 +61,12 @@ export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress }: TopNavBa
           <View style={[styles.tabsRow, { width: NAV_WIDTH }]}>
             {tabs.map((tab, index) => {
               const animatedTextStyle = useAnimatedStyle(() => {
+                const activeColor = themeColors.text;
+                const inactiveColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.3)';
                 const color = interpolateColor(
                   progress.value,
                   [index - 1, index, index + 1],
-                  ['#AAA', '#000', '#AAA']
+                  [inactiveColor, activeColor, inactiveColor]
                 );
                 return { color };
               });
@@ -92,7 +97,7 @@ export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress }: TopNavBa
           name="line.3.horizontal" 
           size={22} 
           tintColor="#000" 
-          fallback={<Ionicons name="menu" size={24} color="#1D1D1F" />}
+          fallback={<Ionicons name="menu" size={24} color={themeColors.text} />}
         />
       </TouchableOpacity>
         
@@ -149,5 +154,20 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  container: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 100,
+    paddingTop: 44, // 适配状态栏
+    zIndex: 1000,
+  },
+  safeContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -7,7 +7,13 @@ import { TopNavBar } from '@/components/core/top-navbar';
 import HomeScreen from './home';
 import WorkflowScreen from './workflow';
 
+import { useThemeContext } from '@/constants/Theme-Context';
+import { Colors } from '@/constants/theme';
+
 export default function MainLayout() {
+  const { effectiveColorScheme } = useThemeContext();
+  const themeColors = Colors[effectiveColorScheme];
+
   const pagerRef = useRef<PagerView>(null);
   const scrollOffset = useSharedValue(0);
   const position = useSharedValue(0);
@@ -23,7 +29,7 @@ export default function MainLayout() {
   };
 
   return (
-   <View style={styles.container}>
+   <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       {/* 1. 页面放在下面，内容会延伸到顶部 */}
       <PagerView
         ref={pagerRef}
@@ -36,13 +42,12 @@ export default function MainLayout() {
       >
         <View key="1">
            {/* 给背景色，方便测试透明导航栏 */}
-          <View style={{flex: 1, backgroundColor: '#121212'}}>
+          <View style={{flex: 1, backgroundColor: themeColors.background}}>
             <HomeScreen />
-            
           </View>
         </View>
         <View key="2">
-          <View style={{flex: 1, backgroundColor: '#1A1A1A'}}>
+          <View style={{flex: 1, backgroundColor: themeColors.background}}>
             <WorkflowScreen />
           </View>
         </View>
@@ -62,7 +67,7 @@ export default function MainLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    // backgroundColor: '#000',
   },
   pager: {
     flex: 1,

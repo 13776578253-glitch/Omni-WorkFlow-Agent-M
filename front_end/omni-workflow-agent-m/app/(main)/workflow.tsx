@@ -1,6 +1,8 @@
 // app/(main)/workflow.tsx
 import React from 'react';
-import { Dimensions, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, ScrollView, StyleSheet } from 'react-native';
+
+import { useThemeColor } from '@/hooks/use-theme-color';
 
 const { width } = Dimensions.get('window');
 
@@ -12,24 +14,14 @@ const TEST_IMAGES = [
 ];
 
 export default function WorkflowScreen() {
+  const bgColor = useThemeColor({}, 'background');
+  const cardColor = useThemeColor({}, 'card');
+
   return (
-    <ScrollView 
-      style={styles.container}
-      // 重要：内容需要从屏幕最顶端开始，所以不加 paddingTop
-      // 但为了第一条内容不被导航栏完全挡住，给第一个元素加 margin
-      contentContainerStyle={styles.content}
-    >
-      <Text style={styles.title}>Explore Workflows</Text>
-      
-      {TEST_IMAGES.map((url, index) => (
-        <View key={index} style={styles.card}>
-          <Image source={{ uri: url }} style={styles.image} />
-          <View style={styles.cardInfo}>
-            <Text style={styles.cardTitle}>Agent Model v{index + 1}</Text>
-            <Text style={styles.cardSub}>Hyper-realistic textures & lighting</Text>
-          </View>
-        </View>
-      ))}
+    <ScrollView style={[styles.container, { backgroundColor: bgColor }]} contentContainerStyle={styles.content} >
+      {/* bug 修复白色字体问题 */}
+      {/* <ThemedText style={styles.title}>Explore Workflows</ThemedText>   */}
+      {/* 待添加逻辑 */}
     </ScrollView>
   );
 }
@@ -37,10 +29,10 @@ export default function WorkflowScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    // backgroundColor: '#000',
   },
   content: {
-    paddingTop: 110, // 这里的数值要略大于导航栏高度，留出首屏视觉空间
+    paddingTop: 110,        // 略大于导航栏高度，留出首屏视觉空间
     paddingHorizontal: 16,
     paddingBottom: 40,
   },
