@@ -5,15 +5,40 @@ import { ThemedView } from '@/components/themed-view';
 import { SettingItem } from '@/components/user/Setting_Item';
 import { SettingSection } from '@/components/user/Setting_section';
 import { useThemeContext } from '@/constants/Theme-Context'; //全局状态 主题
+import { useRouter } from 'expo-router';
 
 export default function ThemeScreen() {
   const { themeMode, setThemeMode } = useThemeContext();
+
+  const router = useRouter();
 
   const options = [
     { label: '跟随系统', value: 'system' },
     { label: '浅色模式', value: 'light' },
     { label: '深色模式', value: 'dark' },
   ] as const;
+
+  const handleSelect = (value: 'system' | 'light' | 'dark') => {
+    setThemeMode(value);
+  };
+
+  // return (
+  //   <ThemedView style={styles.container}>
+  //     <ScrollView contentContainerStyle={styles.content}>
+  //       <SettingSection>
+  //         {options.map((item) => (
+  //           <SettingItem
+  //             key={item.value}
+  //             title={item.label}
+  //             hasArrow={false}                          // 选择页不需要箭头
+  //             selected={themeMode === item.value}       // 判断是否选中
+  //             onPress={() => setThemeMode(item.value)}
+  //           />
+  //         ))}
+  //       </SettingSection>
+  //     </ScrollView>
+  //   </ThemedView>
+  // );
 
   return (
     <ThemedView style={styles.container}>
@@ -23,9 +48,10 @@ export default function ThemeScreen() {
             <SettingItem
               key={item.value}
               title={item.label}
-              hasArrow={false}                          // 选择页不需要箭头
-              selected={themeMode === item.value}       // 判断是否选中
-              onPress={() => setThemeMode(item.value)}
+              hasArrow={false}
+              // 选中状态会让用户知道当前是哪个
+              selected={themeMode === item.value} 
+              onPress={() => handleSelect(item.value)}
             />
           ))}
         </SettingSection>

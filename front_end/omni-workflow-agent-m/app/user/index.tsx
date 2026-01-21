@@ -16,8 +16,8 @@ import { SettingSection } from '@/components/user/Setting_section';
 
 //  用户主界面 
 export default function UserScreen() {
-  const backgroundColor = useThemeColor({}, 'background');
-  const cardColor = useThemeColor({}, 'card');
+  const backgroundColor = useThemeColor({ light: '#F2F2F7', dark: '#000' }, 'background');
+  const cardColor = useThemeColor({ light: '#FFF', dark: '#1C1C1E' }, 'background');
   // const textColor = useThemeColor({}, 'text');
 
   // 初始状态头像背景色：暗色背景下浅灰，亮色背景下深灰
@@ -44,26 +44,13 @@ export default function UserScreen() {
     <ThemedView style={[styles.container, { backgroundColor }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         
-        {/*模块 用户信息*/}
-        <TouchableOpacity 
-          style={[styles.userCard, { backgroundColor: cardColor }]}
-          onPress={handleAuthAction}
-          activeOpacity={0.8}
-        >
-          <View style={styles.avatarContainer}>
-            {/* 暂时用图标代替头像，后面可以用 <Image source={{ uri: ... }} /> */}
-            <Ionicons name={isLoggedIn ? "person" : "person-outline"} size={40} color="#fff" />
+        {/* 顶部个人简片：去掉复杂的边框，改为简约居中 */}
+        <View style={styles.simpleProfile}>
+          <View style={[styles.avatarCircle, { backgroundColor: '#E5E5EA' }]}>
+            <Ionicons name="person" size={35} color="#8E8E93" />
           </View>
-          <View style={styles.userInfo}>
-            <ThemedText type="title" style={styles.userName}>
-              {isLoggedIn ? "Admin User" : "点击登录"}
-            </ThemedText>
-            <ThemedText style={styles.userToken}>
-              {isLoggedIn ? "Token: ax8s...9d2x" : "登录以同步数据"}
-            </ThemedText>
-          </View>
-          <Ionicons name="chevron-forward" size={24} color={useThemeColor({}, 'icon')} style={{ opacity: 0.5 }} />
-        </TouchableOpacity>
+          <ThemedText style={styles.userName}>Guest User</ThemedText>
+        </View>
 
         {/*模块 应用*/}
         <SettingSection title="应用">
@@ -175,5 +162,17 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  simpleProfile: {
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  avatarCircle: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
   },
 });
