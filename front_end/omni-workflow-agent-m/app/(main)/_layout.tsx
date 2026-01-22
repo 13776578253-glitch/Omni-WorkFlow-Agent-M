@@ -4,6 +4,7 @@ import PagerView from 'react-native-pager-view';
 import { useSharedValue } from 'react-native-reanimated';
 
 import { TopNavBar } from '@/components/core/top-navbar';
+import HistoryScreen from './history';
 import HomeScreen from './home';
 import WorkflowScreen from './workflow';
 
@@ -20,7 +21,8 @@ export default function MainLayout() {
 
   const tabs = [
     { name: '首页', key: 'home' },
-    { name: '工作流', key: 'workflow' }
+    { name: '工作流', key: 'workflow' },
+    { name: '历史', key: 'history' }
   ];
 
   const handleTabPress = (index: number) => {
@@ -50,6 +52,11 @@ export default function MainLayout() {
           <View style={{flex: 1, backgroundColor: themeColors.background}}>
             <WorkflowScreen />
           </View>
+        </View>
+        <View key="3">
+          <View style={{flex: 1, backgroundColor: themeColors.background}}>
+            <HistoryScreen />
+            </View>
         </View>
       </PagerView>
 

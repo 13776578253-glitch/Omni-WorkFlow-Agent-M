@@ -7,11 +7,11 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 const { width } = Dimensions.get('window');
 
 // 模拟一些高颜值的 AI 生成图片
-const TEST_IMAGES = [
-  'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=1000&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=1000&auto=format&fit=crop',
-];
+// const TEST_IMAGES = [
+//   'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop',
+//   'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=1000&auto=format&fit=crop',
+//   'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=1000&auto=format&fit=crop',
+// ];
 
 export default function WorkflowScreen() {
   const bgColor = useThemeColor({}, 'background');
