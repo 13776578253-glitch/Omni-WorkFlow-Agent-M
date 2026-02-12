@@ -2,10 +2,15 @@
 import React from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { interpolate, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+// @ts-ignore
+import Animated, { interpolate, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'; // runOnJS 未来将弃用，但不影响此包运行
+// import { runOnJS ,scheduleOnRN  } from "react-native-worklets";
 
 import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
+
+import { HomeContent } from '@/components/home/homeContent';
+import { HomePortal } from '@/components/home/homePortal';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -18,32 +23,49 @@ const MECHANICAL_SPRING = {
   restSpeedThreshold: 0.01,        // 极小的速度阈值
 };
 
-export default function HomeScreen() {
+// 定义 Props 类型
+interface HomeScreenProps {
+  onDrawerStateChange?: (isActive: boolean) => void;
+}
+
+export default function HomeScreen({ onDrawerStateChange }: HomeScreenProps) {
   const bgColor = useThemeColor({}, 'background');
   const cardColor = useThemeColor({}, 'card');
 
   const translateY = useSharedValue(0);
+
   const context = useSharedValue(0);
 
   const gesture = Gesture.Pan()
+    // 设置激活阈值  // 垂直滑动超过10像素激活手势，防止过早触发锁死
+    .activeOffsetY([-10, 10]) 
+    // 如水平移动超过10像素，判定为左右切页，本手势失败
+    .failOffsetX([-10, 10])
+    .onBegin(() => {
+      // 锁死外层的 PagerView，确保垂直滑动不误触左右切页
+      if (onDrawerStateChange) {
+        runOnJS(onDrawerStateChange)(true);
+      }
+    })
     .onStart(() => {
+      // 锁定逻辑移到 onStart  // 垂直滑动并触发位移后，通知父组件锁定 PagerView
+      if (onDrawerStateChange) {
+        runOnJS(onDrawerStateChange)(true);
+      }
       // 记录开始滑动时的位置
       context.value = translateY.value;
     })
     .onUpdate((event) => {
       let nextValue = context.value + event.translationY;
-      
-      // 限制滑动范围在 [-SCREEN_HEIGHT, 0]
-      if (nextValue > 0) nextValue = 0;
+      // 限制滑动范围在 [-SCREEN_HEIGHT, 0]  //上部强制锁死 /下部强制锁死
+      if (nextValue > 0) nextValue = 0; 
       if (nextValue < -SCREEN_HEIGHT) nextValue = -SCREEN_HEIGHT;
-      
       translateY.value = nextValue;
     })
     .onEnd((event) => {
-      // 核心逻辑：判断是想“锁定”还是“释放”
-      // 1. 如果当前在上方，且快速下滑 (Velocity > 500) -> 释放
-      // 2. 如果当前在下方，且快速上滑 (Velocity < -500) -> 锁定
-      // 3. 否则根据位置是否过半判定
+      // 核心逻辑：判断 锁定/释放
+      // 当前在上方/快速下滑 (Velocity>500) -> 释放 
+      // 当前在下方/快速上滑 (Velocity<-500) -> 锁定 // 否则根据位置是否过半判定
       const isQuickSwipeDown = event.velocityY > 500;
       const isQuickSwipeUp = event.velocityY < -500;
       const isPastThreshold = translateY.value < -SCREEN_HEIGHT / 2;
@@ -55,9 +77,15 @@ export default function HomeScreen() {
         // 回弹到初始位 (显示首页)
         translateY.value = withSpring(0, MECHANICAL_SPRING);
       }
+    })
+    .onFinalize(() => {
+      // 手势结束，释放外层锁定 //重要！
+      if (onDrawerStateChange) {
+        runOnJS(onDrawerStateChange)(false);
+      }
     });
 
-  // 首页动画：浅色模式下增加一点缩放，衔接更自然
+  // 首页动画
   const homeStyle = useAnimatedStyle(() => ({
     transform: [
       { translateY: translateY.value },
@@ -66,7 +94,7 @@ export default function HomeScreen() {
     opacity: interpolate(translateY.value, [-SCREEN_HEIGHT, 0], [0, 1])
   }));
 
-  // 功能区动画：从下方升起
+  // 功能区动画
   const portalStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value + SCREEN_HEIGHT }],
   }));
@@ -76,25 +104,20 @@ export default function HomeScreen() {
       <GestureDetector gesture={gesture}>
         <Animated.View style={[styles.container, { backgroundColor: bgColor }]}>
           
-          {/* 底层：浅色功能区 */}
+          {/* 底层：功能区 */}
           <Animated.View style={[styles.layer, styles.portalLayer, portalStyle, { backgroundColor: bgColor }]}>
-            {/* 下拉指示条：提示用户可以往下拉 */}
-            <View style={styles.handleBar} />
-            
-            <ThemedText type="title">Settings & Profile</ThemedText>
-            {/* <View style={styles.lightList}> {['Account', 'Security', 'Privacy', 'About'].map((item) => (
-                <View key={item} style={styles.lightItem}>
-                  <Text style={{color: '#333'}}>{item}</Text>
-                </View>
-              ))}
-            </View> */}
+            {/* 下拉指示条 /测试/ */}
+            {/* <View style={styles.handleBar} /> */}  
+            {/* 底部 模块 */}
+            <HomePortal />
           </Animated.View>
 
-          {/* 顶层：浅色首页入口 */}
+          {/* 顶层：首页入口 */}
           <Animated.View style={[styles.layer, styles.homeLayer, homeStyle, { backgroundColor: bgColor }]}>
+            {/* 测试 /兼容性 */}
             <View style={[styles.lightAvatar, { backgroundColor: cardColor }]} />
-            <ThemedText type="title">Welcome Back</ThemedText>
-            <ThemedText style={{ opacity: 0.6 }}>↑ Swipe up for details</ThemedText>
+            {/* 顶层 模块 */}
+            <HomeContent />
           </Animated.View>
 
         </Animated.View>

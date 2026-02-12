@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-// import { SafeAreaView } from 'react-native-safe-area-context'; // 软件头部区域 组件
+// import { SafeAreaView } from 'react-native-safe-area-context'; // 软件头部区域 组件  // 暂时 废弃
 
 import { Ionicons } from '@expo/vector-icons';
 import * as Linking from 'expo-linking'; // link 组件 -需要内嵌网站替代
@@ -20,37 +20,52 @@ export default function UserScreen() {
   const cardColor = useThemeColor({ light: '#FFF', dark: '#1C1C1E' }, 'background');
   // const textColor = useThemeColor({}, 'text');
 
-  // 初始状态头像背景色：暗色背景下浅灰，亮色背景下深灰
-  const avatarBg = useThemeColor({ light: '#E5E5EA', dark: '#3A3A3C' }, 'background');
-  const iconColor = useThemeColor({}, 'icon');
+  // 初始状态 头像背景色：暗色背景下浅灰，亮色背景下深灰
+  // const avatarBg = useThemeColor({ light: '#E5E5EA', dark: '#3A3A3C' }, 'background');
+  // const iconColor = useThemeColor({}, 'icon');
   
   // 模拟登录状态
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // 处理登录/退出
-  const handleAuthAction = () => {
-    if (isLoggedIn) {
-      Alert.alert('退出登录', '确定要退出当前账号吗？', [
-        { text: '取消', style: 'cancel' },
-        { text: '确定', style: 'destructive', onPress: () => setIsLoggedIn(false) },
-      ]);
-    } else {
-      // 这里跳转到登录页，或者做登录逻辑
-      setIsLoggedIn(true);
-    }
-  };
+  // const handleAuthAction = () => {
+  //   if (isLoggedIn) {
+  //     Alert.alert('退出登录', '确定要退出当前账号吗？', [
+  //       { text: '取消', style: 'cancel' },
+  //       { text: '确定', style: 'destructive', onPress: () => setIsLoggedIn(false) },
+  //     ]);
+  //   } else {
+  //     // 这里跳转到登录页，或者做登录逻辑
+  //     setIsLoggedIn(true);
+  //   }
+  // };
 
   return (
     <ThemedView style={[styles.container, { backgroundColor }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         
-        {/* 顶部个人简片：去掉复杂的边框，改为简约居中 */}
+        {/* 顶部个人名片 */}
         <View style={styles.simpleProfile}>
           <View style={[styles.avatarCircle, { backgroundColor: '#E5E5EA' }]}>
             <Ionicons name="person" size={35} color="#8E8E93" />
           </View>
-          <ThemedText style={styles.userName}>Guest User</ThemedText>
+          <ThemedText style={styles.userName}>Test User</ThemedText>   
+          {/* 待修改同步 */}
         </View>
+
+        {/*模块 账户*/}
+        <SettingSection title="账户">
+          <SettingItem 
+            icon="person-circle-outline" 
+            title="账号" 
+            onPress={() => router.push('/user/auth')} 
+          />
+          <SettingItem 
+            icon="pie-chart-outline"
+            title="数据" 
+            // onPress={() => router.push('/user/auth')} 
+          />
+        </SettingSection>
 
         {/*模块 应用*/}
         <SettingSection title="应用">
@@ -97,7 +112,7 @@ export default function UserScreen() {
         </SettingSection>
 
         {/*模块 退出登录(仅登录时显示)*/}
-        {isLoggedIn && (
+        {/* {isLoggedIn && (
           <View style={{ marginTop: 24 }}>
              <TouchableOpacity 
                 style={[styles.logoutButton, { backgroundColor: cardColor }]}
@@ -106,7 +121,7 @@ export default function UserScreen() {
                 <ThemedText style={{ color: '#ff453a', fontWeight: '600', fontSize: 16 }}>退出登录</ThemedText>
              </TouchableOpacity>
           </View>
-        )}
+        )} */}
 
       </ScrollView>
     </ThemedView>
@@ -128,7 +143,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 16,
     marginBottom: 24,
-    // 阴影效果 (iOS only, Android需用elevation)
+    // 阴影效果 (iOS only, Android // elevation)
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -139,7 +154,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#007AFF', // 品牌色背景
+    backgroundColor: '#007AFF', // 背景
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -157,12 +172,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   // 退出按钮样式
-  logoutButton: {
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  // logoutButton: {
+  //   padding: 16,
+  //   borderRadius: 12,
+  //   alignItems: 'center',
+  //   justifyContent: 'center',
+  // },
   simpleProfile: {
     alignItems: 'center',
     paddingVertical: 30,

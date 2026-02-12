@@ -37,7 +37,7 @@ export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress }: TopNavBa
     return position.value + scrollOffset.value;
   });
 
-  // 1. Tab 区域的动画样式：在滑向历史页(Index 2)时消失
+  // Tab 区域的动画样式 // 在滑向历史页(Index 2)时消失
   const tabsContainerStyle = useAnimatedStyle(() => {
     const opacity = interpolate(progress.value, [1.2, 1.7, 2], [1, 0, 0]);
     // const translateY = interpolate(progress.value, [1, 2], [0, -10]);
@@ -47,7 +47,7 @@ export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress }: TopNavBa
     };
   });
 
-  // 2. 搜索框动画样式：只在滑向历史页时显示
+  //  搜索框动画样式  // 只在滑向历史页时显示
   const searchBarStyle = useAnimatedStyle(() => {
     const opacity = interpolate(progress.value, [1.5, 1.9, 2], [0, 1, 1]);
     const scale = interpolate(progress.value, [1.5, 2], [0.95, 1]);
@@ -144,7 +144,7 @@ export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress }: TopNavBa
             <Animated.View style={[styles.indicator, indicatorStyle]} />
           </Animated.View>
 
-          {/* 模式二：搜索框（覆盖在 Tabs 上方） */}
+          {/* 模式二：搜索框 // 覆盖在 Tabs 上方 */}
           <Animated.View style={[StyleSheet.absoluteFill, styles.searchContainer, searchBarStyle]}>
             <View style={[styles.searchBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
               <TextInput 
@@ -162,7 +162,7 @@ export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress }: TopNavBa
           <SymbolView 
             name="line.3.horizontal" 
             size={22} 
-            tintColor="#000" 
+            // tintColor="#000" 
             fallback={<Ionicons name="menu" size={24} color={themeColors.text} />}
           />
         </TouchableOpacity>
@@ -185,13 +185,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tabText: {
-    fontSize: 18, // 稍微缩小字号
+    fontSize: 18, // 字号
     fontWeight: '700',
-    letterSpacing: -0.2, // 紧凑的字间距更有精致感
+    letterSpacing: -0.2, // 字间距
   },
   indicator: {
     position: 'absolute',
-    bottom: 6, // 离文字近一点
+    bottom: 6, // 离文字距离
     height: 2.8,
     left: 0,
     // backgroundColor: '#000',
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between', // 左右图标，中间文字
+    justifyContent: 'space-between', // 左右图标占位，中间文字
     paddingHorizontal: 16,
     height: 50,
   },
@@ -225,6 +225,7 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 13, // 左侧偏移
   },
   container: {
     position: 'absolute',

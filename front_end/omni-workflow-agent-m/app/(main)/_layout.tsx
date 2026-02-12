@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import PagerView from 'react-native-pager-view';
 import { useSharedValue } from 'react-native-reanimated';
@@ -19,16 +19,33 @@ export default function MainLayout() {
   const scrollOffset = useSharedValue(0);
   const position = useSharedValue(0);
 
+  //控制 PagerView 是否允许滑动 
+  const [pagerScrollEnabled, setPagerScrollEnabled] = useState(true);
+
+  // useCallback 引用
+  const handleDrawerState = useCallback((isActive: boolean) => {
+    // 如抽屉激活 / isActive为true 禁用滚动 / setEnabled为false
+    setPagerScrollEnabled(!isActive);
+  }, []);
+
+  const onPageSelected = useCallback((e: any) => {
+    const index = e.nativeEvent.position;
+    // 非首页强制开启滑动，防止锁死
+    if (index !== 0) {
+      setPagerScrollEnabled(true);
+    }
+  }, []);
+
   const tabs = [
     { name: '首页', key: 'home' },
     { name: '工作流', key: 'workflow' },
     { name: '历史', key: 'history' }
   ];
 
-  const handleTabPress = (index: number) => {
-    // setPage 触发平滑滚动动画
-    pagerRef.current?.setPage(index);  
-  };
+  // const handleTabPress = (index: number) => {
+  //   // setPage 触发平滑滚动动画
+  //   pagerRef.current?.setPage(index);  
+  // };
 
   return (
    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
@@ -36,6 +53,8 @@ export default function MainLayout() {
       <PagerView
         ref={pagerRef}
         style={styles.pager}
+        scrollEnabled={pagerScrollEnabled} // 动态锁定点
+        onPageSelected={onPageSelected} // 页面切换时强制检查
         onPageScroll={(e) => {
           'worklet';
           scrollOffset.value = e.nativeEvent.offset;
@@ -43,9 +62,10 @@ export default function MainLayout() {
         }}
       >
         <View key="1">
-           {/* 给背景色，方便测试透明导航栏 */}
           <View style={{flex: 1, backgroundColor: themeColors.background}}>
-            <HomeScreen />
+            {/* 注入回调函数 */}
+            <HomeScreen onDrawerStateChange={handleDrawerState} />
+            {/* <HomeScreen /> */}
           </View>
         </View>
         <View key="2">
@@ -74,7 +94,6 @@ export default function MainLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // backgroundColor: '#000',
   },
   pager: {
     flex: 1,

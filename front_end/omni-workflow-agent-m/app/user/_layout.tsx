@@ -25,7 +25,7 @@ export default function UserLayout() {
       <Stack.Screen 
         name="index" 
         options={{ 
-          title: '设置与账户', 
+          title: '设置', 
           headerLeft: () => (
             <TouchableOpacity 
               onPress={() => router.back()} 
