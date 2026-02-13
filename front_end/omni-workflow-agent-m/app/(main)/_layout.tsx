@@ -49,7 +49,7 @@ export default function MainLayout() {
 
   return (
    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-      {/* 1. 页面放在下面，内容会延伸到顶部 */}
+      {/* 页面 */}
       <PagerView
         ref={pagerRef}
         style={styles.pager}
@@ -80,7 +80,7 @@ export default function MainLayout() {
         </View>
       </PagerView>
 
-      {/* 2. 导航栏放在后面，利用 Z-Index 覆盖在 PagerView 之上 */}
+      {/* 导航栏 */}
       <TopNavBar 
         tabs={tabs}
         scrollOffset={scrollOffset}
