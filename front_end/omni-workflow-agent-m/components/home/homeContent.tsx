@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, Image, TextInput, TouchableOpacity, Dimensions } from 'react-native';
 import { SymbolView } from 'expo-symbols';
-import Animated, { useAnimatedStyle, interpolate, Extrapolate, SharedValue } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, interpolate, Extrapolation, SharedValue } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -22,7 +22,7 @@ export function HomeContent({ translateY }: HomeContentProps) {
       translateY.value,
       [0, 150], // 下拉 150 像素
       [1, 1.2], // 图片放大到 1.2 倍
-      Extrapolate.CLAMP
+      Extrapolation.CLAMP
     );
 
     // 让图片在放大时稍微向下平移一点，增加视觉深度的拉伸感
@@ -47,7 +47,7 @@ export function HomeContent({ translateY }: HomeContentProps) {
       translateY.value,
       [0, 150],
       [0, 40], // 蒙版向下移 40px
-      Extrapolate.CLAMP
+      Extrapolation.CLAMP
     );
 
     return {
