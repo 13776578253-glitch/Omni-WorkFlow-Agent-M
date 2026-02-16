@@ -1,12 +1,16 @@
+// homeContent.tsx
 import React from 'react';
-import { StyleSheet, View, Image, TextInput, TouchableOpacity, Dimensions } from 'react-native';
-import { SymbolView } from 'expo-symbols';
+import { StyleSheet, View, Dimensions } from 'react-native';
 import Animated, { useAnimatedStyle, interpolate, Extrapolation, SharedValue } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useThemeContext } from '@/constants/Theme-Context';
 
-const { width, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width, height, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+const LIGHT_BG = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop';
+const DARK_BG = 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2564&auto=format&fit=crop'; 
 
 interface HomeContentProps {
   translateY: SharedValue<number>;
@@ -16,84 +20,66 @@ export function HomeContent({ translateY }: HomeContentProps) {
   const textColor = useThemeColor({}, 'text');
   const cardBg = useThemeColor({}, 'background');
 
-  // 背景拉伸动画：当向下拉 (translateY > 0) 时，图片放大
+  const { effectiveColorScheme } = useThemeContext(); 
+
+  // 背景拉伸动画
   const backgroundStyle = useAnimatedStyle(() => {
     const scale = interpolate(
       translateY.value,
-      [0, 150], // 下拉 150 像素
-      [1, 1.2], // 图片放大到 1.2 倍
+      [0, 400], 
+      [1, 1.2], // 放大倍率
       Extrapolation.CLAMP
     );
-
-    // 让图片在放大时稍微向下平移一点，增加视觉深度的拉伸感
-    // const imageTranslateY = interpolate(
-    //   translateY.value,
-    //   [0, 150],
-    //   [0, 20],
-    //   Extrapolate.CLAMP
-    // );
-
-    return {
-      transform: [
-        { scale },
-        // { translateY: imageTranslateY }
-      ],
-    };
+    return { transform: [{ scale }] };
   });
 
+  // 卡片位移动画
   const maskStyle = useAnimatedStyle(() => {
-    // 蒙版面板（白色卡片区）在下拉时，可以稍微向下挪一点，露出更多背景
     const maskMove = interpolate(
       translateY.value,
-      [0, 150],
-      [0, 40], // 蒙版向下移 40px
+      [0, 200],
+      [0, 60], 
       Extrapolation.CLAMP
     );
-
-    return {
-      transform: [{ translateY: maskMove }],
-    };
+    return { transform: [{ translateY: maskMove }] };
   });
 
   return (
     <View style={styles.container}>
-      {/* 背景图：撑满上半部分 */}
-      <View style={styles.imageContainer}>
+
+      {/* 背景层 */}
+      {/* 容器 top: -100 负边距 确保图片不会露底。 */}
+      <View style={styles.backgroundContainer}>
         <Animated.Image
-          source={{ uri: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop' }}
+          source={{ uri: effectiveColorScheme === 'dark' ? DARK_BG : LIGHT_BG }}  //根据主题 动态改变背景
           style={[styles.backgroundImage, backgroundStyle]}
           resizeMode="cover"
         />
       </View>
 
-      {/* 蒙版面板：压在背景上面 */}
+      {/* 内容卡片层 */}
+      {/* View 的颜色和卡片背景一致，且高度很大并向下延伸。即使 homeLayer 变透明，遮住底下的功能区背景 */}
       <Animated.View style={[styles.maskPanel, { backgroundColor: cardBg }, maskStyle]}>
-        <View style={styles.contentPadding}>
-          {/* 这里只保留你要求的“今天要从哪里开始”大框 */}
-          <View style={[styles.largeSearchBox, { backgroundColor: textColor + '08' }]}>
-            <View style={[styles.iconBox, { backgroundColor: textColor }]}>
-              <ThemedText style={{ color: cardBg, fontWeight: 'bold' }}>L</ThemedText>
-            </View>
-            <ThemedText style={[styles.largePlaceholder, { color: textColor + '80' }]}>
-              今天要从哪里开始？
-            </ThemedText>
-          </View>
-        </View>
+        <View style={[styles.bottomFiller, { backgroundColor: cardBg }]} />
       </Animated.View>
     </View>
   );
 }
 
-
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    // 强制占满全屏，不要 padding
+    width: width, // 强制撑满屏幕尺寸，无视父容器对齐
+    height: height, 
+    position: 'relative',
+    backgroundColor: 'transparent', // 确保自身透明
   },
-  imageContainer: {
-    width: width,
-    height: SCREEN_HEIGHT * 0.7, // 占据上方约 2/3
-    overflow: 'hidden',
+  backgroundContainer: {
+    position: 'absolute',
+    top: -100, // 向上延伸，防止下拉露白
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: -1, // 放在最底层
   },
   backgroundImage: {
     width: '100%',
@@ -103,52 +89,53 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     width: width,
-    height: SCREEN_HEIGHT * 0.45, // 覆盖下方并向上延伸一部分
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    // 增加阴影，产生覆盖在背景上的感觉
+    height: height * 0.22, // 高度
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 20,
+  },
+  dragIndicator: {
+    width: 36,
+    height: 4,
+    backgroundColor: '#00000015',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 12,
   },
   contentPadding: {
-    padding: 30,
-    flex: 1,
+    paddingHorizontal: 28,
+    paddingTop: 40,
   },
-  logoBox: {
-    width: 60,
-    height: 40,
-    borderWidth: 1.5,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderStyle: 'dashed',
-    marginBottom: 40,
-  },
-  logoText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  largeSearchBox: {
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 24,
-    borderRadius: 24,
+    padding: 18,
+    borderRadius: 20,
     width: '100%',
   },
-  iconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+  searchIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
-  largePlaceholder: {
-    fontSize: 22,
+  placeholder: {
+    fontSize: 18,
     fontWeight: '600',
     letterSpacing: -0.5,
+  },
+  bottomFiller: {
+    position: 'absolute',
+    top: 50, 
+    left: 0,
+    right: 0,
+    height: SCREEN_HEIGHT, 
+    zIndex: -1,
   },
 });

@@ -2,7 +2,6 @@
 import React from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-
 import Animated, { runOnJS, Extrapolation, useAnimatedReaction, useAnimatedStyle, useSharedValue, withSpring, interpolate } from 'react-native-reanimated'; 
 
 import { ThemedText } from '@/components/themed-text';
@@ -58,41 +57,67 @@ export default function HomeScreen({ onDrawerStateChange }: HomeScreenProps) {
     })
 
     .onUpdate((event) => {
-      let nextValue = context.value + event.translationY;
-      // 下拉/上滑触顶，产生阻尼效果，限制实际位移 /测试
-      if (nextValue > 0) {
-        nextValue = nextValue * 0.4;   // 下拉阻尼系数
-      } else if (nextValue < -SCREEN_HEIGHT) {
-        const overflow = nextValue + SCREEN_HEIGHT;
-        nextValue = -SCREEN_HEIGHT + overflow * 0.2;
+      // context.value 起始位 / event.translationY 手指移动距离
+      // let dragResistance = event.translationY > 0 ? 0.4 : 0.85;
+      // let nextValue = context.value + (event.translationY * dragResistance);
+      // if (nextValue > 0) {
+      //   nextValue = nextValue * 0.4;   // 下拉阻尼系数
+      // } else if (nextValue < -SCREEN_HEIGHT) {
+      //   const overflow = nextValue + SCREEN_HEIGHT;
+      //   nextValue = -SCREEN_HEIGHT + overflow * 0.2;
+      // } 
+      // translateY.value = nextValue;
+
+      const rawNextValue = context.value + event.translationY;
+      let finalValue = rawNextValue;
+
+      if (rawNextValue > 0) {
+        // 在首页继续下拉（橡皮筋回弹区）/ 阻尼 (0.4)
+        finalValue = rawNextValue * 0.4;
       } 
-      translateY.value = nextValue;
+      else if (rawNextValue < -SCREEN_HEIGHT) {
+        // 在功能区继续上滑（触底回弹区）/ 阻尼 (0.2)
+        const overflow = rawNextValue + SCREEN_HEIGHT;
+        finalValue = -SCREEN_HEIGHT + (overflow * 0.2);
+      } 
+      else {
+        // 在首页与功能区之间滑动（正常切换区）
+        if (event.translationY < 0) {
+          // 向上滑动 / 阻力 (0.65)
+          finalValue = context.value + (event.translationY * 0.60);
+        } else {
+          // 向下滑动 / 阻力 (0.80)
+          finalValue = context.value + (event.translationY * 0.75);
+        }
+      }
+
+      translateY.value = finalValue;
     })
 
     .onEnd((event) => {
-      // 核心逻辑：判断 锁定/释放
-      // 当前在上方/快速下滑 (Velocity>500) -> 释放 
-      // 当前在下方/快速上滑 (Velocity<-500) -> 锁定 // 否则根据位置是否过半判定
-      const isQuickSwipeDown = event.velocityY > 500;
-      const isQuickSwipeUp = event.velocityY < -500;
-      const isPastThreshold = translateY.value < -SCREEN_HEIGHT / 2;
+      // 分方向阈值
+      const isQuickSwipeDown = event.velocityY > 600;   // 当前在上方/快速下滑 (Velocity>600) -> 释放
+      const isQuickSwipeUp = event.velocityY < -1000;   // 当前在下方/快速上滑 (Velocity<-1000) -> 锁定 // 否则根据位置是否过半判定
 
+      // 差异化位置阈值
+      const thresholdToPortal = -SCREEN_HEIGHT * 0.5;   // 去功能区 拉过 50%
+      const thresholdBackToHome = -SCREEN_HEIGHT * 0.4; // 从功能区回来 拉过 40%
+      // const isPastThreshold = translateY.value < -SCREEN_HEIGHT * 0.55;
+
+      // 在拉伸状态松手，回弹到初始位 (0)
       if (translateY.value > 0) {
-        // 如果在拉伸状态松手，回弹到初始位 (0)
         translateY.value = withSpring(0, MECHANICAL_SPRING);
-      } else if (isQuickSwipeUp || (isPastThreshold && !isQuickSwipeDown)) {
+        return;
+      } 
+      
+      // 用户在顶层与底层之间切换
+      if (isQuickSwipeUp || ( translateY.value < thresholdToPortal && !isQuickSwipeDown)) {
         translateY.value = withSpring(-SCREEN_HEIGHT, MECHANICAL_SPRING);
+      } else if ( isQuickSwipeDown || (translateY.value > thresholdBackToHome)){
+        translateY.value = withSpring(0, MECHANICAL_SPRING);
       } else {
         translateY.value = withSpring(0, MECHANICAL_SPRING);
       }
-
-      // if (isQuickSwipeUp || (isPastThreshold && !isQuickSwipeDown)) {
-      //   // 锁定到顶部 (显示功能区)
-      //   translateY.value = withSpring(-SCREEN_HEIGHT, MECHANICAL_SPRING);
-      // } else {
-      //   // 回弹到初始位 (显示首页)
-      //   translateY.value = withSpring(0, MECHANICAL_SPRING);
-      // }
     })
 
     .onFinalize(() => {
@@ -107,19 +132,19 @@ export default function HomeScreen({ onDrawerStateChange }: HomeScreenProps) {
   const homeStyle = useAnimatedStyle(() => ({ 
     transform: [
       { translateY: translateY.value < 0 ? translateY.value : 0 },
-      { scale: interpolate(
-        translateY.value, 
-        [-SCREEN_HEIGHT, 0], 
-        [1, 1],   // 上滑缩放
-        Extrapolation.CLAMP
-      ) 
-    }
+      // { scale: interpolate(
+      //   translateY.value, 
+      //   [-SCREEN_HEIGHT, 0], 
+      //   [1, 1],   // 上滑缩放
+      //   Extrapolation.CLAMP
+      // )}
+      { scale: 1 }
     ],
     // 下拉时不改变透明度
     opacity: interpolate(
       translateY.value, 
-      [-SCREEN_HEIGHT, 0], 
-      [0, 1], 
+      [-SCREEN_HEIGHT, -SCREEN_HEIGHT * 0.5, 0], 
+      [0, 1, 1], 
       Extrapolation.CLAMP
     )
     
@@ -127,14 +152,21 @@ export default function HomeScreen({ onDrawerStateChange }: HomeScreenProps) {
 
   // 功能区动画
   const portalStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value + SCREEN_HEIGHT }],
+    // transform: [{ translateY: translateY.value + SCREEN_HEIGHT }],
+    transform: [{ 
+    translateY: interpolate(
+      translateY.value,
+      [-SCREEN_HEIGHT, 0],
+      [0, SCREEN_HEIGHT * 0.8], // 初始位置只下沉 80%，产生交叠感，减少空白
+      Extrapolation.CLAMP
+    )
+  }],
   }));
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <GestureDetector gesture={gesture}>
         <Animated.View style={[styles.container, { backgroundColor: bgColor }]}>
-
           {/* 底层：功能区 */}
           <Animated.View style={[styles.layer, styles.portalLayer, portalStyle, { backgroundColor: bgColor }]}>
             {/* 下拉指示条 /测试/ */}
@@ -161,16 +193,13 @@ export default function HomeScreen({ onDrawerStateChange }: HomeScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F7', // 浅灰背景
+    backgroundColor: '#F5F5F7',
   },
   layer: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
   },
   homeLayer: {
-    backgroundColor: '#FFFFFF', 
+    backgroundColor: 'transparent', 
   },
   portalLayer: {
     backgroundColor: '#F5F5F7',
