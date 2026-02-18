@@ -70,7 +70,7 @@ export default function MainLayout() {
         </View>
         <View key="2">
           <View style={{flex: 1, backgroundColor: themeColors.background}}>
-            <WorkflowScreen />
+            <WorkflowScreen setPagerScrollEnabled={setPagerScrollEnabled} />
           </View>
         </View>
         <View key="3">
