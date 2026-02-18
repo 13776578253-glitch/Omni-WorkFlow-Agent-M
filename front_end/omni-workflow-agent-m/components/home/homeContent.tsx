@@ -9,6 +9,7 @@ import { useThemeContext } from '@/constants/Theme-Context';
 
 const { width, height, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+// 测试图片 / 待修改
 const LIGHT_BG = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop';
 const DARK_BG = 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2564&auto=format&fit=crop'; 
 
@@ -48,7 +49,6 @@ export function HomeContent({ translateY }: HomeContentProps) {
     <View style={styles.container}>
 
       {/* 背景层 */}
-      {/* 容器 top: -100 负边距 确保图片不会露底。 */}
       <View style={styles.backgroundContainer}>
         <Animated.Image
           source={{ uri: effectiveColorScheme === 'dark' ? DARK_BG : LIGHT_BG }}  //根据主题 动态改变背景
