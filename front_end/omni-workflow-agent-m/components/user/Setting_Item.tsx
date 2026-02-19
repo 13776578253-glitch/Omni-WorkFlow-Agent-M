@@ -20,8 +20,9 @@ export function SettingItem({ icon, title, value, isDestructive, hasArrow = true
   // const textColor = useThemeColor({}, 'text');
   const iconColor = useThemeColor({}, 'icon');
   const borderColor = useThemeColor({}, 'border');
-  const tintColor = '#519cd9';  // 蓝色
-  const isPressable = !!onPress;  // 判断是否可点击
+  const tintColor = '#519cd9';                   // 蓝色
+  const isPressable = !!onPress;                   // 判断是否可点击
+  const chevronColor = useThemeColor({}, 'icon');  // 定义箭头图标 变量
   
   return (
     <TouchableOpacity 
@@ -31,12 +32,14 @@ export function SettingItem({ icon, title, value, isDestructive, hasArrow = true
       activeOpacity={isPressable ? 0.7 : 1}
     >
       <View style={styles.itemLeft}>
-        <Ionicons 
-          name={icon} 
-          size={22} 
-          color={isDestructive ? '#ff453a' : iconColor}           // 危险操作 红色
-          style={styles.itemIcon} 
-        />
+        {icon && (
+          <Ionicons 
+            name={icon} 
+            size={22} 
+            color={isDestructive ? '#ff453a' : iconColor}          // 危险操作 红色
+            style={styles.itemIcon} 
+          />
+        )}
         <ThemedText style={[
             styles.itemTitle, 
             isDestructive && { color: '#ff453a' },
@@ -56,7 +59,7 @@ export function SettingItem({ icon, title, value, isDestructive, hasArrow = true
           <ThemedText style={styles.itemValue}>{value}</ThemedText>
         )} */}
         {hasArrow && (
-          <Ionicons name="chevron-forward" size={20} color={useThemeColor({}, 'icon')} style={{ opacity: 0.5 }} />
+          <Ionicons name="chevron-forward" size={20} color={chevronColor} style={{ opacity: 0.5 }} />
         )}
       </View>
     </TouchableOpacity>

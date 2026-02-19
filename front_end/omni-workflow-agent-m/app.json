@@ -20,7 +20,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "softwareKeyboardLayoutMode": "pan",   //测试 / 
+      "softwareKeyboardLayoutMode": "resize",
       "package": "com.cpqy.omniworkflowagentm"
     },
     "web": {
@@ -55,3 +55,4 @@
     "owner": "cpqy"
   }
 }
+

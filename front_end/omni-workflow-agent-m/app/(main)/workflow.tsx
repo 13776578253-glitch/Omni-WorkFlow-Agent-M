@@ -1,42 +1,33 @@
 import React, { useState, useEffect} from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  TextInput, 
-  TouchableOpacity, 
-  Platform, 
-  TouchableWithoutFeedback, 
-  Keyboard, 
-  KeyboardAvoidingView
-} from 'react-native';
+import { StyleSheet, View, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { ThemedText } from '@/components/themed-text';
 
 interface WorkflowScreenProps {
   setPagerScrollEnabled: (enabled: boolean) => void;
 }
 
-Keyboard.addListener('keyboardDidShow', (e) => {
-  console.log(e.endCoordinates.height);
-});
-
 export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreenProps) {
   const [inputText, setInputText] = useState("");
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const insets = useSafeAreaInsets();  // 获取设备安全区信息
 
   const bgColor = useThemeColor({}, "background");
   const cardColor = useThemeColor({}, "card");
   const textColor = useThemeColor({}, "text");
-  const tintColor = useThemeColor({}, "tint");
 
+  // 监听 键盘显隐事件/控制滑动/记录键盘高度
   useEffect(() => {
-    const showSub = Keyboard.addListener('keyboardDidShow', () => {
+    const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
       setPagerScrollEnabled(false);
+      setKeyboardHeight(e.endCoordinates.height);
     });
 
     const hideSub = Keyboard.addListener('keyboardDidHide', () => {
       setPagerScrollEnabled(true);
+      setKeyboardHeight(0);
     });
 
     return () => {
@@ -57,6 +48,10 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
             styles.inputContainer,
             {
               backgroundColor: cardColor, 
+              marginBottom:
+                insets.bottom +
+                16 +
+                (Platform.OS === 'android' ? Math.max(0, keyboardHeight - insets.bottom) : 0),
             },
           ]}
         >
@@ -93,14 +88,11 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
 
 const styles = StyleSheet.create({
   inputContainer: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 16,
+    marginHorizontal: 16,
     borderRadius: 28,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    elevation: 4, // Android 阴影
+    elevation: 4, 
   },
   input: {
     fontSize: 16,
