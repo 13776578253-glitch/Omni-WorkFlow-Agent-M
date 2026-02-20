@@ -1,6 +1,6 @@
 // workflow 类型定义
 
-// 展示模式 ：welcome（首次进入）、recording（录音中）、document（文档编辑）
+// 展示模式 ：welcome（首次进入）、recording（录音转写）、document（文档编辑）
 export type WorkflowMode = 'welcome' | 'recording' | 'document';
 
 // 块类型与内容

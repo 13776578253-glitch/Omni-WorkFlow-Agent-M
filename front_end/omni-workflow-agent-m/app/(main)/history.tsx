@@ -1,8 +1,9 @@
-// app/history.tsx
-import { useThemeContext } from '@/constants/Theme-Context';
-import { Colors } from '@/constants/theme';
+// app/(main)/history.tsx
 import React from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
+
+import { useThemeContext } from '@/constants/Theme-Context';
+import { Colors } from '@/constants/theme';
 
 export default function HistoryScreen() {
   const { effectiveColorScheme } = useThemeContext();

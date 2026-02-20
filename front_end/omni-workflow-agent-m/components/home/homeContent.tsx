@@ -1,11 +1,10 @@
 // homeContent.tsx
 import React from 'react';
-import { StyleSheet, View, Dimensions } from 'react-native';
-import Animated, { useAnimatedStyle, interpolate, Extrapolation, SharedValue } from 'react-native-reanimated';
+import { Dimensions, StyleSheet, View } from 'react-native';
+import Animated, { Extrapolation, interpolate, SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 
-import { ThemedText } from '@/components/themed-text';
-import { useThemeColor } from '@/hooks/use-theme-color';
 import { useThemeContext } from '@/constants/Theme-Context';
+import { useThemeColor } from '@/hooks/use-theme-color';
 
 const { width, height, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -68,18 +67,18 @@ export function HomeContent({ translateY }: HomeContentProps) {
 
 const styles = StyleSheet.create({
   container: {
-    width: width, // 强制撑满屏幕尺寸，无视父容器对齐
+    width: width,                   // 强制撑满屏幕尺寸，无视父容器对齐
     height: height, 
     position: 'relative',
     backgroundColor: 'transparent', // 确保自身透明
   },
   backgroundContainer: {
     position: 'absolute',
-    top: -100, // 向上延伸，防止下拉露白
+    top: -100,                      // 向上延伸，防止下拉露白
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: -1, // 放在最底层
+    zIndex: -1,                     // 放在最底层
   },
   backgroundImage: {
     width: '100%',
@@ -89,7 +88,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     width: width,
-    height: height * 0.22, // 高度
+    height: height * 0.22,          // 高度
     borderTopLeftRadius: 36,
     borderTopRightRadius: 36,
     shadowColor: '#000',

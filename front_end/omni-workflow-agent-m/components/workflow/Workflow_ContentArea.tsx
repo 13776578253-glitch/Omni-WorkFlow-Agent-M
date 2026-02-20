@@ -68,9 +68,10 @@ export function WorkflowContentArea() {
 
 const styles = StyleSheet.create({
   content: {
+    paddingTop:104,        // 顶部补偿
     paddingHorizontal: 12,
     paddingVertical: 10,
-    paddingBottom: 20,
+    paddingBottom: 180,
   },
   row: {
     width: '100%',

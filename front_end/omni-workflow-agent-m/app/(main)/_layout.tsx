@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'; 
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, Platform, StyleSheet, View } from 'react-native';
 import PagerView from 'react-native-pager-view';
 import { useSharedValue } from 'react-native-reanimated';
@@ -23,6 +23,8 @@ export default function MainLayout() {
 
   // 控制 PagerView 是否允许滑动
   const [pagerScrollEnabled, setPagerScrollEnabled] = useState(true);
+  const [activeTabIndex, setActiveTabIndex] = useState(1);
+  const ENABLE_PAGER_SWIPE = false;
 
   // 初始化导航栏位移补偿相关变量
   const topNavRef = useRef<any>(null);                           //  导航栏引用，用于测量位置
@@ -105,9 +107,16 @@ export default function MainLayout() {
   // 处理 PagerView 页面切换事件
   const onPageSelected = useCallback((e: any) => {
     const index = e.nativeEvent.position;
+    setActiveTabIndex(index);
     if (index !== 0) {
       setPagerScrollEnabled(true);
     }
+  }, []);
+
+  // 定义缓存化的回调函数  / 处理 tab 点击
+  const handleTabPress = useCallback((index: number) => {
+    setActiveTabIndex(index);
+    pagerRef.current?.setPage(index);
   }, []);
 
   const tabs = [
@@ -121,14 +130,14 @@ export default function MainLayout() {
       <PagerView
         ref={pagerRef}
         style={styles.pager}
-        scrollEnabled={pagerScrollEnabled}
+        scrollEnabled={ENABLE_PAGER_SWIPE && pagerScrollEnabled}
         onPageSelected={onPageSelected}
-        onPageScroll={(e) => {
-          'worklet';
+        onPageScroll={(e) => { 'worklet';
           scrollOffset.value = e.nativeEvent.offset;
           position.value = e.nativeEvent.position;
         }}
       >
+
         <View key="1" style={{ flex: 1, backgroundColor: themeColors.background }}>
           <HomeScreen onDrawerStateChange={handleDrawerState} />
         </View>
@@ -140,13 +149,15 @@ export default function MainLayout() {
         <View key="3" style={{ flex: 1, backgroundColor: themeColors.background }}>
           <HistoryScreen />
         </View>
+
       </PagerView>
 
       <TopNavBar
         tabs={tabs}
         scrollOffset={scrollOffset}
         position={position}
-        onTabPress={(i) => pagerRef.current?.setPage(i)}
+        onTabPress={handleTabPress}
+        activeTabIndex={activeTabIndex}
         translateYCompensation={keyboardVisible ? navCompensation : 0}
         containerRef={topNavRef}
       />

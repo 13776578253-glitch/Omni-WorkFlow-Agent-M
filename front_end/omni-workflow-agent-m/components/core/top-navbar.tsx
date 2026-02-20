@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Dimensions, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { SharedValue, interpolate, interpolateColor, useAnimatedStyle, useDerivedValue } from 'react-native-reanimated';
 
@@ -23,6 +23,7 @@ interface TopNavBarProps {
   scrollOffset: SharedValue<number>;
   position: SharedValue<number>;
   onTabPress: (index: number) => void;
+  activeTabIndex?: number;
   translateYCompensation?: number;
   containerRef?: React.Ref<any>;
 }
@@ -56,7 +57,15 @@ const AnimatedTabItem = ({ index, tab, isDark, activeColor, progress, onPress }:
   );
 };
 
-export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress, translateYCompensation = 0, containerRef }: TopNavBarProps) => {
+export const TopNavBar = ({
+  tabs,
+  scrollOffset,
+  position,
+  onTabPress,
+  activeTabIndex = 1,
+  translateYCompensation = 0,
+  containerRef,
+}: TopNavBarProps) => {
   // const LOG_TAG = '[KB-Compensate-TopNav]';
   const router = useRouter();
 
@@ -65,6 +74,8 @@ export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress, translateY
   const themeColors = Colors[effectiveColorScheme];
 
   const progress = useDerivedValue(() => position.value + scrollOffset.value);
+  const isHomeActive = activeTabIndex === 0;
+  const isHistoryActive = activeTabIndex === 2;
   const navWidth = width * 0.7;  // 定义 Tab 区域的总宽度
 
   const tabsContainerStyle = useAnimatedStyle(() => {
@@ -109,11 +120,30 @@ export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress, translateY
       ref={containerRef}
       style={[styles.wrapper, { transform: [{ translateY: translateYCompensation }] }]}
     >
-      <BlurView intensity={80} tint={isDark ? 'dark' : 'light'} style={styles.container}>
+      <BlurView
+        intensity={isHomeActive ? 0 : 80}
+        tint={isDark ? 'dark' : 'light'}
+        style={[styles.container, isHomeActive && styles.transparentContainer]}
+      >
         <View style={styles.safeContent}>
-          <View style={styles.iconButton}>
-            <SymbolView name="magnifyingglass" size={20} tintColor={themeColors.text} />
-          </View>
+          {isHistoryActive ? (
+            <TouchableOpacity
+              style={[styles.iconButton, styles.leftIconButton]}
+              onPress={() => onTabPress(1)}
+              activeOpacity={0.7}
+            >
+              <SymbolView
+                name="chevron.left"
+                size={20}
+                tintColor={themeColors.text}
+                fallback={<Ionicons name="chevron-back" size={22} color={themeColors.text} />}
+              />
+            </TouchableOpacity>
+          ) : (
+            <View style={[styles.iconButton, styles.leftIconButton]}>
+              <SymbolView name="magnifyingglass" size={20} tintColor={themeColors.text} />
+            </View>
+          )}
 
           <View style={styles.navWrapper}>
             <Animated.View style={[styles.tabsRow, { width: navWidth }, tabsContainerStyle]}>
@@ -147,7 +177,11 @@ export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress, translateY
             </Animated.View>
           </View>
 
-          <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/user' as any)} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={[styles.iconButton, styles.rightIconButton]}
+            onPress={() => router.push('/user' as any)}
+            activeOpacity={0.7}
+          >
             <SymbolView
               name="line.3.horizontal"
               size={22}
@@ -172,6 +206,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: 44,
+  },
+  transparentContainer: {
+    backgroundColor: 'transparent',
   },
   safeContent: {
     flex: 1,
@@ -213,6 +250,11 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  leftIconButton: {
+    marginRight: 13,
+  },
+  rightIconButton: {
     marginRight: 13,
   },
   searchContainer: {

@@ -1,13 +1,9 @@
 // 全局根布局
 // app/_layout.tsx (最外层)
-// app/_layout.tsx
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider as NavigationThemeProvider,
-} from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { StyleSheet, View } from 'react-native';
+
+import { Stack } from 'expo-router';
 
 import { ThemeProvider, useThemeContext } from '@/constants/Theme-Context';
 import { Colors } from '@/constants/theme';
@@ -48,6 +44,6 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, // 撑满全屏
+    flex: 1,   // 撑满全屏
   },
 });
