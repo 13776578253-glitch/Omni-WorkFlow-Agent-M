@@ -1,14 +1,13 @@
-// 快捷操作模块
-import React from 'react';
+﻿import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { Ionicons } from '@expo/vector-icons';
 
 const QUICK_ACTIONS = [
-  { key: 'ppt', label: '生成 PPT', icon: 'document-text-outline' as const },
-  { key: 'share', label: '分享', icon: 'share-outline' as const },
-  { key: 'translate', label: '翻译', icon: 'language-outline' as const },
+  { key: 'ai_ppt', label: 'AI ppt', icon: 'document-text-outline' as const },
+  { key: 'upload_audio', label: '上传录音', icon: 'mic-outline' as const },
+  { key: 'translate_secondary', label: '翻译', icon: 'language-outline' as const },
 ] as const;
 
 export type QuickActionKey = (typeof QUICK_ACTIONS)[number]['key'];
@@ -52,7 +51,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    elevation: 1,  // 每个快捷项单独阴影，偏轻
+    elevation: 1,
     shadowColor: '#7A7A7A',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,

@@ -8,12 +8,14 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 interface WorkflowInputBarProps {
   value: string;
   onChangeText: (text: string) => void;
+  onSubmit?: () => void;
   containerStyle?: ViewStyle;
 }
 
 export function WorkflowInputBar({
   value,
   onChangeText,
+  onSubmit,
   containerStyle,
 }: WorkflowInputBarProps) {
   const cardColor = useThemeColor({}, 'card');
@@ -40,6 +42,9 @@ export function WorkflowInputBar({
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconCircle}>
             <Ionicons name="mic-outline" size={24} color={textColor} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconCircle} onPress={onSubmit}>
+            <Ionicons name="send" size={18} color={textColor} />
           </TouchableOpacity>
         </View>
       </View>

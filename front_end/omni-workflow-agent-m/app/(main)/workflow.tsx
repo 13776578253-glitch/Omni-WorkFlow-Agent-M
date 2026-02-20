@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Keyboard, Platform, TouchableWithoutFeedback, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { WorkflowInputBar } from '@/components/workflow/WorkflowInputBar';
-import { WorkflowQuickActions } from '@/components/workflow/WorkflowQuickActions';
+import { WorkflowInputBar } from '@/components/workflow/Workflow_InputBar';
+import { WorkflowQuickActions } from '@/components/workflow/Workflow_QuickActions';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 interface WorkflowScreenProps {
@@ -17,7 +17,6 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
 
   const bgColor = useThemeColor({}, 'background');
 
-  // 监听 键盘显隐事件/控制滑动/记录键盘高度
   useEffect(() => {
     const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
       setPagerScrollEnabled(false);
@@ -35,25 +34,22 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
     };
   }, [setPagerScrollEnabled]);
 
-  const inputBarMarginBottom = insets.bottom + 20 + (Platform.OS === 'android' ? Math.max(0, keyboardHeight - insets.bottom) : 0);
+  const inputBarMarginBottom =
+    insets.bottom +
+    20 +
+    (Platform.OS === 'android' ? Math.max(0, keyboardHeight - insets.bottom) : 0);
 
   return (
     <View style={{ flex: 1, backgroundColor: bgColor }}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-
-          {/* 内容区 */}
-          
-          {/* 快捷操作模块 */}
           <WorkflowQuickActions />
 
-          {/* 底部输入区 */}
           <WorkflowInputBar
             value={inputText}
             onChangeText={setInputText}
             containerStyle={{ marginBottom: inputBarMarginBottom }}
           />
-
         </View>
       </TouchableWithoutFeedback>
     </View>
