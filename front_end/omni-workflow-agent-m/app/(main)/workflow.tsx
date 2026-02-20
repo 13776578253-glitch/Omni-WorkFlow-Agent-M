@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Keyboard, Platform, TouchableWithoutFeedback, View } from 'react-native';
+import { Keyboard, Platform, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { WorkflowContentArea } from '@/components/workflow/Workflow_ContentArea';
 import { WorkflowInputBar } from '@/components/workflow/Workflow_InputBar';
 import { WorkflowQuickActions } from '@/components/workflow/Workflow_QuickActions';
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -41,17 +42,20 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
 
   return (
     <View style={{ flex: 1, backgroundColor: bgColor }}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+      <View style={{ flex: 1 }}>
+        <WorkflowContentArea />
+
+        <View>
           <WorkflowQuickActions />
 
           <WorkflowInputBar
             value={inputText}
             onChangeText={setInputText}
+            onSubmit={() => setInputText('')}
             containerStyle={{ marginBottom: inputBarMarginBottom }}
           />
         </View>
-      </TouchableWithoutFeedback>
+      </View>
     </View>
   );
 }
