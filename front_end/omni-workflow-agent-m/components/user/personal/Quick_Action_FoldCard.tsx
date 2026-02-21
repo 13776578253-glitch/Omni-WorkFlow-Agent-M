@@ -5,61 +5,77 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 
+// 提取 TextInput onFocus回调类型
+type InputFocusHandler = React.ComponentProps<typeof TextInput>['onFocus'];
+
+// 定义 组件接收参数 类型
 interface QuickActionFoldCardProps {
-  title: string;
-  defaultTitle: string;
+  title: string;           
+  defaultTitle: string;               // 名称 默认值 (占位符)
   prompt: string;
-  promptMaxLength: number;
-  expanded: boolean;
+  promptMaxLength: number;            // 字数限制
+  expanded: boolean;                  // 展开
   textColor: string;
   cardColor: string;
   onToggle: () => void;
   onDelete: () => void;
   onChangeTitle: (value: string) => void;
   onChangePrompt: (value: string) => void;
+  onFocusTitle?: InputFocusHandler;   // 输入聚焦 / 回调 (可选)
+  onFocusPrompt?: InputFocusHandler;  // 同上
 }
 
-export function QuickActionFoldCard({
-  title,
-  defaultTitle,
-  prompt,
-  promptMaxLength,
-  expanded,
-  textColor,
+export function QuickActionFoldCard({ 
+  title, 
+  defaultTitle, 
+  prompt, 
+  promptMaxLength, 
+  expanded, 
+  textColor, 
   cardColor,
-  onToggle,
-  onDelete,
-  onChangeTitle,
-  onChangePrompt,
+  onToggle, 
+  onDelete, 
+  onChangeTitle, 
+  onChangePrompt, 
+  onFocusTitle, 
+  onFocusPrompt 
 }: QuickActionFoldCardProps) {
   return (
-    <View style={[styles.card, { backgroundColor: cardColor }]}>
+    <View style={[styles.card, { backgroundColor: cardColor }]}> 
+      {/* 卡片预览 */}
       <View style={styles.header}>
+         {/* 指令名称 输入框 */}
         <TextInput
           value={title}
           onChangeText={onChangeTitle}
+          onFocus={onFocusTitle}
           style={[styles.headerTitleInput, { color: textColor }]}
           placeholder={defaultTitle}
           placeholderTextColor={textColor + '66'}
         />
-
         <View style={styles.headerActions}>
+          {/* 折叠/展开 */}
           <TouchableOpacity onPress={onToggle} style={styles.actionButton} activeOpacity={0.75}>
             <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={textColor + 'AA'} />
           </TouchableOpacity>
+          {/* 删除按钮 */}
           <TouchableOpacity onPress={onDelete} style={styles.deleteButton} activeOpacity={0.75}>
             <Ionicons name="trash-outline" size={15} color="#ff453a" />
           </TouchableOpacity>
         </View>
       </View>
 
+      {/* 卡片主题 / 展开时渲染 */}
       {expanded ? (
         <View style={styles.body}>
+          {/* 指令标签 */}
           <ThemedText style={[styles.editorLabel, { color: textColor + '88' }]}>预设指令</ThemedText>
+          {/* 输入框 */}
           <View style={styles.promptWrap}>
             <TextInput
               value={prompt}
               onChangeText={onChangePrompt}
+              onFocus={onFocusPrompt}
               multiline
               maxLength={promptMaxLength}
               style={[styles.promptInput, { color: textColor }]}

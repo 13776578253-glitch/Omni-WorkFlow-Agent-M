@@ -1,10 +1,11 @@
 ﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { KeyboardAwareScroll } from '@/components/user/personal/Keyboard_Aware_Scroll';
 import { QuickActionFoldCard } from '@/components/user/personal/Quick_Action_FoldCard';
 import { SettingItem } from '@/components/user/Setting_Item';
 import { SettingSection } from '@/components/user/Setting_section';
@@ -16,6 +17,8 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 
 // 测试 / 后端对接
 const STORAGE_KEY = '@omni_workflow_user_data_v1';
+
+// 字数限制
 const MAX_PROMPT_LENGTH = 200;
 const MAX_QUICK_PROMPT_LENGTH = 50;
 const MAX_MEMORY_CONTENT_LENGTH = 500;
@@ -209,7 +212,10 @@ export default function UserDataScreen() {
 
   return (
     <ThemedView style={[styles.container, { backgroundColor }]}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      {/* 键盘聚焦 处理 */}
+      <KeyboardAwareScroll contentContainerStyle={styles.content}>
+        {({ onInputFocus }) => (
+          <>
 
         {/* 预设 */}
         <View style={styles.sectionCompact}>
@@ -234,6 +240,7 @@ export default function UserDataScreen() {
               <TextInput
                 value={activePresetPrompt}
                 onChangeText={(value) => setPresetPrompt(state.presetMode, value)}
+                onFocus={onInputFocus}   // 聚焦
                 multiline
                 style={[styles.multilineInput, { color: textColor }]}
                 placeholder="为当前模式填写专属指令"
@@ -268,6 +275,8 @@ export default function UserDataScreen() {
                   onDelete={() => handleDeleteQuick(item.key)}
                   onChangeTitle={(value) => setQuickName(item.key, value)}
                   onChangePrompt={(value) => setQuickPrompt(item.key, value)}
+                  onFocusTitle={onInputFocus}    // 聚焦 标题
+                  onFocusPrompt={onInputFocus}   // 聚焦 文本
                 />
               ))}
             </View>
@@ -286,6 +295,7 @@ export default function UserDataScreen() {
                   if (countPromptUnits(value) > MAX_MEMORY_CONTENT_LENGTH) return;
                   setState((prev) => ({ ...prev, memoryContent: value }));
                 }}
+                onFocus={onInputFocus}   // 聚焦
                 multiline
                 style={[styles.memoryInput, { color: textColor }]}
                 placeholder="填写需要长期保留的偏好、约束和背景"
@@ -310,7 +320,9 @@ export default function UserDataScreen() {
           <ThemedText style={styles.saveText}>{loaded ? '保存个性化数据' : '正在加载...'}</ThemedText>
         </TouchableOpacity>
         
-      </ScrollView>
+          </>
+        )}
+      </KeyboardAwareScroll>
     </ThemedView>
   );
 }
@@ -417,4 +429,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
 
