@@ -9,6 +9,7 @@ interface QuickActionFoldCardProps {
   title: string;
   defaultTitle: string;
   prompt: string;
+  promptMaxLength: number;
   expanded: boolean;
   textColor: string;
   cardColor: string;
@@ -22,6 +23,7 @@ export function QuickActionFoldCard({
   title,
   defaultTitle,
   prompt,
+  promptMaxLength,
   expanded,
   textColor,
   cardColor,
@@ -59,6 +61,7 @@ export function QuickActionFoldCard({
               value={prompt}
               onChangeText={onChangePrompt}
               multiline
+              maxLength={promptMaxLength}
               style={[styles.promptInput, { color: textColor }]}
               placeholder="输入该快捷位的预设指令"
               placeholderTextColor={textColor + '66'}

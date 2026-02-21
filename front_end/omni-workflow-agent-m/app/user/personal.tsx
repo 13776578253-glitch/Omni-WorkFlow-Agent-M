@@ -17,6 +17,8 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 // 测试 / 后端对接
 const STORAGE_KEY = '@omni_workflow_user_data_v1';
 const MAX_PROMPT_LENGTH = 200;
+const MAX_QUICK_PROMPT_LENGTH = 50;
+const MAX_MEMORY_CONTENT_LENGTH = 500;
 
 // 有效字数 统计
 function countPromptUnits(text: string): number {
@@ -25,8 +27,8 @@ function countPromptUnits(text: string): number {
   return chineseCount + englishWordCount;
 }
 
-function isPromptOverLimit(text: string): boolean {
-  return countPromptUnits(text) > MAX_PROMPT_LENGTH;
+function isPromptOverLimit(text: string, limit: number): boolean {
+  return countPromptUnits(text) > limit;
 }
 
 // 预设内容 / 待拆分
@@ -126,6 +128,7 @@ export default function UserDataScreen() {
 
   // 快捷指令 Promote 更新
   const setQuickPrompt = useCallback((key: keyof QuickActionPrompts, value: string) => {
+    if (countPromptUnits(value) > MAX_QUICK_PROMPT_LENGTH) return;
     setState((prev) => ({
       ...prev,
       quickActionPrompts: {
@@ -180,10 +183,13 @@ export default function UserDataScreen() {
 
   // 保存
   const handleSave = useCallback(async () => {
-    const hasPresetOverflow = Object.values(state.presetPrompts).some((text) => isPromptOverLimit(text));
-    const hasQuickOverflow = Object.values(state.quickActionPrompts).some((text) => isPromptOverLimit(text));
+    const hasPresetOverflow = Object.values(state.presetPrompts).some((text) => isPromptOverLimit(text, MAX_PROMPT_LENGTH));
+    const hasQuickOverflow = Object.values(state.quickActionPrompts).some((text) =>
+      isPromptOverLimit(text, MAX_QUICK_PROMPT_LENGTH)
+    );
+    const hasMemoryOverflow = isPromptOverLimit(state.memoryContent, MAX_MEMORY_CONTENT_LENGTH);
 
-    if (hasPresetOverflow || hasQuickOverflow) {
+    if (hasPresetOverflow || hasQuickOverflow || hasMemoryOverflow) {
       Alert.alert('保存失败', `存在超过 ${MAX_PROMPT_LENGTH} 的有效字数（汉字+英文单词）指令，请先调整后再保存。`);
       return;
     }
@@ -199,6 +205,7 @@ export default function UserDataScreen() {
   // 当前激活 指令/字数
   const activePresetPrompt = state.presetPrompts[state.presetMode];
   const activePresetLength = countPromptUnits(activePresetPrompt);
+  const memoryContentLength = countPromptUnits(state.memoryContent);
 
   return (
     <ThemedView style={[styles.container, { backgroundColor }]}>
@@ -253,6 +260,7 @@ export default function UserDataScreen() {
                   title={state.quickActionNames[item.key]}
                   defaultTitle={item.defaultLabel}
                   prompt={state.quickActionPrompts[item.key]}
+                  promptMaxLength={MAX_QUICK_PROMPT_LENGTH}
                   expanded={expandedQuickActions[item.key]}
                   textColor={textColor}
                   cardColor={cardColor}
@@ -268,31 +276,25 @@ export default function UserDataScreen() {
 
         {/* 记忆 */}
         {/* 待修改 */}
-        <View style={styles.sectionCompact}>
+        <View style={[styles.sectionCompact, styles.memorySectionGap]}>
           <SettingSection title="记忆">
-            <View style={[styles.sectionCardBody, { backgroundColor: cardColor }]}>
-              <View style={[styles.memoryBlock, { borderBottomColor: borderColor }]}>
-                <ThemedText style={styles.quickLabel}>记忆提示词</ThemedText>
-                <TextInput
-                  value={state.memoryPrompt}
-                  onChangeText={(value) => setState((prev) => ({ ...prev, memoryPrompt: value }))}
-                  multiline
-                  style={[styles.quickInput, { color: textColor }]}
-                  placeholder="定义长期记忆前缀提示"
-                  placeholderTextColor={textColor + '66'}
-                />
-              </View>
-
-              <View style={styles.memoryBlock}>
-                <ThemedText style={styles.quickLabel}>长期记忆内容</ThemedText>
-                <TextInput
-                  value={state.memoryContent}
-                  onChangeText={(value) => setState((prev) => ({ ...prev, memoryContent: value }))}
-                  multiline
-                  style={[styles.memoryInput, { color: textColor }]}
-                  placeholder="填写需要长期保留的偏好、约束和背景"
-                  placeholderTextColor={textColor + '66'}
-                />
+            <View style={[styles.editorCard, { backgroundColor: cardColor }]}>
+              <ThemedText style={styles.quickLabel}>长期记忆内容</ThemedText>
+              <TextInput
+                value={state.memoryContent}
+                onChangeText={(value) => {
+                  if (countPromptUnits(value) > MAX_MEMORY_CONTENT_LENGTH) return;
+                  setState((prev) => ({ ...prev, memoryContent: value }));
+                }}
+                multiline
+                style={[styles.memoryInput, { color: textColor }]}
+                placeholder="填写需要长期保留的偏好、约束和背景"
+                placeholderTextColor={textColor + '66'}
+              />
+              <View style={styles.lengthDetector}>
+                <ThemedText style={[styles.lengthText, memoryContentLength > MAX_MEMORY_CONTENT_LENGTH && styles.lengthTextOver]}>
+                  {memoryContentLength}/{MAX_MEMORY_CONTENT_LENGTH}
+                </ThemedText>
               </View>
             </View>
           </SettingSection>
@@ -324,6 +326,9 @@ const styles = StyleSheet.create({
   },
   sectionCompact: {
     marginBottom: -12,
+  },
+  memorySectionGap: {
+    marginTop: 20,
   },
   presetInstructionLinked: {
     marginTop: -14,
@@ -395,6 +400,12 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     textAlignVertical: 'top',
   },
+  memoryGuide: {
+    fontSize: 12,
+    opacity: 0.6,
+    marginBottom: 8,
+    marginTop: -4,
+  },
   saveButton: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 12,
@@ -406,3 +417,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
