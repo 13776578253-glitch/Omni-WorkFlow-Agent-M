@@ -5,10 +5,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { QuickActionFoldCard } from '@/components/user/personal/Quick_Action_FoldCard';
 import { SettingItem } from '@/components/user/Setting_Item';
 import { SettingSection } from '@/components/user/Setting_section';
 import { QUICK_ACTIONS } from '@/components/workflow/Workflow_QuickActions';
-import { QuickActionFoldCard } from '@/components/ui/QuickActionFoldCard';
 
 import type { PresetMode, QuickActionNames, QuickActionPrompts, UserDataState } from '@/constants/type';
 
@@ -18,6 +18,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 const STORAGE_KEY = '@omni_workflow_user_data_v1';
 const MAX_PROMPT_LENGTH = 200;
 
+// 有效字数 统计
 function countPromptUnits(text: string): number {
   const chineseCount = (text.match(/[\u4E00-\u9FFF]/g) ?? []).length;
   const englishWordCount = (text.match(/[A-Za-z]+(?:'[A-Za-z]+)?/g) ?? []).length;
@@ -36,11 +37,12 @@ const DEFAULT_STATE: UserDataState = {
     concise: '请输出简洁版本，先结论后要点，尽量控制在 3-5 条。',
     formal: '请使用正式、专业、可复用的表达，输出分段清晰的结果。',
   },
+  // 测试内容 / 逻辑待确认
   quickActionNames: {
     ai_ppt: QUICK_ACTIONS.find((item) => item.key === 'ai_ppt')?.label ?? 'AI ppt',
     upload_audio: QUICK_ACTIONS.find((item) => item.key === 'upload_audio')?.label ?? '上传录音',
     translate_secondary: QUICK_ACTIONS.find((item) => item.key === 'translate_secondary')?.label ?? '翻译',
-    slot_4: '预留快捷位 4',
+    slot_4: '预留快捷位',
   },
   quickActionPrompts: {
     ai_ppt: '根据当前内容自动提取大纲并生成 PPT 页面结构。',
@@ -48,6 +50,7 @@ const DEFAULT_STATE: UserDataState = {
     translate_secondary: '将当前内容翻译为目标语言，并保持术语一致。',
     slot_4: '预留快捷指令（后续可绑定新功能）。',
   },
+  // 待修改
   memoryPrompt: '以下是我的长期偏好，请在后续对话中尽量遵循：',
   memoryContent: '偏好中文输出；先总结结论，再给执行步骤；尽量结构化。',
 };
@@ -66,6 +69,7 @@ export default function UserDataScreen() {
 
   const [state, setState] = useState<UserDataState>(DEFAULT_STATE);
   const [loaded, setLoaded] = useState(false);
+  // 展开 / 待修改
   const [expandedQuickActions, setExpandedQuickActions] = useState<Record<keyof QuickActionPrompts, boolean>>({
     ai_ppt: false,
     upload_audio: false,
@@ -73,7 +77,7 @@ export default function UserDataScreen() {
     slot_4: false,
   });
 
-  // 测试 / 后端对接
+  // 测试 / 后端对接 / 生命周期处理
   useEffect(() => {
     const loadState = async () => {
       try {
@@ -109,17 +113,7 @@ export default function UserDataScreen() {
     }));
   }, []);
 
-  // 快捷指令 更新
-  const setQuickPrompt = useCallback((key: keyof QuickActionPrompts, value: string) => {
-    setState((prev) => ({
-      ...prev,
-      quickActionPrompts: {
-        ...prev.quickActionPrompts,
-        [key]: value,
-      },
-    }));
-  }, []);
-
+  // 快捷指令 标题 更新
   const setQuickName = useCallback((key: keyof QuickActionNames, value: string) => {
     setState((prev) => ({
       ...prev,
@@ -130,6 +124,18 @@ export default function UserDataScreen() {
     }));
   }, []);
 
+  // 快捷指令 Promote 更新
+  const setQuickPrompt = useCallback((key: keyof QuickActionPrompts, value: string) => {
+    setState((prev) => ({
+      ...prev,
+      quickActionPrompts: {
+        ...prev.quickActionPrompts,
+        [key]: value,
+      },
+    }));
+  }, []);
+
+  // 快捷指令 清空
   const handleDeleteQuick = useCallback((key: keyof QuickActionPrompts) => {
     setState((prev) => ({
       ...prev,
@@ -144,6 +150,7 @@ export default function UserDataScreen() {
     }));
   }, []);
 
+  // 快捷指令 卡片 /展开/收起
   const toggleQuickAction = useCallback((key: keyof QuickActionPrompts) => {
     setExpandedQuickActions((prev) => ({
       ...prev,
@@ -189,13 +196,14 @@ export default function UserDataScreen() {
     }
   }, [state]);
 
-  // 当前激活 预设/指令
+  // 当前激活 指令/字数
   const activePresetPrompt = state.presetPrompts[state.presetMode];
   const activePresetLength = countPromptUnits(activePresetPrompt);
 
   return (
     <ThemedView style={[styles.container, { backgroundColor }]}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+
         {/* 预设 */}
         <View style={styles.sectionCompact}>
           <SettingSection title="预设">
@@ -214,7 +222,7 @@ export default function UserDataScreen() {
         {/* 指令 */}
         <View style={[styles.sectionCompact, styles.presetInstructionLinked]}>
           <SettingSection title="指令">
-            <View style={[styles.editorCard, { backgroundColor: cardColor, borderColor }]}>
+            <View style={[styles.editorCard, { backgroundColor: cardColor }]}>
               {/* <ThemedText style={styles.editorTitle}>当前模式指令</ThemedText> */}
               <TextInput
                 value={activePresetPrompt}
@@ -224,6 +232,7 @@ export default function UserDataScreen() {
                 placeholder="为当前模式填写专属指令"
                 placeholderTextColor={textColor + '66'}
               />
+              {/* 字数统计 */}
               <View style={styles.lengthDetector}>
                 <ThemedText style={[styles.lengthText, activePresetLength > MAX_PROMPT_LENGTH && styles.lengthTextOver]}>
                   {activePresetLength}/{MAX_PROMPT_LENGTH}
@@ -258,6 +267,7 @@ export default function UserDataScreen() {
         </View>
 
         {/* 记忆 */}
+        {/* 待修改 */}
         <View style={styles.sectionCompact}>
           <SettingSection title="记忆">
             <View style={[styles.sectionCardBody, { backgroundColor: cardColor }]}>
@@ -297,6 +307,7 @@ export default function UserDataScreen() {
         >
           <ThemedText style={styles.saveText}>{loaded ? '保存个性化数据' : '正在加载...'}</ThemedText>
         </TouchableOpacity>
+        
       </ScrollView>
     </ThemedView>
   );
@@ -319,7 +330,6 @@ const styles = StyleSheet.create({
   },
   editorCard: {
     borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
     padding: 12,
   },
   editorTitle: {
@@ -396,4 +406,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-

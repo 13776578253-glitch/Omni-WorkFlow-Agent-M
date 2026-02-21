@@ -46,7 +46,7 @@ export default function UserLayout() {
       />
 
       <Stack.Screen
-        name="data"
+        name="personal"
         options={{
           title: '个性化',
           headerStyle: { backgroundColor: themeColors.background },

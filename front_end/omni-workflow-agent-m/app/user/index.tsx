@@ -63,7 +63,7 @@ export default function UserScreen() {
           <SettingItem 
             icon="pie-chart-outline"
             title="个性化" 
-            onPress={() => router.push('/user/data')} 
+            onPress={() => router.push('/user/personal')} 
           />
         </SettingSection>
 
