@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React from 'react';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 // import { SafeAreaView } from 'react-native-safe-area-context'; // 软件头部区域 组件  // 暂时 废弃
 
 import { Ionicons } from '@expo/vector-icons';
@@ -62,8 +62,8 @@ export default function UserScreen() {
           />
           <SettingItem 
             icon="pie-chart-outline"
-            title="数据" 
-            // onPress={() => router.push('/user/auth')} 
+            title="个性化" 
+            onPress={() => router.push('/user/data')} 
           />
         </SettingSection>
 

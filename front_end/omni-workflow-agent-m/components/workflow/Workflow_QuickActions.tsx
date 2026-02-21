@@ -4,7 +4,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { Ionicons } from '@expo/vector-icons';
 
-const QUICK_ACTIONS = [
+export const QUICK_ACTIONS = [
   { key: 'ai_ppt', label: 'AI ppt', icon: 'document-text-outline' as const },
   { key: 'upload_audio', label: '上传录音', icon: 'mic-outline' as const },
   { key: 'translate_secondary', label: '翻译', icon: 'language-outline' as const },

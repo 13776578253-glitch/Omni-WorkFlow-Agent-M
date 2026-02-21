@@ -215,6 +215,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 13,
   },
   navWrapper: {
     flex: 1,
@@ -252,10 +253,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   leftIconButton: {
-    marginRight: 13,
+    marginRight: 8,
   },
   rightIconButton: {
-    marginRight: 13,
+    marginLeft: 8,
   },
   searchContainer: {
     position: 'absolute',

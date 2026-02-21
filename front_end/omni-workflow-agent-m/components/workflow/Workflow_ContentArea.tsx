@@ -1,15 +1,16 @@
 ﻿import React from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 
+import type { WorkflowMode } from '@/constants/workflow_type';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
-interface MockMessage {
+export interface WorkflowMessage {
   id: string;
   role: 'user' | 'ai';
   text: string;
 }
 
-const BASE_MOCK_DATA: MockMessage[] = [
+const BASE_MOCK_DATA: WorkflowMessage[] = [
   { id: '1', role: 'ai', text: 'Hello, I am your workflow assistant.' },
   { id: '2', role: 'user', text: 'Please summarize this meeting note.' },
   { id: '3', role: 'ai', text: 'Sure, send me the source content first.' },
@@ -20,21 +21,35 @@ const BASE_MOCK_DATA: MockMessage[] = [
   { id: '8', role: 'ai', text: 'Short version: progress is on track, review next week.' },
 ];
 
-const MOCK_DATA: MockMessage[] = Array.from({ length: 8 }).flatMap((_, round) =>
+export const DEFAULT_WORKFLOW_MESSAGES: WorkflowMessage[] = Array.from({ length: 8 }).flatMap((_, round) =>
   BASE_MOCK_DATA.map((item) => ({
     ...item,
     id: `${round + 1}-${item.id}`,
   }))
 );
 
-export function WorkflowContentArea() {
+interface WorkflowContentAreaProps {
+  mode: WorkflowMode;
+  messages?: WorkflowMessage[];
+}
+
+export function WorkflowContentArea({ mode, messages = DEFAULT_WORKFLOW_MESSAGES }: WorkflowContentAreaProps) {
   const cardColor = useThemeColor({}, 'card');
   const textColor = useThemeColor({}, 'text');
   const bgColor = useThemeColor({}, 'background');
 
+  if (mode === 'welcome') {
+    return (
+      <View style={[styles.welcomeContainer, { backgroundColor: bgColor }]}>
+        <Text style={[styles.welcomeTitle, { color: textColor }]}>欢迎来到工作流</Text>
+        <Text style={[styles.welcomeDesc, { color: textColor + 'AA' }]}>输入内容后将进入文档或录音模式。</Text>
+      </View>
+    );
+  }
+
   return (
     <FlatList
-      data={MOCK_DATA}
+      data={messages}
       keyExtractor={(item) => item.id}
       style={{ flex: 1, backgroundColor: bgColor }}
       contentContainerStyle={styles.content}
@@ -67,8 +82,24 @@ export function WorkflowContentArea() {
 }
 
 const styles = StyleSheet.create({
+  welcomeContainer: {
+    flex: 1,
+    paddingTop: 160,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  welcomeTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  welcomeDesc: {
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
+  },
   content: {
-    paddingTop:104,        // 顶部补偿
+    paddingTop: 104,
     paddingHorizontal: 12,
     paddingVertical: 10,
     paddingBottom: 180,

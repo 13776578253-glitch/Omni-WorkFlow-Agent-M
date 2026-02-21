@@ -1,4 +1,4 @@
-// app/(main)/history.tsx
+﻿// app/(main)/history.tsx
 import React from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 
@@ -9,10 +9,10 @@ export default function HistoryScreen() {
   const { effectiveColorScheme } = useThemeContext();
   const themeColors = Colors[effectiveColorScheme];
 
-  // 模拟数据
+  // 测试数据
   const mockHistory = [
-    { id: '1', title: '分析项目架构', date: '10:30' },
-    { id: '2', title: '生成主题代码', date: '昨天' },
+    { id: '1', title: '测试', date: '10:30' },
+    { id: '2', title: '实测', date: '10:40' },
   ];
 
   return (
@@ -20,7 +20,7 @@ export default function HistoryScreen() {
       <FlatList
         data={mockHistory}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingTop: 120 }} // 留出 TopNavBar 的空间
+        contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
           <View style={[styles.card, { borderBottomColor: themeColors.text + '20' }]}>
             <Text style={{ color: themeColors.text, fontSize: 16 }}>{item.title}</Text>
@@ -34,6 +34,9 @@ export default function HistoryScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  listContent: {
+    paddingTop: 120,
+  },
   card: {
     padding: 20,
     borderBottomWidth: 1,
