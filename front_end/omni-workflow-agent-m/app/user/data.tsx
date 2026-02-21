@@ -235,7 +235,8 @@ export default function UserDataScreen() {
 
         {/* 快捷指令 */}
         <View style={styles.sectionCompact}>
-          <SettingSection title="快捷指令">
+          <View style={styles.quickSectionContainer}>
+            <ThemedText style={styles.quickSectionTitle}>快捷指令</ThemedText>
             <View style={styles.quickFilesList}>
               {quickActionConfig.map((item) => (
                 <QuickActionFoldCard
@@ -246,7 +247,6 @@ export default function UserDataScreen() {
                   expanded={expandedQuickActions[item.key]}
                   textColor={textColor}
                   cardColor={cardColor}
-                  borderColor={borderColor}
                   onToggle={() => toggleQuickAction(item.key)}
                   onDelete={() => handleDeleteQuick(item.key)}
                   onChangeTitle={(value) => setQuickName(item.key, value)}
@@ -254,7 +254,7 @@ export default function UserDataScreen() {
                 />
               ))}
             </View>
-          </SettingSection>
+          </View>
         </View>
 
         {/* 记忆 */}
@@ -350,9 +350,18 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   quickFilesList: {
-    paddingHorizontal: 6,
-    paddingVertical: 6,
-    gap: 8,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    gap: 6,
+  },
+  quickSectionContainer: {
+    paddingHorizontal: 4,
+  },
+  quickSectionTitle: {
+    fontSize: 14,
+    opacity: 0.6,
+    marginBottom: 6,
+    marginLeft: 4,
   },
   quickLabel: {
     fontSize: 14,

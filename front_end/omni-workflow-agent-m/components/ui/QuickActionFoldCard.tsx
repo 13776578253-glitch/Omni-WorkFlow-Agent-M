@@ -12,7 +12,6 @@ interface QuickActionFoldCardProps {
   expanded: boolean;
   textColor: string;
   cardColor: string;
-  borderColor: string;
   onToggle: () => void;
   onDelete: () => void;
   onChangeTitle: (value: string) => void;
@@ -26,20 +25,14 @@ export function QuickActionFoldCard({
   expanded,
   textColor,
   cardColor,
-  borderColor,
   onToggle,
   onDelete,
   onChangeTitle,
   onChangePrompt,
 }: QuickActionFoldCardProps) {
   return (
-    <View style={[styles.card, { backgroundColor: cardColor, borderColor }]}> 
-      <View
-        style={[
-          styles.header,
-          expanded && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: borderColor },
-        ]}
-      >
+    <View style={[styles.card, { backgroundColor: cardColor }]}>
+      <View style={styles.header}>
         <TextInput
           value={title}
           onChangeText={onChangeTitle}
@@ -49,7 +42,7 @@ export function QuickActionFoldCard({
         />
 
         <View style={styles.headerActions}>
-          <TouchableOpacity onPress={onToggle} style={[styles.actionButton, { borderColor }]} activeOpacity={0.75}>
+          <TouchableOpacity onPress={onToggle} style={styles.actionButton} activeOpacity={0.75}>
             <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={textColor + 'AA'} />
           </TouchableOpacity>
           <TouchableOpacity onPress={onDelete} style={styles.deleteButton} activeOpacity={0.75}>
@@ -61,7 +54,7 @@ export function QuickActionFoldCard({
       {expanded ? (
         <View style={styles.body}>
           <ThemedText style={[styles.editorLabel, { color: textColor + '88' }]}>预设指令</ThemedText>
-          <View style={[styles.promptWrap, { borderColor }]}> 
+          <View style={styles.promptWrap}>
             <TextInput
               value={prompt}
               onChangeText={onChangePrompt}
@@ -79,7 +72,6 @@ export function QuickActionFoldCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -106,9 +98,9 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(127,127,127,0.08)',
   },
   deleteButton: {
     width: 26,
@@ -128,9 +120,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   promptWrap: {
-    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 10,
-    backgroundColor: 'rgba(127,127,127,0.04)',
+    backgroundColor: 'rgba(127,127,127,0.06)',
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
