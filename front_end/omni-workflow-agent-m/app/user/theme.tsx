@@ -49,7 +49,7 @@ export default function ThemeScreen() {
               key={item.value}
               title={item.label}
               hasArrow={false}
-              // 选中状态会让用户知道当前是哪个
+              // 选中状态
               selected={themeMode === item.value} 
               onPress={() => handleSelect(item.value)}
             />

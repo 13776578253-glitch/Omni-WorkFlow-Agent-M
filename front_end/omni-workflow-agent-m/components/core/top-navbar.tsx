@@ -18,16 +18,18 @@ interface Tab {
   key: string;
 }
 
+// 定义 TopNavBar 类型
 interface TopNavBarProps {
   tabs: Tab[];
-  scrollOffset: SharedValue<number>;
-  position: SharedValue<number>;
-  onTabPress: (index: number) => void;
+  scrollOffset: SharedValue<number>;     // PagerView 滑动偏移量
+  position: SharedValue<number>;          
+  onTabPress: (index: number) => void;    
   activeTabIndex?: number;
-  translateYCompensation?: number;
-  containerRef?: React.Ref<any>;
+  translateYCompensation?: number;       // 导航栏位移补偿
+  containerRef?: React.Ref<any>;         // 容器引用
 }
 
+// 定义 AnimatedTabItem 子组件 类型
 interface AnimatedTabItemProps {
   index: number;
   tab: Tab;
@@ -37,9 +39,10 @@ interface AnimatedTabItemProps {
   onPress: (index: number) => void;
 }
 
+// 导航 Tab 项
 const AnimatedTabItem = ({ index, tab, isDark, activeColor, progress, onPress }: AnimatedTabItemProps) => {
   const animatedTextStyle = useAnimatedStyle(() => {
-    // 根据模式设定未激活状态的文字颜色（半透明）
+    // 根据模式设定未激活状态的文字颜色 / 半透明
     const inactiveColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.3)';
     // 颜色插值
     const color = interpolateColor(
@@ -57,14 +60,10 @@ const AnimatedTabItem = ({ index, tab, isDark, activeColor, progress, onPress }:
   );
 };
 
-export const TopNavBar = ({
-  tabs,
-  scrollOffset,
-  position,
-  onTabPress,
-  activeTabIndex = 1,
-  translateYCompensation = 0,
-  containerRef,
+export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress,
+  activeTabIndex = 1,         // 默认激活 Tab
+  translateYCompensation = 0, // 位移补偿
+  containerRef
 }: TopNavBarProps) => {
   // const LOG_TAG = '[KB-Compensate-TopNav]';
   const router = useRouter();
@@ -73,17 +72,18 @@ export const TopNavBar = ({
   const isDark = effectiveColorScheme === 'dark';
   const themeColors = Colors[effectiveColorScheme];
 
-  const progress = useDerivedValue(() => position.value + scrollOffset.value);
+  const navWidth = width * 0.7;                                                 // Tab 区域 总宽度
+  const progress = useDerivedValue(() => position.value + scrollOffset.value);  // Tab 动画 进度值 
   const isHomeActive = activeTabIndex === 0;
   const isHistoryActive = activeTabIndex === 2;
-  const navWidth = width * 0.7;  // 定义 Tab 区域的总宽度
 
+  // Tab容器 动画样式 / 导航栏 UI变化
   const tabsContainerStyle = useAnimatedStyle(() => {
     const opacity = interpolate(progress.value, [1.2, 1.7, 2], [1, 0, 0]);
     return { opacity, transform: [{ translateY: 0 }] };
   });
 
-  // 定义搜索框的动画样式
+  // 搜索框 动画样式
   const searchBarStyle = useAnimatedStyle(() => {
     const opacity = interpolate(progress.value, [1.5, 1.9, 2], [0, 1, 1]);
     const scale = interpolate(progress.value, [1.5, 2], [0.95, 1]);  // 搜索框缩放插值
@@ -95,7 +95,7 @@ export const TopNavBar = ({
     };
   });
 
-  // 定义 Tab 指示器的动画样式
+  //  Tab指示器 动画样式
   const indicatorStyle = useAnimatedStyle(() => {
     const tabCount = tabs.length || 3;
     const tabWidth = navWidth / tabCount;
@@ -121,7 +121,7 @@ export const TopNavBar = ({
       style={[styles.wrapper, { transform: [{ translateY: translateYCompensation }] }]}
     >
       <BlurView
-        intensity={isHomeActive ? 0 : 80}
+        intensity={isHomeActive ? 0 : 80}  // 首页时模糊强度 0，其他页面 80
         tint={isDark ? 'dark' : 'light'}
         style={[styles.container, isHomeActive && styles.transparentContainer]}
       >
