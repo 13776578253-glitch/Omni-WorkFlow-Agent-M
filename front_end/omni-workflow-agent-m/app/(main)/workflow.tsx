@@ -2,6 +2,10 @@
 import { Keyboard, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
+
+import type { QuickActionNames, UserDataState } from '@/constants/type';
 import type { WorkflowMode } from '@/constants/workflow_type';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -15,6 +19,16 @@ interface WorkflowScreenProps {
 }
 
 type ActiveWorkflowMode = Exclude<WorkflowMode, 'welcome'>;
+
+// 测试
+const USER_DATA_STORAGE_KEY = '@omni_workflow_user_data_v1';
+
+const DEFAULT_QUICK_ACTION_NAMES: QuickActionNames = { 
+  solt1: 'Preset 1',
+  solt2: 'Preset 2',
+  solt3: 'Preset 3',
+  solt4: 'Preset 4',
+};
 
 function detectModeFromInput(text: string): ActiveWorkflowMode {
   const value = text.toLowerCase();
@@ -46,9 +60,35 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [mode, setMode] = useState<WorkflowMode>('welcome');
   const [messages, setMessages] = useState<WorkflowMessage[]>([]);
+  const [quickActionNames, setQuickActionNames] = useState<QuickActionNames>(DEFAULT_QUICK_ACTION_NAMES);
 
   const insets = useSafeAreaInsets();
   const bgColor = useThemeColor({}, 'background');
+
+  const loadQuickActionNames = useCallback(async () => {
+    try {
+      const raw = await AsyncStorage.getItem(USER_DATA_STORAGE_KEY);
+      if (!raw) {
+        setQuickActionNames(DEFAULT_QUICK_ACTION_NAMES);
+        return;
+      }
+
+      const parsed = JSON.parse(raw) as Partial<UserDataState>;
+      const storedNames = parsed.quickActionNames ?? {};
+      setQuickActionNames({
+        ...DEFAULT_QUICK_ACTION_NAMES,
+        ...storedNames,
+      });
+    } catch {
+      setQuickActionNames(DEFAULT_QUICK_ACTION_NAMES);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadQuickActionNames();
+    }, [loadQuickActionNames])
+  );
 
   useEffect(() => {
     const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
@@ -91,13 +131,12 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
 
   const handleQuickAction = useCallback(
     (key: QuickActionKey) => {
-      if (key === 'upload_audio') {
-        switchToMode('recording');
-        return;
-      }
-      switchToMode('document');
+      const value = quickActionNames[key]?.toLowerCase() ?? '';
+      const recordingKeywords = ['录音', '语音', '音频', 'transcript', 'record'];
+      const nextMode: ActiveWorkflowMode = recordingKeywords.some((word) => value.includes(word)) ? 'recording' : 'document';
+      switchToMode(nextMode);
     },
-    [switchToMode]
+    [quickActionNames, switchToMode]
   );
 
   return (
@@ -110,7 +149,7 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
           <View pointerEvents="none" style={[styles.bottomMask, { backgroundColor: bgColor }]} />
 
           {/*  */}
-          <WorkflowQuickActions onAction={handleQuickAction} />
+          <WorkflowQuickActions onAction={handleQuickAction} quickActionNames={quickActionNames} />
 
           {/*  */}
           <WorkflowInputBar

@@ -9,7 +9,6 @@ import { KeyboardAwareScroll } from '@/components/user/personal/Keyboard_Aware_S
 import { QuickActionFoldCard } from '@/components/user/personal/Quick_Action_FoldCard';
 import { SettingItem } from '@/components/user/Setting_Item';
 import { SettingSection } from '@/components/user/Setting_section';
-// 待修改 / 需联动显示
 // import { QUICK_ACTIONS } from '@/components/workflow/Workflow_QuickActions';
 
 
@@ -186,11 +185,12 @@ export default function UserDataScreen() {
     const hasMemoryOverflow = isPromptOverLimit(state.memoryContent, MAX_MEMORY_CONTENT_LENGTH);
 
     if (hasPresetOverflow || hasQuickOverflow || hasMemoryOverflow) {
-      Alert.alert('保存失败', `存在超过 ${MAX_PROMPT_LENGTH} 的有效字数（汉字+英文单词）指令，请先调整后再保存。`);
+      Alert.alert('保存失败', `字数超上限，请先调整后再保存。`);
       return;
     }
 
     try {
+      // 测试
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       Alert.alert('已保存', '个性化设置已更新。');
     } catch {
