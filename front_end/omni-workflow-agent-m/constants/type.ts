@@ -1,4 +1,4 @@
-// (main)
+﻿// (main)
 
 // user
 // data.tsx
@@ -7,17 +7,17 @@ export type PresetMode = 'custom' | 'concise' | 'formal';
 export type PresetPrompts = Record<PresetMode, string>;
 
 export type QuickActionPrompts = {
-  ai_ppt: string;
-  upload_audio: string;
-  translate_secondary: string;
-  slot_4: string;
+  solt1: string;
+  solt2: string;
+  solt3: string;
+  solt4: string;
 };
 
 export type QuickActionNames = {
-  ai_ppt: string;
-  upload_audio: string;
-  translate_secondary: string;
-  slot_4: string;
+  solt1: string;
+  solt2: string;
+  solt3: string;
+  solt4: string;
 };
 
 export interface UserDataState {
@@ -25,12 +25,12 @@ export interface UserDataState {
   presetPrompts: PresetPrompts;
   quickActionNames: QuickActionNames;
   quickActionPrompts: QuickActionPrompts;
-  memoryPrompt: string;
+  // memoryPrompt: string;
   memoryContent: string;
 }
 
 
-// 预留后端通信模型
+// 棰勭暀鍚庣閫氫俊妯″瀷
 export interface WorkflowHistory {
   id: string;
   title: string;

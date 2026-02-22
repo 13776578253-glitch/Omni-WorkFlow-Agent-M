@@ -103,13 +103,16 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   return (
     <View style={{ flex: 1, backgroundColor: bgColor }}>
       <View style={{ flex: 1 }}>
+        {/*  */}
         <WorkflowContentArea mode={mode} messages={messages} />
 
         <View style={[styles.bottomDock, { backgroundColor: bgColor }]}>
           <View pointerEvents="none" style={[styles.bottomMask, { backgroundColor: bgColor }]} />
 
+          {/*  */}
           <WorkflowQuickActions onAction={handleQuickAction} />
 
+          {/*  */}
           <WorkflowInputBar
             value={inputText}
             onChangeText={setInputText}

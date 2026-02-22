@@ -9,7 +9,9 @@ import { KeyboardAwareScroll } from '@/components/user/personal/Keyboard_Aware_S
 import { QuickActionFoldCard } from '@/components/user/personal/Quick_Action_FoldCard';
 import { SettingItem } from '@/components/user/Setting_Item';
 import { SettingSection } from '@/components/user/Setting_section';
-import { QUICK_ACTIONS } from '@/components/workflow/Workflow_QuickActions';
+// 待修改 / 需联动显示
+// import { QUICK_ACTIONS } from '@/components/workflow/Workflow_QuickActions';
+
 
 import type { PresetMode, QuickActionNames, QuickActionPrompts, UserDataState } from '@/constants/type';
 
@@ -44,19 +46,18 @@ const DEFAULT_STATE: UserDataState = {
   },
   // 测试内容 / 逻辑待确认
   quickActionNames: {
-    ai_ppt: QUICK_ACTIONS.find((item) => item.key === 'ai_ppt')?.label ?? 'AI ppt',
-    upload_audio: QUICK_ACTIONS.find((item) => item.key === 'upload_audio')?.label ?? '上传录音',
-    translate_secondary: QUICK_ACTIONS.find((item) => item.key === 'translate_secondary')?.label ?? '翻译',
-    slot_4: '预留快捷位',
+    solt1: '',
+    solt2: '',
+    solt3: '',
+    solt4: '',
   },
   quickActionPrompts: {
-    ai_ppt: '根据当前内容自动提取大纲并生成 PPT 页面结构。',
-    upload_audio: '对录音进行转写并提炼行动项、结论与待办。',
-    translate_secondary: '将当前内容翻译为目标语言，并保持术语一致。',
-    slot_4: '预留快捷指令（后续可绑定新功能）。',
+    solt1: '',
+    solt2: '',
+    solt3: '',
+    solt4: '',
   },
-  // 待修改
-  memoryPrompt: '以下是我的长期偏好，请在后续对话中尽量遵循：',
+  // memoryPrompt: '以下是我的长期偏好，请在后续对话中尽量遵循：',
   memoryContent: '偏好中文输出；先总结结论，再给执行步骤；尽量结构化。',
 };
 
@@ -74,12 +75,13 @@ export default function UserDataScreen() {
 
   const [state, setState] = useState<UserDataState>(DEFAULT_STATE);
   const [loaded, setLoaded] = useState(false);
+  
   // 展开 / 待修改
   const [expandedQuickActions, setExpandedQuickActions] = useState<Record<keyof QuickActionPrompts, boolean>>({
-    ai_ppt: false,
-    upload_audio: false,
-    translate_secondary: false,
-    slot_4: false,
+    solt1: false,
+    solt2: false,
+    solt3: false,
+    solt4: false,
   });
 
   // 测试 / 后端对接 / 生命周期处理
@@ -167,19 +169,10 @@ export default function UserDataScreen() {
   // 快捷指令 配置
   const quickActionConfig = useMemo(
     () => [
-      {
-        key: 'ai_ppt' as const,
-        defaultLabel: QUICK_ACTIONS.find((item) => item.key === 'ai_ppt')?.label ?? 'AI ppt',
-      },
-      {
-        key: 'upload_audio' as const,
-        defaultLabel: QUICK_ACTIONS.find((item) => item.key === 'upload_audio')?.label ?? '上传录音',
-      },
-      {
-        key: 'translate_secondary' as const,
-        defaultLabel: QUICK_ACTIONS.find((item) => item.key === 'translate_secondary')?.label ?? '翻译',
-      },
-      { key: 'slot_4' as const, defaultLabel: '预留快捷位 4' },
+      { key: 'solt1' as const, defaultLabel: '预设快捷位 1' },
+      { key: 'solt2' as const, defaultLabel: '预设快捷位 2' },
+      { key: 'solt3' as const, defaultLabel: '预设快捷位 3' },
+      { key: 'solt4' as const, defaultLabel: '预设快捷位 4' },
     ],
     []
   );
@@ -429,5 +422,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
+
 
 

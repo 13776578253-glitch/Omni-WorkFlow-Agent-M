@@ -20,26 +20,6 @@ export default function UserScreen() {
   const cardColor = useThemeColor({ light: '#FFF', dark: '#1C1C1E' }, 'background');
   // const textColor = useThemeColor({}, 'text');
 
-  // 初始状态 头像背景色：暗色背景下浅灰，亮色背景下深灰
-  // const avatarBg = useThemeColor({ light: '#E5E5EA', dark: '#3A3A3C' }, 'background');
-  // const iconColor = useThemeColor({}, 'icon');
-  
-  // 模拟登录状态
-  // const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  // 处理登录/退出
-  // const handleAuthAction = () => {
-  //   if (isLoggedIn) {
-  //     Alert.alert('退出登录', '确定要退出当前账号吗？', [
-  //       { text: '取消', style: 'cancel' },
-  //       { text: '确定', style: 'destructive', onPress: () => setIsLoggedIn(false) },
-  //     ]);
-  //   } else {
-  //     // 这里跳转到登录页，或者做登录逻辑
-  //     setIsLoggedIn(true);
-  //   }
-  // };
-
   return (
     <ThemedView style={[styles.container, { backgroundColor }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -73,9 +53,8 @@ export default function UserScreen() {
             icon="language" 
             title="语言" 
             // value="简体中文" 
-            onPress={() => {}} 
+            onPress={() => Alert.alert('提示', '目前无法设置，敬请期待')} 
           />
-          {/* 主题通常是一个二级菜单，或者在这里做一个简单的展示 */}
           <SettingItem 
             icon="moon" 
             title="主题" 
@@ -143,7 +122,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 16,
     marginBottom: 24,
-    // 阴影效果 (iOS only, Android // elevation)
+    // 阴影效果
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
