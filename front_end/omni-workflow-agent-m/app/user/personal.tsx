@@ -21,6 +21,7 @@ const STORAGE_KEY = '@omni_workflow_user_data_v1';
 
 // 字数限制
 const MAX_PROMPT_LENGTH = 200;
+const MAX_QUICK_LENGTH = 12;
 const MAX_QUICK_PROMPT_LENGTH = 50;
 const MAX_MEMORY_CONTENT_LENGTH = 500;
 
@@ -121,6 +122,7 @@ export default function UserDataScreen() {
 
   // 快捷指令 标题 更新
   const setQuickName = useCallback((key: keyof QuickActionNames, value: string) => {
+    if (countPromptUnits(value) > MAX_QUICK_LENGTH) return;
     setState((prev) => ({
       ...prev,
       quickActionNames: {

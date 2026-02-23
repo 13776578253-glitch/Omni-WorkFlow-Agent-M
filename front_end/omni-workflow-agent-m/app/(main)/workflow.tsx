@@ -1,11 +1,12 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿// app/(main)/workflow.tsx
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Keyboard, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 
-import type { QuickActionNames, UserDataState } from '@/constants/type';
+import type { QuickActionNames, QuickActionPrompts, UserDataState } from '@/constants/type';
 import type { WorkflowMode } from '@/constants/workflow_type';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -28,6 +29,13 @@ const DEFAULT_QUICK_ACTION_NAMES: QuickActionNames = {
   solt2: 'Preset 2',
   solt3: 'Preset 3',
   solt4: 'Preset 4',
+};
+
+const DEFAULT_QUICK_ACTION_PROMPTS: QuickActionPrompts = {
+  solt1: '',
+  solt2: '',
+  solt3: '',
+  solt4: '',
 };
 
 function detectModeFromInput(text: string): ActiveWorkflowMode {
@@ -61,6 +69,7 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   const [mode, setMode] = useState<WorkflowMode>('welcome');
   const [messages, setMessages] = useState<WorkflowMessage[]>([]);
   const [quickActionNames, setQuickActionNames] = useState<QuickActionNames>(DEFAULT_QUICK_ACTION_NAMES);
+  const [quickActionPrompts, setQuickActionPrompts] = useState<QuickActionPrompts>(DEFAULT_QUICK_ACTION_PROMPTS);
 
   const insets = useSafeAreaInsets();
   const bgColor = useThemeColor({}, 'background');
@@ -70,17 +79,24 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
       const raw = await AsyncStorage.getItem(USER_DATA_STORAGE_KEY);
       if (!raw) {
         setQuickActionNames(DEFAULT_QUICK_ACTION_NAMES);
+        setQuickActionPrompts(DEFAULT_QUICK_ACTION_PROMPTS);
         return;
       }
 
       const parsed = JSON.parse(raw) as Partial<UserDataState>;
       const storedNames = parsed.quickActionNames ?? {};
+      const storedPrompts = parsed.quickActionPrompts ?? {};
       setQuickActionNames({
         ...DEFAULT_QUICK_ACTION_NAMES,
         ...storedNames,
       });
+      setQuickActionPrompts({
+        ...DEFAULT_QUICK_ACTION_PROMPTS,
+        ...storedPrompts,
+      });
     } catch {
       setQuickActionNames(DEFAULT_QUICK_ACTION_NAMES);
+      setQuickActionPrompts(DEFAULT_QUICK_ACTION_PROMPTS);
     }
   }, []);
 
@@ -131,12 +147,12 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
 
   const handleQuickAction = useCallback(
     (key: QuickActionKey) => {
-      const value = quickActionNames[key]?.toLowerCase() ?? '';
+      const value = `${quickActionNames[key] ?? ''} ${quickActionPrompts[key] ?? ''}`.toLowerCase();
       const recordingKeywords = ['录音', '语音', '音频', 'transcript', 'record'];
       const nextMode: ActiveWorkflowMode = recordingKeywords.some((word) => value.includes(word)) ? 'recording' : 'document';
       switchToMode(nextMode);
     },
-    [quickActionNames, switchToMode]
+    [quickActionNames, quickActionPrompts, switchToMode]
   );
 
   return (
@@ -146,17 +162,21 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
         <WorkflowContentArea mode={mode} messages={messages} />
 
         <View style={[styles.bottomDock, { backgroundColor: bgColor }]}>
-          <View pointerEvents="none" style={[styles.bottomMask, { backgroundColor: bgColor }]} />
-
           {/*  */}
-          <WorkflowQuickActions onAction={handleQuickAction} quickActionNames={quickActionNames} />
+          <View style={styles.quickActionsGap}>
+            <WorkflowQuickActions
+              onAction={handleQuickAction}
+              quickActionNames={quickActionNames}
+              quickActionPrompts={quickActionPrompts}
+            />
+          </View>
 
           {/*  */}
           <WorkflowInputBar
             value={inputText}
             onChangeText={setInputText}
             onSubmit={handleSubmit}
-            containerStyle={{ marginBottom: inputBarMarginBottom }}
+            containerStyle={{ marginTop: 4, marginBottom: inputBarMarginBottom }}
           />
         </View>
       </View>
@@ -165,12 +185,11 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
 }
 
 const styles = StyleSheet.create({
-  bottomMask: {
-    height: 14,
-    marginTop: -14,
-    opacity: 0.55,
-  },
   bottomDock: {
-    paddingTop: 6,
+    paddingTop: 0,
+  },
+  quickActionsGap: {
+    marginTop: 12,
+    marginBottom: 4,
   },
 });

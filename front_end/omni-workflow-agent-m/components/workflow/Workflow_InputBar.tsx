@@ -58,7 +58,11 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    elevation: 4,
+    elevation: 2,
+    shadowColor: '#7A7A7A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
   },
   input: {
     fontSize: 16,
