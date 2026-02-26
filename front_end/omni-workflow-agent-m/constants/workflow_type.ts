@@ -71,7 +71,6 @@ export function isAIBlock(b: WorkflowBlock): b is WorkflowAIBlock {
 }
 
 // 转写与时间轴
-
 // 转写片段（供时间轴与块关联）
 export interface WorkflowTranscriptSegment {
   startTime: number;                    // 开始时间（时间戳）
@@ -90,4 +89,43 @@ export interface WorkflowRecordingState {
   isRecording: boolean;                 // 是否录音中
   isCollapsed: boolean;                 // 是否折叠
   durationSeconds?: number;             // 录音时长（秒）
+}
+
+// 输入区域
+// 短时录音 (按住说话)
+// 录音状态
+export type WorkflowRecordingPhase = 
+    'idle'                              // 空闲
+  | 'requesting_permission'             // 请求权限 (可选)
+  | 'recording'                         // 正在录音
+  | 'stopping'                          // 停止录音 / 保存 (可选)
+  | 'uploading'                         // 上传
+  | 'transcribing'                      // 处理
+  | 'completed'                         // 完成 / 播报 (可选)
+  | 'error';                            // 异常
+
+  // 单次录音会话 信息
+export interface WorkflowPressRecordingSession {
+  sessionId: string;                
+  phase: WorkflowRecordingPhase;        // 所处阶段
+  startedAt: number;                    
+  stoppedAt?: number;
+  durationMs?: number;                  // 录音时长
+  localUrl?: string;                    // 本地缓存路径
+  remoteAudioId?: string;               // 返回 ID (可选)
+  errorMessage?: string;                // 错误信息 (可选)
+}
+
+// 录音文件 参数
+export interface WorkflowRecordingUploadPayload {
+  url: string;                          // 本地缓存路径
+  fileName: string;                     // 文件名
+  mimeType: string;                     // 类型
+  durationMs?: number;                  // 时长
+}
+
+export interface WorkflowRecordingPipelineResult {
+  session: WorkflowPressRecordingSession;             // 录音 完整会话信息
+  transcriptText: string;                             // 文字
+  // transcriptSegments: WorkflowTranscriptSegment[]; 
 }

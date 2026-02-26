@@ -1,19 +1,20 @@
 ﻿// app/(main)/workflow.tsx
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Keyboard, Platform, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Keyboard, Platform, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { QuickActionNames, QuickActionPrompts, UserDataState } from '@/constants/type';
-import type { WorkflowMode } from '@/constants/workflow_type';
+import type { WorkflowMode, WorkflowPressRecordingSession } from '@/constants/workflow_type';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 import { DEFAULT_WORKFLOW_MESSAGES, WorkflowContentArea, type WorkflowMessage } from '@/components/workflow/Workflow_ContentArea';
 import { WorkflowInputBar } from '@/components/workflow/Workflow_InputBar';
 import { WorkflowQuickActions, type QuickActionKey } from '@/components/workflow/Workflow_QuickActions';
+
+import { createWorkflowUploadService } from '@/services/workflow/Workflow_Upload';
 
 interface WorkflowScreenProps {
   setPagerScrollEnabled: (enabled: boolean) => void;
@@ -70,6 +71,10 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   const [messages, setMessages] = useState<WorkflowMessage[]>([]);
   const [quickActionNames, setQuickActionNames] = useState<QuickActionNames>(DEFAULT_QUICK_ACTION_NAMES);
   const [quickActionPrompts, setQuickActionPrompts] = useState<QuickActionPrompts>(DEFAULT_QUICK_ACTION_PROMPTS);
+  const [isPressRecording, setIsPressRecording] = useState(false);
+  const [isSlideCancelPreview, setIsSlideCancelPreview] = useState(false);
+  const uploadServiceRef = useRef(createWorkflowUploadService());
+  const recordingSessionRef = useRef<WorkflowPressRecordingSession | null>(null);
 
   const insets = useSafeAreaInsets();
   const bgColor = useThemeColor({}, 'background');
@@ -155,6 +160,45 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
     [quickActionNames, quickActionPrompts, switchToMode]
   );
 
+  const handleRecordPressIn = useCallback(async () => {
+    setIsSlideCancelPreview(false);
+    setIsPressRecording(true);
+    const session = await uploadServiceRef.current.startPressRecording();
+    recordingSessionRef.current = session;
+
+    if (session.phase !== 'recording') {
+      setIsPressRecording(false);
+      return;
+    }
+  }, []);
+
+  const handleRecordPressOut = useCallback(async () => {
+    setIsSlideCancelPreview(false);
+    setIsPressRecording(false);
+    const current = recordingSessionRef.current;
+    if (!current || current.phase !== 'recording') return;
+
+    const stopped = await uploadServiceRef.current.stopPressRecording(current);
+    recordingSessionRef.current = stopped;
+    if (stopped.phase === 'error') return;
+
+    const pipelineResult = await uploadServiceRef.current.runPressToTalkPipeline(stopped);
+    recordingSessionRef.current = pipelineResult.session;
+
+    const transcriptText = pipelineResult.transcriptText.trim() || 'Mock transcript content.';
+    switchToMode('recording', transcriptText);
+  }, [switchToMode]);
+
+  const handleRecordCancel = useCallback(async () => {
+    setIsSlideCancelPreview(false);
+    setIsPressRecording(false);
+    const current = recordingSessionRef.current;
+    if (!current || current.phase !== 'recording') return;
+
+    const stopped = await uploadServiceRef.current.stopPressRecording(current);
+    recordingSessionRef.current = stopped;
+  }, []);
+
   return (
     <View style={{ flex: 1, backgroundColor: bgColor }}>
       <View style={{ flex: 1 }}>
@@ -162,22 +206,42 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
         <WorkflowContentArea mode={mode} messages={messages} />
 
         <View style={[styles.bottomDock, { backgroundColor: bgColor }]}>
-          {/*  */}
-          <View style={styles.quickActionsGap}>
-            <WorkflowQuickActions
-              onAction={handleQuickAction}
-              quickActionNames={quickActionNames}
-              quickActionPrompts={quickActionPrompts}
+          <View style={isPressRecording ? styles.bottomDockHiddenContent : undefined}>
+            {/*  */}
+            <View style={styles.quickActionsGap}>
+              <WorkflowQuickActions
+                onAction={handleQuickAction}
+                quickActionNames={quickActionNames}
+                quickActionPrompts={quickActionPrompts}
+              />
+            </View>
+
+            {/*  */}
+            <WorkflowInputBar
+              value={inputText}
+              onChangeText={setInputText}
+              onSubmit={handleSubmit}
+              onPressInRecord={handleRecordPressIn}
+              onPressOutRecord={handleRecordPressOut}
+              onCancelRecord={handleRecordCancel}
+              onSlideCancelStateChange={setIsSlideCancelPreview}
+              isPressRecording={isPressRecording}
+              containerStyle={{ marginTop: 4, marginBottom: inputBarMarginBottom }}
             />
           </View>
 
-          {/*  */}
-          <WorkflowInputBar
-            value={inputText}
-            onChangeText={setInputText}
-            onSubmit={handleSubmit}
-            containerStyle={{ marginTop: 4, marginBottom: inputBarMarginBottom }}
-          />
+          {isPressRecording ? (
+            <View pointerEvents="none" style={[styles.recordingDockOverlay, { paddingBottom: inputBarMarginBottom + 18 }]}>
+              <Text style={styles.recordingHint}>
+                {isSlideCancelPreview ? '松手取消发送' : '松手发送，上滑取消'}
+              </Text>
+              <View style={styles.recordingDotsRow}>
+                {Array.from({ length: 42 }).map((_, index) => (
+                  <View key={`dock-record-dot-${index}`} style={styles.recordingDot} />
+                ))}
+              </View>
+            </View>
+          ) : null}
         </View>
       </View>
     </View>
@@ -187,9 +251,38 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
 const styles = StyleSheet.create({
   bottomDock: {
     paddingTop: 0,
+    position: 'relative',
+  },
+  bottomDockHiddenContent: {
+    opacity: 0,
   },
   quickActionsGap: {
     marginTop: 12,
     marginBottom: 4,
   },
+  recordingDockOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(59,130,246,0.10)',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  recordingHint: {
+    fontSize: 18,
+    color: 'rgba(60,60,67,0.75)',
+    marginBottom: 16,
+  },
+  recordingDotsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  recordingDot: {
+    width: 4,
+    height: 16,
+    borderRadius: 2,
+    backgroundColor: '#3B82F6',
+  },
 });
+
