@@ -75,6 +75,8 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   const [isSlideCancelPreview, setIsSlideCancelPreview] = useState(false);
   const uploadServiceRef = useRef(createWorkflowUploadService());
   const recordingSessionRef = useRef<WorkflowPressRecordingSession | null>(null);
+  const startRecordingPendingRef = useRef(false);
+  const pendingReleaseActionRef = useRef<'send' | 'cancel' | null>(null);
 
   const insets = useSafeAreaInsets();
   const bgColor = useThemeColor({}, 'background');
@@ -160,19 +162,7 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
     [quickActionNames, quickActionPrompts, switchToMode]
   );
 
-  const handleRecordPressIn = useCallback(async () => {
-    setIsSlideCancelPreview(false);
-    setIsPressRecording(true);
-    const session = await uploadServiceRef.current.startPressRecording();
-    recordingSessionRef.current = session;
-
-    if (session.phase !== 'recording') {
-      setIsPressRecording(false);
-      return;
-    }
-  }, []);
-
-  const handleRecordPressOut = useCallback(async () => {
+  const finalizePressRecord = useCallback(async (action: 'send' | 'cancel') => {
     setIsSlideCancelPreview(false);
     setIsPressRecording(false);
     const current = recordingSessionRef.current;
@@ -180,7 +170,7 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
 
     const stopped = await uploadServiceRef.current.stopPressRecording(current);
     recordingSessionRef.current = stopped;
-    if (stopped.phase === 'error') return;
+    if (stopped.phase === 'error' || action === 'cancel') return;
 
     const pipelineResult = await uploadServiceRef.current.runPressToTalkPipeline(stopped);
     recordingSessionRef.current = pipelineResult.session;
@@ -189,15 +179,43 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
     switchToMode('recording', transcriptText);
   }, [switchToMode]);
 
-  const handleRecordCancel = useCallback(async () => {
+  const handleRecordPressIn = useCallback(async () => {
     setIsSlideCancelPreview(false);
-    setIsPressRecording(false);
-    const current = recordingSessionRef.current;
-    if (!current || current.phase !== 'recording') return;
+    setIsPressRecording(true);
+    pendingReleaseActionRef.current = null;
+    startRecordingPendingRef.current = true;
 
-    const stopped = await uploadServiceRef.current.stopPressRecording(current);
-    recordingSessionRef.current = stopped;
-  }, []);
+    const session = await uploadServiceRef.current.startPressRecording();
+    recordingSessionRef.current = session;
+    startRecordingPendingRef.current = false;
+
+    if (session.phase !== 'recording') {
+      setIsPressRecording(false);
+      return;
+    }
+
+    if (pendingReleaseActionRef.current) {
+      const action = pendingReleaseActionRef.current;
+      pendingReleaseActionRef.current = null;
+      await finalizePressRecord(action);
+    }
+  }, [finalizePressRecord]);
+
+  const handleRecordPressOut = useCallback(async () => {
+    if (startRecordingPendingRef.current) {
+      pendingReleaseActionRef.current = 'send';
+      return;
+    }
+    await finalizePressRecord('send');
+  }, [finalizePressRecord]);
+
+  const handleRecordCancel = useCallback(async () => {
+    if (startRecordingPendingRef.current) {
+      pendingReleaseActionRef.current = 'cancel';
+      return;
+    }
+    await finalizePressRecord('cancel');
+  }, [finalizePressRecord]);
 
   return (
     <View style={{ flex: 1, backgroundColor: bgColor }}>
@@ -231,13 +249,23 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
           </View>
 
           {isPressRecording ? (
-            <View pointerEvents="none" style={[styles.recordingDockOverlay, { paddingBottom: inputBarMarginBottom + 18 }]}>
-              <Text style={styles.recordingHint}>
+            <View
+              pointerEvents="none"
+              style={[
+                styles.recordingDockOverlay,
+                isSlideCancelPreview ? styles.recordingDockOverlayCancel : null,
+                { paddingBottom: inputBarMarginBottom + 18 },
+              ]}
+            >
+              <Text style={[styles.recordingHint, isSlideCancelPreview ? styles.recordingHintCancel : null]}>
                 {isSlideCancelPreview ? '松手取消发送' : '松手发送，上滑取消'}
               </Text>
               <View style={styles.recordingDotsRow}>
                 {Array.from({ length: 42 }).map((_, index) => (
-                  <View key={`dock-record-dot-${index}`} style={styles.recordingDot} />
+                  <View
+                    key={`dock-record-dot-${index}`}
+                    style={[styles.recordingDot, isSlideCancelPreview ? styles.recordingDotCancel : null]}
+                  />
                 ))}
               </View>
             </View>
@@ -272,6 +300,12 @@ const styles = StyleSheet.create({
     color: 'rgba(60,60,67,0.75)',
     marginBottom: 16,
   },
+  recordingDockOverlayCancel: {
+    backgroundColor: 'rgba(239,68,68,0.12)',
+  },
+  recordingHintCancel: {
+    color: '#DC2626',
+  },
   recordingDotsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -284,5 +318,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: '#3B82F6',
   },
+  recordingDotCancel: {
+    backgroundColor: '#EF4444',
+  },
 });
-
