@@ -1,0 +1,38 @@
+// 图标组件
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+// import { SymbolViewProps, SymbolWeight } from 'expo-symbols';
+
+import { ComponentProps } from 'react';
+import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
+
+// type IconMapping = Record<SymbolViewProps['name'], ComponentProps<typeof MaterialIcons>['name']>;
+// type IconSymbolName = keyof typeof MAPPING;
+
+/**
+ * 原SF Symbols到Material Icons的映射表.
+ * - see Material Icons in the [Icons Directory](https://icons.expo.fyi).
+ * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
+ */
+// const MAPPING = {
+//   'house.fill': 'home',
+//   'paperplane.fill': 'send',
+//   'chevron.left.forwardslash.chevron.right': 'code',
+//   'chevron.right': 'chevron-right',
+// } as IconMapping;
+
+// 简化版 IconSymbol组件（适配Android/web，使用Material Icons）
+export function IconSymbol({
+  name,
+  size = 24,
+  color,
+  style,
+  // weight?: SymbolWeight,
+}: {
+  name: ComponentProps<typeof MaterialIcons>['name'];
+  size?: number;
+  color: string | OpaqueColorValue;
+  style?: StyleProp<TextStyle>;
+  // weight?: SymbolWeight;
+}) {
+  return <MaterialIcons color={color} size={size} name={name} style={style} />;
+}

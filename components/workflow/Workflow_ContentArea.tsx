@@ -1,0 +1,133 @@
+﻿import React from 'react';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
+
+import type { WorkflowMode } from '@/constants/workflow_type';
+import { useThemeColor } from '@/hooks/use-theme-color';
+
+export interface WorkflowMessage {
+  id: string;
+  role: 'user' | 'ai';
+  text: string;
+}
+
+const BASE_MOCK_DATA: WorkflowMessage[] = [
+  { id: '1', role: 'ai', text: 'Hello, I am your workflow assistant.' },
+  { id: '2', role: 'user', text: 'Please summarize this meeting note.' },
+  { id: '3', role: 'ai', text: 'Sure, send me the source content first.' },
+  { id: '4', role: 'user', text: 'Here is the source text... (mock)' },
+  { id: '5', role: 'ai', text: 'Received. I will output a structured result.' },
+  { id: '6', role: 'ai', text: 'Part 1: Context. Part 2: Conclusion. Part 3: Action items.' },
+  { id: '7', role: 'user', text: 'Give me a shorter version too.' },
+  { id: '8', role: 'ai', text: 'Short version: progress is on track, review next week.' },
+];
+
+export const DEFAULT_WORKFLOW_MESSAGES: WorkflowMessage[] = Array.from({ length: 8 }).flatMap((_, round) =>
+  BASE_MOCK_DATA.map((item) => ({
+    ...item,
+    id: `${round + 1}-${item.id}`,
+  }))
+);
+
+interface WorkflowContentAreaProps {
+  mode: WorkflowMode;
+  messages?: WorkflowMessage[];
+}
+
+export function WorkflowContentArea({ mode, messages = DEFAULT_WORKFLOW_MESSAGES }: WorkflowContentAreaProps) {
+  const cardColor = useThemeColor({}, 'card');
+  const textColor = useThemeColor({}, 'text');
+  const bgColor = useThemeColor({}, 'background');
+
+  if (mode === 'welcome') {
+    return (
+      <View style={[styles.welcomeContainer, { backgroundColor: bgColor }]}>
+        <Text style={[styles.welcomeTitle, { color: textColor }]}>欢迎来到工作流</Text>
+        <Text style={[styles.welcomeDesc, { color: textColor + 'AA' }]}>输入内容后将进入文档或录音模式。</Text>
+      </View>
+    );
+  }
+
+  return (
+    <FlatList
+      data={messages}
+      keyExtractor={(item) => item.id}
+      style={{ flex: 1, backgroundColor: bgColor }}
+      contentContainerStyle={styles.content}
+      scrollEnabled
+      nestedScrollEnabled
+      showsVerticalScrollIndicator
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      renderItem={({ item }) => {
+        const isUser = item.role === 'user';
+        return (
+          <View style={[styles.row, isUser ? styles.rowRight : styles.rowLeft]}>
+            <View
+              style={[
+                styles.bubble,
+                {
+                  backgroundColor: cardColor,
+                  borderColor: 'rgba(128,128,128,0.2)',
+                },
+              ]}
+            >
+              <Text style={[styles.role, { color: textColor }]}>{isUser ? 'ME' : 'AI'}</Text>
+              <Text style={[styles.text, { color: textColor }]}>{item.text}</Text>
+            </View>
+          </View>
+        );
+      }}
+    />
+  );
+}
+
+const styles = StyleSheet.create({
+  welcomeContainer: {
+    flex: 1,
+    paddingTop: 160,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  welcomeTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  welcomeDesc: {
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  content: {
+    paddingTop: 104,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    paddingBottom: 180,
+  },
+  row: {
+    width: '100%',
+    marginBottom: 8,
+  },
+  rowLeft: {
+    alignItems: 'flex-start',
+  },
+  rowRight: {
+    alignItems: 'flex-end',
+  },
+  bubble: {
+    maxWidth: '84%',
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  role: {
+    fontSize: 11,
+    opacity: 0.8,
+    marginBottom: 4,
+  },
+  text: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+});
