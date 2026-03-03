@@ -2,7 +2,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, Platform, StyleSheet, Text, View } from 'react-native';
+import { Keyboard, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { QuickActionNames, QuickActionPrompts, UserDataState } from '@/constants/type';
@@ -10,6 +10,7 @@ import type { WorkflowMode, WorkflowPressRecordingSession } from '@/constants/wo
 
 import { useThemeColor } from '@/hooks/use-theme-color';
 
+import { WorkflowRecordingOverlay } from '@/components/ui/workflow-recording-overlay';
 import { DEFAULT_WORKFLOW_MESSAGES, WorkflowContentArea, type WorkflowMessage } from '@/components/workflow/Workflow_ContentArea';
 import { WorkflowInputBar } from '@/components/workflow/Workflow_InputBar';
 import { WorkflowQuickActions, type QuickActionKey } from '@/components/workflow/Workflow_QuickActions';
@@ -21,6 +22,7 @@ interface WorkflowScreenProps {
 }
 
 type ActiveWorkflowMode = Exclude<WorkflowMode, 'welcome'>;
+const RECORD_DOT_COUNT = 42;
 
 // 测试
 const USER_DATA_STORAGE_KEY = '@omni_workflow_user_data_v1';
@@ -73,6 +75,7 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   const [quickActionPrompts, setQuickActionPrompts] = useState<QuickActionPrompts>(DEFAULT_QUICK_ACTION_PROMPTS);
   const [isPressRecording, setIsPressRecording] = useState(false);
   const [isSlideCancelPreview, setIsSlideCancelPreview] = useState(false);
+  const [waveTick, setWaveTick] = useState(0);
   const uploadServiceRef = useRef(createWorkflowUploadService());
   const recordingSessionRef = useRef<WorkflowPressRecordingSession | null>(null);
   const startRecordingPendingRef = useRef(false);
@@ -130,6 +133,16 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
     };
   }, [setPagerScrollEnabled]);
 
+  useEffect(() => {
+    if (!isPressRecording) return;
+    const timer = setInterval(() => {
+      setWaveTick((prev) => prev + 1);
+    }, 65);
+    return () => {
+      clearInterval(timer);
+    };
+  }, [isPressRecording]);
+
   const inputBarMarginBottom = useMemo(() => {
     let margin = insets.bottom + 20;
     if (Platform.OS === 'android') {
@@ -137,6 +150,19 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
     }
     return margin;
   }, [insets.bottom, keyboardHeight]);
+
+  const recordingDots = useMemo(
+    () =>
+      Array.from({ length: RECORD_DOT_COUNT }).map((_, index) => {
+        const oscillation = 0.5 + 0.5 * Math.sin(waveTick * 0.42 + index * 0.58);
+        return {
+          key: `dock-record-dot-${index}`,
+          height: 10 + oscillation * 14,
+          opacity: 0.55 + oscillation * 0.45,
+        };
+      }),
+    [waveTick]
+  );
 
   const switchToMode = useCallback((nextMode: ActiveWorkflowMode, userText?: string) => {
     setMode(nextMode);
@@ -248,28 +274,15 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
             />
           </View>
 
+          {/*  */}
           {isPressRecording ? (
-            <View
-              pointerEvents="none"
-              style={[
-                styles.recordingDockOverlay,
-                isSlideCancelPreview ? styles.recordingDockOverlayCancel : null,
-                { paddingBottom: inputBarMarginBottom + 18 },
-              ]}
-            >
-              <Text style={[styles.recordingHint, isSlideCancelPreview ? styles.recordingHintCancel : null]}>
-                {isSlideCancelPreview ? '松手取消发送' : '松手发送，上滑取消'}
-              </Text>
-              <View style={styles.recordingDotsRow}>
-                {Array.from({ length: 42 }).map((_, index) => (
-                  <View
-                    key={`dock-record-dot-${index}`}
-                    style={[styles.recordingDot, isSlideCancelPreview ? styles.recordingDotCancel : null]}
-                  />
-                ))}
-              </View>
-            </View>
+            <WorkflowRecordingOverlay
+              isSlideCancelPreview={isSlideCancelPreview}
+              paddingBottom={inputBarMarginBottom + 34}
+              dots={recordingDots}
+            />
           ) : null}
+          
         </View>
       </View>
     </View>
@@ -287,38 +300,5 @@ const styles = StyleSheet.create({
   quickActionsGap: {
     marginTop: 12,
     marginBottom: 4,
-  },
-  recordingDockOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(59,130,246,0.10)',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  recordingHint: {
-    fontSize: 18,
-    color: 'rgba(60,60,67,0.75)',
-    marginBottom: 16,
-  },
-  recordingDockOverlayCancel: {
-    backgroundColor: 'rgba(239,68,68,0.12)',
-  },
-  recordingHintCancel: {
-    color: '#DC2626',
-  },
-  recordingDotsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  recordingDot: {
-    width: 4,
-    height: 16,
-    borderRadius: 2,
-    backgroundColor: '#3B82F6',
-  },
-  recordingDotCancel: {
-    backgroundColor: '#EF4444',
   },
 });
