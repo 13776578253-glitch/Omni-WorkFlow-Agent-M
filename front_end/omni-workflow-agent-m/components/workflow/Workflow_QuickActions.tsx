@@ -39,11 +39,13 @@ interface WorkflowQuickActionsProps {
   onAction?: (key: QuickActionKey) => void;
   quickActionNames?: Partial<QuickActionNames>;
   quickActionPrompts?: Partial<QuickActionPrompts>;
+  activeKey?: QuickActionKey | null;
 }
 
-export function WorkflowQuickActions({ onAction, quickActionNames, quickActionPrompts }: WorkflowQuickActionsProps) {
+export function WorkflowQuickActions({ onAction, quickActionNames, quickActionPrompts, activeKey = null }: WorkflowQuickActionsProps) {
   const cardColor = useThemeColor({}, 'card');
   const textColor = useThemeColor({}, 'text');
+  const activeShellColor = useThemeColor({ light: '#3B82F6', dark: '#60A5FA' }, 'tint');
 
   return (
     // 横向滚动容器
@@ -55,6 +57,7 @@ export function WorkflowQuickActions({ onAction, quickActionNames, quickActionPr
       keyboardShouldPersistTaps="handled"
     >
       {QUICK_ACTIONS.map((action) => {
+        const isActive = activeKey === action.key;
         const customLabel = quickActionNames?.[action.key]?.trim();
         const label = customLabel ? customLabel : action.fallbackLabel;
         const prompt = quickActionPrompts?.[action.key]?.trim() ?? '';
@@ -65,7 +68,11 @@ export function WorkflowQuickActions({ onAction, quickActionNames, quickActionPr
           <TouchableOpacity
             key={action.key}
             activeOpacity={0.8}
-            style={[styles.chip, { backgroundColor: cardColor }]}
+            style={[ 
+              styles.chip,
+              { backgroundColor: cardColor },
+              { borderColor: isActive ? activeShellColor : 'transparent' },
+            ]}
             onPress={() => onAction?.(action.key)}
           >
             <Ionicons name={icon} size={16} color={textColor} />
@@ -95,6 +102,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 10,
+    borderWidth: 2,    // 锁死 固定宽度
     elevation: 1,
     shadowColor: '#7A7A7A',
     shadowOffset: { width: 0, height: 1 },

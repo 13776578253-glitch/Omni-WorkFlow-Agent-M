@@ -81,6 +81,8 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   const [messages, setMessages] = useState<WorkflowMessage[]>([]);
   const [quickActionNames, setQuickActionNames] = useState<QuickActionNames>(DEFAULT_QUICK_ACTION_NAMES);
   const [quickActionPrompts, setQuickActionPrompts] = useState<QuickActionPrompts>(DEFAULT_QUICK_ACTION_PROMPTS);
+  // 快捷按钮状态 / UI 样式
+  const [activeQuickActionKey, setActiveQuickActionKey] = useState<QuickActionKey | null>(null);
   
   const [isPressRecording, setIsPressRecording] = useState(false);
   const [isSlideCancelPreview, setIsSlideCancelPreview] = useState(false);
@@ -209,12 +211,18 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   // 快捷操作点击 事件
   const handleQuickAction = useCallback(
     (key: QuickActionKey) => {
+      // 样式变换
+      if (activeQuickActionKey === key) {
+        setActiveQuickActionKey(null);
+        return;
+      }
+      setActiveQuickActionKey(key);
       const value = `${quickActionNames[key] ?? ''} ${quickActionPrompts[key] ?? ''}`.toLowerCase();
       const recordingKeywords = ['录音', '语音', '音频', 'transcript', 'record'];
       const nextMode: ActiveWorkflowMode = recordingKeywords.some((word) => value.includes(word)) ? 'recording' : 'document';
       switchToMode(nextMode);
     },
-    [quickActionNames, quickActionPrompts, switchToMode]
+    [activeQuickActionKey, quickActionNames, quickActionPrompts, switchToMode]
   );
 
   // 录音操作 事件 / 测试 / 待修改 / 待拆分
@@ -296,6 +304,7 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
                 onAction={handleQuickAction}
                 quickActionNames={quickActionNames}
                 quickActionPrompts={quickActionPrompts}
+                activeKey={activeQuickActionKey}
               />
             </View>
 

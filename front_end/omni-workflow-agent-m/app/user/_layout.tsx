@@ -53,6 +53,15 @@ export default function UserLayout() {
           contentStyle: { backgroundColor: themeColors.background },
         }}
       />
+
+      <Stack.Screen
+        name="auth"
+        options={{
+          title: '账号',
+          headerStyle: { backgroundColor: themeColors.background },
+          contentStyle: { backgroundColor: themeColors.background },
+        }}
+      />
     </Stack>
   );
 }

@@ -32,6 +32,8 @@ export function WorkflowInputBar({
 }: WorkflowInputBarProps) {
   const cardColor = useThemeColor({}, 'card');
   const textColor = useThemeColor({}, 'text');
+  const inactiveSendBgColor = useThemeColor({ light: '#FFFFFF', dark: '#1C1C1E' }, 'card');
+  const inactiveSendBorderColor = useThemeColor({ light: 'rgba(128,128,128,0.2)', dark: '#38383A' }, 'border');
   // 输入框文字数量 / 控制发送 UI
   const hasText = value.trim().length > 0;
 
@@ -268,6 +270,11 @@ export function WorkflowInputBar({
             style={[
               styles.sendIconCircle,
               hasText ? styles.sendIconCircleActive : styles.sendIconCircleInactive,
+              hasText ? null : 
+                  {
+                    backgroundColor: inactiveSendBgColor,
+                    borderColor: inactiveSendBorderColor,
+                  },
             ]}
             onPress={onSubmit}
           >
