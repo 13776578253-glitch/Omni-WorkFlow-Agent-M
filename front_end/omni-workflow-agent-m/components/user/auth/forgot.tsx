@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Alert, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+
+import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
-type ForgotStep = 'verify' | 'reset';
+type ForgotStep = 'phone' | 'code' | 'password';
 
 interface ForgotSubmitPayload {
   phone: string;
@@ -14,137 +16,259 @@ interface ForgotSubmitPayload {
 
 interface AuthForgotProps {
   countdown: number;
+  initialPhone?: string;
   onSendCode: () => void;
   onSubmit: (payload: ForgotSubmitPayload) => void;
 }
 
-export function AuthForgot({ countdown, onSendCode, onSubmit }: AuthForgotProps) {
+function maskPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length < 5) return phone;
+  return `+86 ${digits.slice(0, 3)}******${digits.slice(-2)}`;
+}
+
+export function AuthForgot({ countdown, initialPhone = '', onSendCode, onSubmit }: AuthForgotProps) {
   const textColor = useThemeColor({}, 'text');
-  const linkColor = useThemeColor({ light: '#2563EB', dark: '#60A5FA' }, 'tint');
-  const inputBgColor = useThemeColor({ light: '#FFFFFF', dark: '#1C1C1E' }, 'card');
-  const inputBorderColor = useThemeColor({ light: '#D1D5DB', dark: '#3F3F46' }, 'border');
+  const cardColor = useThemeColor({ light: '#FFFFFF', dark: '#1C1C1E' }, 'card');
+  const borderColor = useThemeColor({ light: '#D1D5DB', dark: '#3F3F46' }, 'border');
+  const captionColor = useThemeColor({ light: '#6B7280', dark: '#9CA3AF' }, 'icon');
+  const linkColor = useThemeColor({ light: '#2563EB', dark: '#1D4ED8' }, 'tint');
 
-  const [step, setStep] = useState<ForgotStep>('verify');
-  const [phone, setPhone] = useState('');
+  const [step, setStep] = useState<ForgotStep>('phone');
+  const [phone, setPhone] = useState(initialPhone);
   const [code, setCode] = useState('');
-  const [newPassword, setNewPassword] = useState('');
+  const [password, setPassword] = useState('');
+  const hiddenInputRef = useRef<TextInput>(null);
 
-  const canSendCode = countdown <= 0 && phone.trim().length > 0;
+  useEffect(() => {
+    setPhone(initialPhone);
+  }, [initialPhone]);
 
-  const handleVerify = () => {
-    if (!phone.trim() || !code.trim()) {
-      Alert.alert('提示', '请先填写手机号和验证码。');
+  const handlePhoneNext = () => {
+    if (!phone.trim()) {
+      Alert.alert('提示', '请输入手机号。');
       return;
     }
-    setStep('reset');
+    if (countdown <= 0) onSendCode();
+    setStep('code');
   };
 
-  const handleReset = () => {
-    if (!newPassword.trim()) {
-      Alert.alert('提示', '请输入新密码。');
+  const handleCodeNext = () => {
+    if (code.length !== 6) {
+      Alert.alert('提示', '请输入 6 位验证码。');
+      return;
+    }
+    setStep('password');
+  };
+
+  const handlePasswordSubmit = () => {
+    if (!password.trim()) {
+      Alert.alert('提示', '请输入登录密码。');
       return;
     }
     onSubmit({
       phone: phone.trim(),
-      code: code.trim(),
-      newPassword: newPassword.trim(),
+      code,
+      newPassword: password.trim(),
     });
-    setStep('verify');
-    setPhone('');
+    setStep('phone');
     setCode('');
-    setNewPassword('');
+    setPassword('');
   };
 
-  return step === 'verify' ? (
+  return (
     <>
-      <TextInput
-        value={phone}
-        onChangeText={setPhone}
-        placeholder="输入手机号"
-        placeholderTextColor={textColor + '66'}
-        style={[styles.input, { color: textColor, backgroundColor: inputBgColor, borderColor: inputBorderColor }]}
-        keyboardType="phone-pad"
-      />
-      <View style={styles.codeRow}>
-        <TextInput
-          value={code}
-          onChangeText={setCode}
-          placeholder="输入验证码"
-          placeholderTextColor={textColor + '66'}
-          style={[styles.codeInput, { color: textColor, backgroundColor: inputBgColor, borderColor: inputBorderColor }]}
-          keyboardType="number-pad"
-        />
-        <TouchableOpacity
-          disabled={!canSendCode}
-          onPress={onSendCode}
-          style={[styles.codeButton, { backgroundColor: canSendCode ? linkColor : linkColor + '66' }]}
-        >
-          <ThemedText style={styles.codeButtonText}>{countdown > 0 ? `${countdown}s` : '获取验证码'}</ThemedText>
-        </TouchableOpacity>
+      <View style={styles.headerBlock}>
+        <ThemedText style={[styles.title, { color: textColor }]}>
+          {step === 'phone' ? '忘记密码' : step === 'code' ? '输入 6 位验证码' : '输入登录密码'}
+        </ThemedText>
+        {step === 'code' ? (
+          <ThemedText style={[styles.subtitle, { color: captionColor }]}>
+            短信验证码已发至 {maskPhone(phone)}
+          </ThemedText>
+        ) : null}
       </View>
-      <TouchableOpacity onPress={handleVerify} style={[styles.primaryButton, { backgroundColor: linkColor }]}>
-        <ThemedText style={styles.primaryButtonText}>验证</ThemedText>
-      </TouchableOpacity>
-    </>
-  ) : (
-    <>
-      <TextInput
-        value={newPassword}
-        onChangeText={setNewPassword}
-        placeholder="输入新密码"
-        placeholderTextColor={textColor + '66'}
-        style={[styles.input, { color: textColor, backgroundColor: inputBgColor, borderColor: inputBorderColor }]}
-        secureTextEntry
-      />
-      <TouchableOpacity onPress={handleReset} style={[styles.primaryButton, { backgroundColor: linkColor }]}>
-        <ThemedText style={styles.primaryButtonText}>重置密码</ThemedText>
+
+      {step === 'phone' ? (
+        <View style={[styles.phoneInputWrap, { backgroundColor: cardColor, borderColor }]}>
+          <View style={styles.countryCodeWrap}>
+            <ThemedText style={[styles.countryCodeText, { color: textColor }]}>+86</ThemedText>
+            <Ionicons name="chevron-down" size={18} color={captionColor} />
+          </View>
+          <View style={[styles.verticalDivider, { backgroundColor: borderColor }]} />
+          <TextInput
+            value={phone}
+            onChangeText={setPhone}
+            placeholder="请输入手机号"
+            placeholderTextColor={captionColor}
+            style={[styles.phoneInput, { color: textColor }]}
+            keyboardType="phone-pad"
+          />
+        </View>
+      ) : null}
+
+      {step === 'code' ? (
+        <>
+          <TouchableOpacity activeOpacity={1} onPress={() => hiddenInputRef.current?.focus()}>
+            <View style={styles.codeBoxesRow}>
+              {Array.from({ length: 6 }).map((_, idx) => {
+                const char = code[idx] ?? '';
+                return (
+                  <View
+                    key={`forgot-code-cell-${idx}`}
+                    style={[
+                      styles.codeCell,
+                      {
+                        borderColor: idx === code.length ? linkColor : borderColor,
+                        backgroundColor: cardColor,
+                      },
+                    ]}
+                  >
+                    <ThemedText style={[styles.codeCellText, { color: textColor }]}>{char}</ThemedText>
+                  </View>
+                );
+              })}
+            </View>
+            <TextInput
+              ref={hiddenInputRef}
+              value={code}
+              onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))}
+              keyboardType="number-pad"
+              maxLength={6}
+              style={styles.hiddenInput}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={countdown <= 0 ? onSendCode : undefined}
+            activeOpacity={0.75}
+            style={styles.resendWrap}
+          >
+            <ThemedText style={[styles.resendText, { color: captionColor }]}>
+              {countdown > 0 ? `${countdown}s 后重新发送` : '重新发送验证码'}
+            </ThemedText>
+          </TouchableOpacity>
+        </>
+      ) : null}
+
+      {step === 'password' ? (
+        <View style={[styles.passwordInputWrap, { backgroundColor: cardColor, borderColor }]}>
+          <TextInput
+            value={password}
+            onChangeText={setPassword}
+            placeholder="请输入新密码"
+            placeholderTextColor={captionColor}
+            style={[styles.passwordInput, { color: textColor }]}
+            secureTextEntry
+          />
+        </View>
+      ) : null}
+
+      <TouchableOpacity
+        onPress={step === 'phone' ? handlePhoneNext : step === 'code' ? handleCodeNext : handlePasswordSubmit}
+        activeOpacity={0.8}
+        style={[styles.primaryButton, { backgroundColor: cardColor }]}
+      >
+        <ThemedText style={[styles.primaryButtonText, { color: linkColor }]}>验证并登录</ThemedText>
       </TouchableOpacity>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  input: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 15,
+  headerBlock: {
+    marginTop: 4,
+    marginBottom: 12,
   },
-  codeRow: {
-    flexDirection: 'row',
-    gap: 8,
+  title: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 2,
   },
-  codeInput: {
-    flex: 1,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 15,
-  },
-  codeButton: {
-    minWidth: 100,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 10,
-  },
-  codeButtonText: {
-    color: '#FFFFFF',
+  subtitle: {
     fontSize: 13,
-    fontWeight: '600',
-  },
-  primaryButton: {
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
+    lineHeight: 18,
     marginTop: 4,
   },
-  primaryButtonText: {
-    color: '#FFFFFF',
+  phoneInputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    height: 52,
+  },
+  countryCodeWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingRight: 10,
+  },
+  countryCodeText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  verticalDivider: {
+    width: StyleSheet.hairlineWidth,
+    height: 24,
+    marginRight: 12,
+    opacity: 0.6,
+  },
+  phoneInput: {
+    flex: 1,
+    textAlign: 'left',
     fontSize: 15,
+    paddingVertical: 0,
+    includeFontPadding: false,
+  },
+  codeBoxesRow: {
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'space-between',
+  },
+  codeCell: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  codeCellText: {
+    fontSize: 22,
+    fontWeight: '600',
+  },
+  hiddenInput: {
+    position: 'absolute',
+    opacity: 0,
+    width: 1,
+    height: 1,
+  },
+  resendWrap: {
+    marginTop: 10,
+    alignSelf: 'center',
+  },
+  resendText: {
+    fontSize: 13,
+  },
+  passwordInputWrap: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    height: 52,
+    justifyContent: 'center',
+  },
+  passwordInput: {
+    fontSize: 15,
+  },
+  primaryButton: {
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 52,
+    marginTop: 20,
+  },
+  primaryButtonText: {
     fontWeight: '700',
+    fontSize: 16,
   },
 });

@@ -19,9 +19,13 @@ interface AuthRegisterProps {
 
 export function AuthRegister({ countdown, onSendCode, onSubmit }: AuthRegisterProps) {
   const textColor = useThemeColor({}, 'text');
-  const linkColor = useThemeColor({ light: '#2563EB', dark: '#60A5FA' }, 'tint');
+  const linkColor = useThemeColor({ light: '#2563EB', dark: '#1D4ED8' }, 'tint');
   const inputBgColor = useThemeColor({ light: '#FFFFFF', dark: '#1C1C1E' }, 'card');
   const inputBorderColor = useThemeColor({ light: '#D1D5DB', dark: '#3F3F46' }, 'border');
+  const captionColor = useThemeColor({ light: '#6B7280', dark: '#9CA3AF' }, 'icon');
+  const codeTextColor = useThemeColor({ light: '#4b7be2', dark: '#FFFFFF' }, 'text');
+  const actionTextColor = useThemeColor({ light: '#2563EB', dark: '#FFFFFF' }, 'tint');
+  const actionBorderColor = useThemeColor({ light: '#2563EB', dark: '#FFFFFF' }, 'border');
 
   const [nickname, setNickname] = useState('');
   const [password, setPassword] = useState('');
@@ -45,18 +49,22 @@ export function AuthRegister({ countdown, onSendCode, onSubmit }: AuthRegisterPr
 
   return (
     <>
+      <View style={styles.headerBlock}>
+        <ThemedText style={[styles.title, { color: textColor }]}>注册</ThemedText>
+      </View>
+
       <TextInput
         value={nickname}
         onChangeText={setNickname}
         placeholder="输入昵称"
-        placeholderTextColor={textColor + '66'}
+        placeholderTextColor={captionColor}
         style={[styles.input, { color: textColor, backgroundColor: inputBgColor, borderColor: inputBorderColor }]}
       />
       <TextInput
         value={password}
         onChangeText={setPassword}
         placeholder="输入密码"
-        placeholderTextColor={textColor + '66'}
+        placeholderTextColor={captionColor}
         style={[styles.input, { color: textColor, backgroundColor: inputBgColor, borderColor: inputBorderColor }]}
         secureTextEntry
       />
@@ -64,7 +72,7 @@ export function AuthRegister({ countdown, onSendCode, onSubmit }: AuthRegisterPr
         value={phone}
         onChangeText={setPhone}
         placeholder="输入手机号"
-        placeholderTextColor={textColor + '66'}
+        placeholderTextColor={captionColor}
         style={[styles.input, { color: textColor, backgroundColor: inputBgColor, borderColor: inputBorderColor }]}
         keyboardType="phone-pad"
       />
@@ -74,68 +82,88 @@ export function AuthRegister({ countdown, onSendCode, onSubmit }: AuthRegisterPr
           value={code}
           onChangeText={setCode}
           placeholder="输入验证码"
-          placeholderTextColor={textColor + '66'}
+          placeholderTextColor={captionColor}
           style={[styles.codeInput, { color: textColor, backgroundColor: inputBgColor, borderColor: inputBorderColor }]}
           keyboardType="number-pad"
         />
         <TouchableOpacity
           disabled={!canSendCode}
           onPress={onSendCode}
-          style={[styles.codeButton, { backgroundColor: canSendCode ? linkColor : linkColor + '66' }]}
+          style={[styles.codeButton, { backgroundColor: inputBgColor, borderColor: inputBorderColor }]}
+          activeOpacity={0.8}
         >
-          <ThemedText style={styles.codeButtonText}>{countdown > 0 ? `${countdown}s` : '获取验证码'}</ThemedText>
+          <ThemedText style={[styles.codeButtonText, { color: codeTextColor }]}>
+            {countdown > 0 ? `${countdown}s` : '获取验证码'}
+          </ThemedText>
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity onPress={handleRegister} style={[styles.primaryButton, { backgroundColor: linkColor }]}>
-        <ThemedText style={styles.primaryButtonText}>注册</ThemedText>
+      <TouchableOpacity
+        onPress={handleRegister}
+        style={[styles.primaryButton, { backgroundColor: inputBgColor, borderColor: actionBorderColor }]}
+        activeOpacity={0.8}
+      > 
+        
+        <ThemedText style={[styles.primaryButtonText, { color: actionTextColor }]}>注册</ThemedText>
       </TouchableOpacity>
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  headerBlock: {
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
   input: {
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 10,
+    borderRadius: 16,
     paddingHorizontal: 12,
-    paddingVertical: 12,
+    height: 52,
     fontSize: 15,
+    marginBottom: 10,
   },
   codeRow: {
     flexDirection: 'row',
     gap: 8,
+    alignItems: 'center',
   },
   codeInput: {
     flex: 1,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 10,
+    borderRadius: 16,
     paddingHorizontal: 12,
-    paddingVertical: 12,
+    height: 52,
     fontSize: 15,
   },
   codeButton: {
-    minWidth: 100,
-    borderRadius: 10,
+    minWidth: 108,
+    borderRadius: 14,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 10,
+    height: 44,
   },
   codeButtonText: {
-    color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   primaryButton: {
-    borderRadius: 10,
+    // borderWidth: 1,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    marginTop: 4,
+    height: 52,
+    marginTop: 20,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
   },
 });
