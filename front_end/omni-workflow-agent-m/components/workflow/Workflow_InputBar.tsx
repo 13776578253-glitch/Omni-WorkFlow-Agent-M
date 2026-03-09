@@ -3,7 +3,10 @@ import { Keyboard, PanResponder, StyleSheet, TextInput, TouchableOpacity, View, 
 
 import { Ionicons } from '@expo/vector-icons';
 
+import { WorkflowFileUpload } from '@/components/workflow/Workflow_file upload';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { pickWorkflowCameraImage } from '@/services/workflow/Workflow_Camera';
+import { pickWorkflowUploadFile } from '@/services/workflow/Workflow_upload_file';
 
 interface WorkflowInputBarProps {
   value: string;
@@ -39,6 +42,7 @@ export function WorkflowInputBar({
 
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [isPressHolding, setIsPressHolding] = useState(false);
+  const [showLongRecordSheet, setShowLongRecordSheet] = useState(false);
 
   // 持久化 Ref / 测试 / 待确认
   const pressStartXRef = useRef<number | null>(null);  // 按动时 X坐标
@@ -224,69 +228,96 @@ export function WorkflowInputBar({
     [handlePressIn, handlePressMove, handlePressOut]
   );
 
+  const handleOpenLongRecordSheet = () => {
+    setShowLongRecordSheet(true);
+  };
+
+  const handleCloseLongRecordSheet = () => {
+    setShowLongRecordSheet(false);
+  };
+
+  const handlePressCameraUpload = async () => {
+    await pickWorkflowCameraImage();
+    handleCloseLongRecordSheet();
+  };
+
+  const handlePressFileUpload = async () => {
+    await pickWorkflowUploadFile();
+    handleCloseLongRecordSheet();
+  };
+
   return (
-    <View style={[styles.inputContainer, { backgroundColor: cardColor }, containerStyle]}>
-      {/* 输入区 */}
-      <View style={styles.inputTouchArea}>
-        {/* 文本输入 */}
-        <TextInput
-          ref={inputRef}
-          style={[styles.input, { color: textColor }]}
-          placeholder="发消息或按住说话"
-          placeholderTextColor="#999"
-          multiline
-          value={value}
-          onChangeText={onChangeText}
-          underlineColorAndroid="transparent"
-        />
-        {/* 录音(按住说话) / 长按显隐 */}
-        {/* 待修改 */}
-        {showPressRecordTouchLayer ? (
-          <View
-            style={[
-              styles.pressRecordTouchLayer,
-              isPressHolding ? styles.pressRecordTouchLayerExpanded : null,
-            ]}
-            {...panResponder.panHandlers}
+    <>
+      <View style={[styles.inputContainer, { backgroundColor: cardColor }, containerStyle]}>
+        {/* 输入区 */}
+        <View style={styles.inputTouchArea}>
+          {/* 文本输入 */}
+          <TextInput
+            ref={inputRef}
+            style={[styles.input, { color: textColor }]}
+            placeholder="发消息或按住说话"
+            placeholderTextColor="#999"
+            multiline
+            value={value}
+            onChangeText={onChangeText}
+            underlineColorAndroid="transparent"
           />
-        ) : null}
-      </View>
-
-      {/* 功能区 */}
-      <View style={styles.actionRow}>
-        <View style={styles.leftActions} />
-
-        <View style={styles.rightActions}>
-          {/* 文件上传 */}
-          <TouchableOpacity style={styles.iconCircle}>
-            <Ionicons name="add" size={24} color={textColor} />
-          </TouchableOpacity>
-          {/* 长时录音 */}
-          <TouchableOpacity style={styles.iconCircle}>
-            <Ionicons name="mic-outline" size={24} color={textColor} />
-          </TouchableOpacity>
-          {/* 发送 */}
-          <TouchableOpacity
-            style={[
-              styles.sendIconCircle,
-              hasText ? styles.sendIconCircleActive : styles.sendIconCircleInactive,
-              hasText ? null : 
-                  {
-                    backgroundColor: inactiveSendBgColor,
-                    borderColor: inactiveSendBorderColor,
-                  },
-            ]}
-            onPress={onSubmit}
-          >
-            <Ionicons
-              name="arrow-up"
-              size={18}
-              color={hasText ? '#FFFFFF' : textColor}
+          {/* 录音(按住说话) / 长按显隐 */}
+          {/* 待修改 */}
+          {showPressRecordTouchLayer ? (
+            <View
+              style={[
+                styles.pressRecordTouchLayer,
+                isPressHolding ? styles.pressRecordTouchLayerExpanded : null,
+              ]}
+              {...panResponder.panHandlers}
             />
-          </TouchableOpacity>
+          ) : null}
+        </View>
+
+        {/* 功能区 */}
+        <View style={styles.actionRow}>
+          <View style={styles.leftActions} />
+
+          <View style={styles.rightActions}>
+            {/* 文件上传 */}
+            <TouchableOpacity style={styles.iconCircle} onPress={handleOpenLongRecordSheet}>
+              <Ionicons name="add" size={24} color={textColor} />
+            </TouchableOpacity>
+            {/* 长时录音 */}
+            <TouchableOpacity style={styles.iconCircle} >
+              <Ionicons name="mic-outline" size={24} color={textColor} />
+            </TouchableOpacity>
+            {/* 发送 */}
+            <TouchableOpacity
+              style={[
+                styles.sendIconCircle,
+                hasText ? styles.sendIconCircleActive : styles.sendIconCircleInactive,
+                hasText ? null :
+                    {
+                      backgroundColor: inactiveSendBgColor,
+                      borderColor: inactiveSendBorderColor,
+                    },
+              ]}
+              onPress={onSubmit}
+            >
+              <Ionicons
+                name="arrow-up"
+                size={18}
+                color={hasText ? '#FFFFFF' : textColor}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-    </View>
+
+      <WorkflowFileUpload
+        visible={showLongRecordSheet}
+        onClose={handleCloseLongRecordSheet}
+        onPressCamera={handlePressCameraUpload}
+        onPressFile={handlePressFileUpload}
+      />
+    </>
   );
 }
 
