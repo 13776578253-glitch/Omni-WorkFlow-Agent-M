@@ -1,14 +1,19 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, PanResponder, StyleSheet, Text, View } from 'react-native';
 
 import type { WorkflowMode } from '@/constants/workflow_type';
 
+import { WorkflowWaveformCountdown } from '@/components/ui/workflow-waveform_countdown';
+
 import { useThemeColor } from '@/hooks/use-theme-color';
 
-interface WorkflowTopAreaProps { mode: WorkflowMode; }
+interface WorkflowTopAreaProps {
+  mode: WorkflowMode;
+  onHeightChange?: (height: number) => void;
+}
 // 常量定义
-const TOP_AREA_EXPANDED_HEIGHT = 220;     // 展开状态高度
-const TOP_AREA_COMPACT_HEIGHT = 62;       // 紧凑状态高度
+export const TOP_AREA_EXPANDED_HEIGHT = 220;     // 展开状态高度
+export const TOP_AREA_COMPACT_HEIGHT = 62;       // 紧凑状态高度
 const GESTURE_LOCK_DISTANCE = 8;          // 手势锁定最小距离 (px)
 const GESTURE_LOCK_RATIO = 1.1;           // 垂直水平手势判断
 
@@ -26,8 +31,8 @@ function formatElapsed(seconds: number): string {
   return `${mm}:${ss}`;
 }
 
-export function WorkflowTopArea({ mode }: WorkflowTopAreaProps) {
-  const bgColor = useThemeColor({}, 'background');
+export function WorkflowTopArea({ mode, onHeightChange }: WorkflowTopAreaProps) {
+  const bgColor = useThemeColor({ light: '#F3F4F6', dark: '#2A2A2E' }, 'background');
   const textColor = useThemeColor({}, 'text');
   const waveColor = useThemeColor({ light: '#94A3B8', dark: '#8FA0BF' }, 'text');   // 波形图
   const axisColor = useThemeColor({ light: '#6B7280', dark: '#6B7280' }, 'icon');   // 时间轴
@@ -78,6 +83,16 @@ export function WorkflowTopArea({ mode }: WorkflowTopAreaProps) {
     outputRange: [0, 0.15, 1],
     extrapolate: 'clamp',
   });
+
+  useEffect(() => {
+    if (!onHeightChange) return;
+    const id = panelHeightAnim.addListener(({ value }) => {
+      onHeightChange(value);
+    });
+    return () => {
+      panelHeightAnim.removeListener(id);
+    };
+  }, [onHeightChange, panelHeightAnim]);
 
   // 手势移动  // 测试
   const dragResponder = useMemo(
@@ -152,43 +167,18 @@ export function WorkflowTopArea({ mode }: WorkflowTopAreaProps) {
         00:02.45
       </Text>
 
-      {/* 波形图区域  // 测试 */}
+      
       {!isCompact ? (
-        <Animated.View style={[styles.waveCanvas, { opacity: waveOpacity }]}>
-          <View style={styles.waveRow}>
-            {waveHeights.map((h, index) => (
-              <View
-                key={`top-wave-${index}`}
-                style={[
-                  styles.waveBar,
-                  {
-                    backgroundColor: waveColor,
-                    height: h,
-                    opacity: index > 43 ? 0.28 + ((70 - index) / 70) * 0.5 : 0.9,
-                  },
-                ]}
-              />
-            ))}
-          </View>
-
-          {/* 中间 游标 */}
-          <View style={[styles.cursor, { backgroundColor: cursorColor }]}>
-            <View style={[styles.cursorDot, { backgroundColor: cursorColor, top: -6 }]} />
-            <View style={[styles.cursorDot, { backgroundColor: cursorColor, bottom: -6 }]} />
-          </View>
-        </Animated.View>
-
-      ) : null}
-
-      {/* 时间轴区域 */}
-      {!isCompact ? (
-        <Animated.View style={[styles.axisRow, { opacity: axisOpacity }]}>
-          {['00:00', '00:01', '00:02', '00:03', '00:04', '00:05'].map((label) => (
-            <Text key={label} style={[styles.axisText, { color: axisColor }]}>
-              {label}
-            </Text>
-          ))}
-        </Animated.View>
+        <WorkflowWaveformCountdown
+          waveHeights={waveHeights}
+          waveOpacity={waveOpacity}
+          axisOpacity={axisOpacity}
+          colors={{
+            waveColor,
+            axisColor,
+            cursorColor,
+          }}
+        />
       ) : null}
 
       {/* 拖拽手柄 / 测试 */}
@@ -211,6 +201,11 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 8,
     overflow: 'hidden',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
   containerCompact: {
     paddingTop: 12,
@@ -225,46 +220,6 @@ const styles = StyleSheet.create({
   },
   headerTimeCompact: {
     marginBottom: 6,
-  },
-  waveCanvas: {
-    height: 122,
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  waveRow: {
-    height: 96,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 2,
-  },
-  waveBar: {
-    width: 3,
-    borderRadius: 2,
-  },
-  cursor: {
-    position: 'absolute',
-    width: 2,
-    height: 96,
-    left: '50%',
-    top: 13,
-    marginLeft: -1,
-  },
-  cursorDot: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    left: -5,
-  },
-  axisRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 2,
-  },
-  axisText: {
-    fontSize: 11,
-    fontWeight: '500',
   },
   dragHandle: {
     alignSelf: 'center',

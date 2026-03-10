@@ -32,9 +32,14 @@ export const DEFAULT_WORKFLOW_MESSAGES: WorkflowMessage[] = Array.from({ length:
 interface WorkflowContentAreaProps {
   mode: WorkflowMode;
   messages?: WorkflowMessage[];
+  contentPaddingTop?: number;
 }
 
-export function WorkflowContentArea({ mode, messages = DEFAULT_WORKFLOW_MESSAGES }: WorkflowContentAreaProps) {
+export function WorkflowContentArea({
+  mode,
+  messages = DEFAULT_WORKFLOW_MESSAGES,
+  contentPaddingTop,
+}: WorkflowContentAreaProps) {
   const cardColor = useThemeColor({}, 'card');
   const textColor = useThemeColor({}, 'text');
   const bgColor = useThemeColor({}, 'background');
@@ -48,7 +53,10 @@ export function WorkflowContentArea({ mode, messages = DEFAULT_WORKFLOW_MESSAGES
       data={messages}
       keyExtractor={(item) => item.id}
       style={{ flex: 1, backgroundColor: bgColor }}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        typeof contentPaddingTop === 'number' ? { paddingTop: contentPaddingTop } : null,
+      ]}
       scrollEnabled
       nestedScrollEnabled
       showsVerticalScrollIndicator

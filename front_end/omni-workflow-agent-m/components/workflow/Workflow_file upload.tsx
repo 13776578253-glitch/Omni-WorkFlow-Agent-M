@@ -37,9 +37,14 @@ export function WorkflowFileUpload({
             <Ionicons name="camera-outline" size={18} color={textColor} />
             <ThemedText style={[styles.menuText, { color: textColor }]}>拍照上传</ThemedText>
           </TouchableOpacity>
+          {/* 待处理功能 */}
+          <TouchableOpacity style={styles.menuItem} onPress={onPressCamera} activeOpacity={0.8}>
+            <Ionicons name="image-outline" size={18} color={textColor} />
+            <ThemedText style={[styles.menuText, { color: textColor }]}>图片上传</ThemedText>
+          </TouchableOpacity>
           <View style={[styles.divider, { backgroundColor: borderColor }]} />
           <TouchableOpacity style={styles.menuItem} onPress={onPressFile} activeOpacity={0.8}>
-            <Ionicons name="document-attach-outline" size={18} color={textColor} />
+            <Ionicons name="folder-open-outline" size={18} color={textColor} />
             <ThemedText style={[styles.menuText, { color: textColor }]}>文件上传</ThemedText>
           </TouchableOpacity>
         </View>

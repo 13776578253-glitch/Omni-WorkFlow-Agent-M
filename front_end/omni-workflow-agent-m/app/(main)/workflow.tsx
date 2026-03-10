@@ -17,7 +17,7 @@ import { WorkflowRecordingOverlay } from '@/components/ui/workflow-recording-ove
 import { DEFAULT_WORKFLOW_MESSAGES, WorkflowContentArea, type WorkflowMessage } from '@/components/workflow/Workflow_ContentArea';
 import { WorkflowInputBar } from '@/components/workflow/Workflow_InputBar';
 import { WorkflowQuickActions, type QuickActionKey } from '@/components/workflow/Workflow_QuickActions';
-import { WorkflowTopArea } from '@/components/workflow/Workflow_Top_Area';
+import { WorkflowTopArea, TOP_AREA_EXPANDED_HEIGHT } from '@/components/workflow/Workflow_Top_Area';
 
 import { createWorkflowUploadService } from '@/services/workflow/Workflow_Upload';
 
@@ -28,6 +28,7 @@ interface WorkflowScreenProps {
 // 测试
 type ActiveWorkflowMode = Exclude<WorkflowMode, 'welcome'>;
 const RECORD_DOT_COUNT = 30;  // 波形振幅
+const TOP_AREA_OFFSET = 100;
 
 // 测试 / 存储键名
 const USER_DATA_STORAGE_KEY = '@omni_workflow_user_data_v1';
@@ -78,6 +79,7 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   const [inputText, setInputText] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [mode, setMode] = useState<WorkflowMode>('welcome');
+  const [topAreaHeight, setTopAreaHeight] = useState(TOP_AREA_EXPANDED_HEIGHT);
   // 消息列表 / 测试
   const [messages, setMessages] = useState<WorkflowMessage[]>([]);
   const [quickActionNames, setQuickActionNames] = useState<QuickActionNames>(DEFAULT_QUICK_ACTION_NAMES);
@@ -293,9 +295,16 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
     <View style={{ flex: 1, backgroundColor: bgColor }}>
       <View style={{ flex: 1 }}>
         {/* 内容区 */}
-        <WorkflowContentArea mode={mode} messages={messages} />
+        <WorkflowContentArea
+          mode={mode}
+          messages={messages}
+          contentPaddingTop={mode === 'recording' ? topAreaHeight + TOP_AREA_OFFSET : undefined}
+        />
         <View style={styles.topAreaDock}>
-          <WorkflowTopArea mode={mode} />
+          <WorkflowTopArea
+            mode={mode}
+            onHeightChange={mode === 'recording' ? setTopAreaHeight : undefined}
+          />
         </View>
 
         {/* 操作区 */}
@@ -344,7 +353,7 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
 const styles = StyleSheet.create({
   topAreaDock: {
     position: 'absolute',
-    top: 100,
+    top: TOP_AREA_OFFSET,
     left: 0,
     right: 0,
     zIndex: 5,
