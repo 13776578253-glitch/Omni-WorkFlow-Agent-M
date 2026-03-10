@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 
 import { WorkflowWelcomeArea } from '@/components/workflow/workflow_Welcome_Area';
 import type { WorkflowMode } from '@/constants/workflow_type';
@@ -33,12 +33,14 @@ interface WorkflowContentAreaProps {
   mode: WorkflowMode;
   messages?: WorkflowMessage[];
   contentPaddingTop?: number;
+  onScrollOffsetChange?: (offsetY: number) => void;
 }
 
 export function WorkflowContentArea({
   mode,
   messages = DEFAULT_WORKFLOW_MESSAGES,
   contentPaddingTop,
+  onScrollOffsetChange,
 }: WorkflowContentAreaProps) {
   const cardColor = useThemeColor({}, 'card');
   const textColor = useThemeColor({}, 'text');
@@ -47,6 +49,10 @@ export function WorkflowContentArea({
   if (mode === 'welcome') {
     return <WorkflowWelcomeArea bgColor={bgColor} textColor={textColor} />;
   }
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    onScrollOffsetChange?.(event.nativeEvent.contentOffset.y);
+  };
 
   return (
     <FlatList
@@ -62,6 +68,8 @@ export function WorkflowContentArea({
       showsVerticalScrollIndicator
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
+      onScroll={handleScroll}
+      scrollEventThrottle={16}
       renderItem={({ item }) => {
         const isUser = item.role === 'user';
         return (

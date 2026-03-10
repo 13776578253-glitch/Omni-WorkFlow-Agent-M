@@ -80,6 +80,7 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [mode, setMode] = useState<WorkflowMode>('welcome');
   const [topAreaHeight, setTopAreaHeight] = useState(TOP_AREA_EXPANDED_HEIGHT);
+  const [isAutoCompactLocked, setIsAutoCompactLocked] = useState(false);
   // 消息列表 / 测试
   const [messages, setMessages] = useState<WorkflowMessage[]>([]);
   const [quickActionNames, setQuickActionNames] = useState<QuickActionNames>(DEFAULT_QUICK_ACTION_NAMES);
@@ -177,6 +178,17 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
     }
     return margin;
   }, [insets.bottom, keyboardHeight]);
+
+  const handleContentScroll = useCallback((offsetY: number) => {
+    if (mode !== 'recording') return;
+    if (offsetY > 100) {
+      if (!isAutoCompactLocked) setIsAutoCompactLocked(true);
+      return;
+    }
+    if (isAutoCompactLocked && offsetY <= 100) {
+      setIsAutoCompactLocked(false);
+    }
+  }, [isAutoCompactLocked, mode]);
 
   // 录音 波形原点 计算 / 测试 / 待拆分
   const recordingDots = useMemo(
@@ -299,11 +311,13 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
           mode={mode}
           messages={messages}
           contentPaddingTop={mode === 'recording' ? topAreaHeight + TOP_AREA_OFFSET : undefined}
+          onScrollOffsetChange={handleContentScroll}
         />
         <View style={styles.topAreaDock}>
           <WorkflowTopArea
             mode={mode}
             onHeightChange={mode === 'recording' ? setTopAreaHeight : undefined}
+            forcedCompact={mode === 'recording' && isAutoCompactLocked}
           />
         </View>
 

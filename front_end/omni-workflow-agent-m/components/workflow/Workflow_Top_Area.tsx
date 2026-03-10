@@ -10,6 +10,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 interface WorkflowTopAreaProps {
   mode: WorkflowMode;
   onHeightChange?: (height: number) => void;
+  forcedCompact?: boolean;
 }
 // 常量定义
 export const TOP_AREA_EXPANDED_HEIGHT = 220;     // 展开状态高度
@@ -31,7 +32,7 @@ function formatElapsed(seconds: number): string {
   return `${mm}:${ss}`;
 }
 
-export function WorkflowTopArea({ mode, onHeightChange }: WorkflowTopAreaProps) {
+export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: WorkflowTopAreaProps) {
   const bgColor = useThemeColor({ light: '#F3F4F6', dark: '#2A2A2E' }, 'background');
   const textColor = useThemeColor({}, 'text');
   const waveColor = useThemeColor({ light: '#94A3B8', dark: '#8FA0BF' }, 'text');   // 波形图
@@ -85,6 +86,12 @@ export function WorkflowTopArea({ mode, onHeightChange }: WorkflowTopAreaProps) 
   });
 
   useEffect(() => {
+    if (forcedCompact && !isCompact) {
+      animateTo(true);
+    }
+  }, [animateTo, forcedCompact, isCompact]);
+
+  useEffect(() => {
     if (!onHeightChange) return;
     const id = panelHeightAnim.addListener(({ value }) => {
       onHeightChange(value);
@@ -130,6 +137,10 @@ export function WorkflowTopArea({ mode, onHeightChange }: WorkflowTopAreaProps) 
         // 手势释放
         onPanResponderRelease: (_evt, gestureState) => {
           if (axisLockRef.current !== 'vertical') return;
+          if (forcedCompact) {
+            animateTo(true);
+            return;
+          }
           panelHeightAnim.stopAnimation((v) => {
             const mid = (TOP_AREA_COMPACT_HEIGHT + TOP_AREA_EXPANDED_HEIGHT) / 2;
             const byDragDirection = gestureState.dy < -12 ? true : gestureState.dy > 12 ? false : v <= mid;
@@ -139,6 +150,10 @@ export function WorkflowTopArea({ mode, onHeightChange }: WorkflowTopAreaProps) 
 
         // 手势中断
         onPanResponderTerminate: () => {
+          if (forcedCompact) {
+            animateTo(true);
+            return;
+          }
           panelHeightAnim.stopAnimation((v) => {
             const mid = (TOP_AREA_COMPACT_HEIGHT + TOP_AREA_EXPANDED_HEIGHT) / 2;
             animateTo(v <= mid);
