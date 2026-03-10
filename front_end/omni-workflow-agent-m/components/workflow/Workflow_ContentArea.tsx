@@ -1,6 +1,7 @@
 ﻿import React from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 
+import { WorkflowWelcomeArea } from '@/components/workflow/workflow_Welcome_Area';
 import type { WorkflowMode } from '@/constants/workflow_type';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
@@ -39,12 +40,7 @@ export function WorkflowContentArea({ mode, messages = DEFAULT_WORKFLOW_MESSAGES
   const bgColor = useThemeColor({}, 'background');
 
   if (mode === 'welcome') {
-    return (
-      <View style={[styles.welcomeContainer, { backgroundColor: bgColor }]}>
-        <Text style={[styles.welcomeTitle, { color: textColor }]}>欢迎来到工作流</Text>
-        <Text style={[styles.welcomeDesc, { color: textColor + 'AA' }]}>输入内容后将进入文档或录音模式。</Text>
-      </View>
-    );
+    return <WorkflowWelcomeArea bgColor={bgColor} textColor={textColor} />;
   }
 
   return (
@@ -82,22 +78,6 @@ export function WorkflowContentArea({ mode, messages = DEFAULT_WORKFLOW_MESSAGES
 }
 
 const styles = StyleSheet.create({
-  welcomeContainer: {
-    flex: 1,
-    paddingTop: 160,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-  },
-  welcomeTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 10,
-  },
-  welcomeDesc: {
-    fontSize: 15,
-    lineHeight: 22,
-    textAlign: 'center',
-  },
   content: {
     paddingTop: 104,
     paddingHorizontal: 12,

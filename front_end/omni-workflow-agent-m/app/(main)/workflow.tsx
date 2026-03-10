@@ -17,6 +17,7 @@ import { WorkflowRecordingOverlay } from '@/components/ui/workflow-recording-ove
 import { DEFAULT_WORKFLOW_MESSAGES, WorkflowContentArea, type WorkflowMessage } from '@/components/workflow/Workflow_ContentArea';
 import { WorkflowInputBar } from '@/components/workflow/Workflow_InputBar';
 import { WorkflowQuickActions, type QuickActionKey } from '@/components/workflow/Workflow_QuickActions';
+import { WorkflowTopArea } from '@/components/workflow/Workflow_Top_Area';
 
 import { createWorkflowUploadService } from '@/services/workflow/Workflow_Upload';
 
@@ -50,7 +51,7 @@ const DEFAULT_QUICK_ACTION_PROMPTS: QuickActionPrompts = {
 function detectModeFromInput(text: string): ActiveWorkflowMode {
   const value = text.toLowerCase();
   const recordingKeywords = ['录音', '语音', '音频', 'transcript', 'record'];
-  return recordingKeywords.some((word) => value.includes(word)) ? 'recording' : 'document';
+  return value.includes('1') || recordingKeywords.some((word) => value.includes(word)) ? 'recording' : 'document';
 }
 
 // 模拟消息列表 / 测试
@@ -293,6 +294,9 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
       <View style={{ flex: 1 }}>
         {/* 内容区 */}
         <WorkflowContentArea mode={mode} messages={messages} />
+        <View style={styles.topAreaDock}>
+          <WorkflowTopArea mode={mode} />
+        </View>
 
         {/* 操作区 */}
         <View style={[styles.bottomDock, { backgroundColor: bgColor }]}>
@@ -338,6 +342,13 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
 }
 
 const styles = StyleSheet.create({
+  topAreaDock: {
+    position: 'absolute',
+    top: 100,
+    left: 0,
+    right: 0,
+    zIndex: 5,
+  },
   bottomDock: {
     paddingTop: 0,
     position: 'relative',
