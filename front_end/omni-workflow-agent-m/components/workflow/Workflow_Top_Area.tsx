@@ -74,7 +74,7 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
 
       Animated.timing(panelHeightAnim, {
         toValue: nextCompact ? TOP_AREA_COMPACT_HEIGHT : TOP_AREA_EXPANDED_HEIGHT,
-        duration: 220,
+        duration: 420,
         useNativeDriver: false,
       }).start(() => {
         // 测试
@@ -100,18 +100,21 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
   //   extrapolate: 'clamp',
   // });
 
-  // 展开内容的透明度：高度 220 时全显(1)，高度 62 时全隐(0)
+  // 展开内容的透明度
   const expandedOpacity = panelHeightAnim.interpolate({
-    inputRange: [TOP_AREA_COMPACT_HEIGHT , TOP_AREA_EXPANDED_HEIGHT],
-    outputRange: [0, 1],
+    inputRange: [TOP_AREA_COMPACT_HEIGHT, TOP_AREA_COMPACT_HEIGHT + 10, TOP_AREA_EXPANDED_HEIGHT],
+    // inputRange: [TOP_AREA_COMPACT_HEIGHT , TOP_AREA_EXPANDED_HEIGHT],
+    outputRange: [0, 0.2, 1],
+    // outputRange: [0, 1],
     extrapolate: 'clamp',
   });
 
-  // 紧凑内容的透明度：高度 62 时全显(1)，高度 220 时全隐(0)
-  // 注意：这里 outputRange 必须是 [1, 0]
+  // 紧凑内容的透明度
   const compactOpacity = panelHeightAnim.interpolate({
-    inputRange: [TOP_AREA_COMPACT_HEIGHT, TOP_AREA_COMPACT_HEIGHT + 40],
-    outputRange: [1, 0],
+    inputRange: [TOP_AREA_COMPACT_HEIGHT, TOP_AREA_COMPACT_HEIGHT + 24, TOP_AREA_EXPANDED_HEIGHT + 40],
+    // inputRange: [TOP_AREA_COMPACT_HEIGHT, TOP_AREA_COMPACT_HEIGHT + 40],
+    outputRange: [1, 0.15, 0],
+    // outputRange: [1, 0],
     extrapolate: 'clamp',
   });
 
