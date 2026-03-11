@@ -1,3 +1,5 @@
+// 测试逻辑 / 废弃
+//  暂保留 / 静态样式 / 验证组件样式
 import React from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 
@@ -12,6 +14,23 @@ interface WorkflowWaveformCountdownProps {
   waveOpacity: Animated.AnimatedInterpolation<number>;
   axisOpacity: Animated.AnimatedInterpolation<number>;
   colors: WorkflowWaveformCountdownColors;
+}
+
+export function formatHms(totalSeconds: number): string {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+  const hh = Math.floor(safeSeconds / 3600)
+    .toString()
+    .padStart(2, '0');
+  const mm = Math.floor((safeSeconds % 3600) / 60)
+    .toString()
+    .padStart(2, '0');
+  // const ss = (safeSeconds % 60).toString().padStart(2, '0');
+  // return `${hh}:${mm}.${ss}`;
+  return `${hh}:${mm}`;
+}
+
+export function formatTimeRange(currentSeconds: number, totalSeconds: number): string {
+  return `${formatHms(currentSeconds)}/${formatHms(totalSeconds)}`;
 }
 
 export function WorkflowWaveformCountdown({
