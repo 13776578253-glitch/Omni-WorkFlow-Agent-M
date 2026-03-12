@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, PanResponder, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { WorkflowMode } from '@/constants/workflow_type';
 
@@ -101,82 +101,29 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
     };
   }, [onHeightChange, panelHeightAnim]);
 
-  // 手势移动  // 测试
-  const dragResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: (_, gestureState) =>
-          Math.abs(gestureState.dy) > 3 || Math.abs(gestureState.dx) > 3,
-        
-        // 手势开始
-        onPanResponderGrant: () => {
-          axisLockRef.current = null;
-          panelHeightAnim.stopAnimation((v) => {
-            dragStartHeightRef.current = v;
-          });
-        },
-        
-        //手势移动
-        onPanResponderMove: (_evt, gestureState) => {
-          if (!axisLockRef.current) {
-            const absX = Math.abs(gestureState.dx);
-            const absY = Math.abs(gestureState.dy);
-            if (absX < GESTURE_LOCK_DISTANCE && absY < GESTURE_LOCK_DISTANCE) return;
-            axisLockRef.current = absY > absX * GESTURE_LOCK_RATIO ? 'vertical' : 'horizontal';
-          }
-          if (axisLockRef.current !== 'vertical') return;
-          const nextHeight = clamp(
-            dragStartHeightRef.current + gestureState.dy,
-            TOP_AREA_COMPACT_HEIGHT,
-            TOP_AREA_EXPANDED_HEIGHT
-          );
-          panelHeightAnim.setValue(nextHeight);
-        },
-
-        // 手势释放
-        onPanResponderRelease: (_evt, gestureState) => {
-          if (axisLockRef.current !== 'vertical') return;
-          if (forcedCompact) {
-            animateTo(true);
-            return;
-          }
-          panelHeightAnim.stopAnimation((v) => {
-            const mid = (TOP_AREA_COMPACT_HEIGHT + TOP_AREA_EXPANDED_HEIGHT) / 2;
-            const byDragDirection = gestureState.dy < -12 ? true : gestureState.dy > 12 ? false : v <= mid;
-            animateTo(byDragDirection);
-          });
-        },
-
-        // 手势中断
-        onPanResponderTerminate: () => {
-          if (forcedCompact) {
-            animateTo(true);
-            return;
-          }
-          panelHeightAnim.stopAnimation((v) => {
-            const mid = (TOP_AREA_COMPACT_HEIGHT + TOP_AREA_EXPANDED_HEIGHT) / 2;
-            animateTo(v <= mid);
-          });
-        },
-      }),
-    [animateTo, panelHeightAnim]
-  );
+  const handleToggleCompact = useCallback(() => {
+    if (forcedCompact) {
+      animateTo(true);
+      return;
+    }
+    animateTo(!isCompact);
+  }, [animateTo, forcedCompact, isCompact]);
 
   if (mode !== 'recording') return null;
 
   return (
     // 动画容器
-    <Animated.View
-      style={[
-        styles.container,
-        isCompact ? styles.containerCompact : null,
-        {
-          backgroundColor: bgColor,
-          height: panelHeightAnim,
-        },
-      ]}
-    >   
+    <Pressable onPress={handleToggleCompact}>
+      <Animated.View
+        style={[
+          styles.container,
+          isCompact ? styles.containerCompact : null,
+          {
+            backgroundColor: bgColor,
+            height: panelHeightAnim,
+          },
+        ]}
+      >   
       {/* 录音时长文本  // 测试 */}
       <Text style={[styles.headerTime, isCompact ? styles.headerTimeCompact : null, { color: textColor + 'EA' }]}>
         00:02.45
@@ -197,10 +144,11 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
       ) : null}
 
       {/* 拖拽手柄 / 测试 */}
-      <View style={styles.dragTouchZone} {...dragResponder.panHandlers}>
+      <View style={styles.dragTouchZone}>
         <View style={[styles.dragHandle, { backgroundColor: axisColor + '66' }]} />
       </View>
-    </Animated.View>
+      </Animated.View>
+    </Pressable>
   );
 }
 
