@@ -43,6 +43,7 @@ export function WorkflowRecordingOverlay({
       />
 
       {/* 模糊层：遮罩 */}
+      {/* 废弃样式 / 保留 */}
       <BlurView intensity={12} tint="default" style={[StyleSheet.absoluteFill, { top: SCREEN_HEIGHT * 0.36 }]} />
       <BlurView intensity={20} tint="default" style={[StyleSheet.absoluteFill, { top: SCREEN_HEIGHT * 0.46 }]} />
       <BlurView intensity={30} tint="default" style={[StyleSheet.absoluteFill, { top: SCREEN_HEIGHT * 0.56 }]} />
