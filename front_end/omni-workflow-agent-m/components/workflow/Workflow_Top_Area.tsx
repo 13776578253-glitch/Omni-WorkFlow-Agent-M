@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import type { WorkflowMode } from '@/constants/workflow_type';
 
 import { formatTimeRange, WorkflowWaveformCountdown } from '@/components/ui/workflow-waveform_countdown';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { Ionicons } from '@expo/vector-icons';
 
 interface WorkflowTopAreaProps {
   mode: WorkflowMode;
@@ -122,11 +123,43 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
         ]}
       >   
       {/* 录音时长文本  // 测试 */}
-      <Text style={[styles.headerTime, isCompact ? styles.headerTimeCompact : null, { color: textColor + 'EA' }]}>
-        {formatTimeRange(getRecordingTimeInfo().currentSeconds, getRecordingTimeInfo().totalSeconds)}
-      </Text>
+      {!isCompact ? (
+        <Text style={[styles.headerTime, { color: textColor + 'EA' }]}>
+          {formatTimeRange(getRecordingTimeInfo().currentSeconds, getRecordingTimeInfo().totalSeconds)}
+        </Text>
+      ) : (
+        <View style={styles.compactRow}>
+          <Text style={[styles.headerTime, styles.headerTimeCompact, { color: textColor + 'EA' }]}>
+            {formatTimeRange(getRecordingTimeInfo().currentSeconds, getRecordingTimeInfo().totalSeconds)}
+          </Text>
 
-      
+          <View style={styles.compactWaveRow}>
+            {waveHeights.slice(0, 26).map((h, index) => (
+              <View
+                key={`compact-wave-${index}`}
+                style={[
+                  styles.compactWaveBar,
+                  {
+                    backgroundColor: waveColor,
+                    height: Math.max(4, Math.round(h * 0.35)),
+                    opacity: 0.65,
+                  },
+                ]}
+              />
+            ))}
+          </View>
+
+          <View style={styles.compactActions}>
+            <TouchableOpacity style={styles.iconCircle} onPress={() => {}}>
+              <Ionicons name="pause" size={18} color={textColor} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconCircle} onPress={() => {}}>
+              <Ionicons name="stop-circle" size={18} color={textColor} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       {!isCompact ? (
         <WorkflowWaveformCountdown
           waveHeights={waveHeights}
@@ -172,14 +205,51 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   headerTime: {
-    fontSize: 19,
+    fontSize: 17,        // 展开样式
     fontWeight: '500',
     textAlign: 'center',
-    marginBottom: 8,
-    letterSpacing: 0.5,
+    marginBottom: 5,
+    letterSpacing: 1,    // 文字间距
   },
   headerTimeCompact: {
-    marginBottom: 6,
+    fontSize: 16,        // 缩小样式
+    marginBottom: 4,
+    textAlign: 'left',
+    alignSelf: 'flex-start',
+  },
+  compactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 8,        // 绝对高度
+    paddingBottom: 2,     // 无用样式
+  },
+  compactWaveRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginLeft: 38,
+    marginRight: 8,
+    height: 22,
+  },
+  compactWaveBar: {
+    width: 2,
+    borderRadius: 2,
+  },
+  compactActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  iconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(128,128,128,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   dragHandle: {
     alignSelf: 'center',
