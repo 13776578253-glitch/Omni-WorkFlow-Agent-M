@@ -3,7 +3,7 @@ import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { WorkflowMode } from '@/constants/workflow_type';
 
-import { WorkflowWaveformCountdown } from '@/components/ui/workflow-waveform_countdown';
+import { formatTimeRange, WorkflowWaveformCountdown } from '@/components/ui/workflow-waveform_countdown';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
 
@@ -23,13 +23,10 @@ function clamp(value: number, min: number, max: number) {
 }
 
 // 秒数 转换 / 测试
-function formatElapsed(seconds: number): string {
-  const s = Math.max(0, Math.floor(seconds));
-  const mm = Math.floor(s / 60)
-    .toString()
-    .padStart(2, '0');
-  const ss = (s % 60).toString().padStart(2, '0');
-  return `${mm}:${ss}`;
+function getRecordingTimeInfo() {
+  const currentSeconds = 0;
+  const totalSeconds = 0;
+  return { currentSeconds, totalSeconds };
 }
 
 export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: WorkflowTopAreaProps) {
@@ -126,7 +123,7 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
       >   
       {/* 录音时长文本  // 测试 */}
       <Text style={[styles.headerTime, isCompact ? styles.headerTimeCompact : null, { color: textColor + 'EA' }]}>
-        00:02.45
+        {formatTimeRange(getRecordingTimeInfo().currentSeconds, getRecordingTimeInfo().totalSeconds)}
       </Text>
 
       
@@ -175,7 +172,7 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   headerTime: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: '500',
     textAlign: 'center',
     marginBottom: 8,
