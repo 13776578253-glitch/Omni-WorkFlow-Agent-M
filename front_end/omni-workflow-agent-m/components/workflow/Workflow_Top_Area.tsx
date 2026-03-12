@@ -25,12 +25,14 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
+
+
 // 秒数 转换 / 测试
-function getRecordingTimeInfo() {
-  const currentSeconds = 0;
-  const totalSeconds = 0;
-  return { currentSeconds, totalSeconds };
-}
+// function getRecordingTimeInfo() {
+//   const currentSeconds = 0;
+//   const totalSeconds = 0;
+//   return { currentSeconds, totalSeconds };
+// }
 
 export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: WorkflowTopAreaProps) {
   const bgColor = useThemeColor({ light: '#F3F4F6', dark: '#2A2A2E' }, 'background');
@@ -39,6 +41,10 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
   const axisColor = useThemeColor({ light: '#6B7280', dark: '#6B7280' }, 'icon');   // 时间轴
   const cursorColor = useThemeColor({ light: '#8FA0BF', dark: '#8FA0BF' }, 'tint'); // 游标
 
+  // 定义时间状态（总长设为 15 秒用于测试）
+  const [currentTime, setCurrentTime] = useState(0);
+  const totalTime = 15;
+  
   // 波形图高度 函数 / 测试
   const waveHeights = useMemo(
     () =>
@@ -116,7 +122,23 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
   }, [animateTo, forcedCompact, isCompact]);
 
   // 获取录音时间信息
-  const recordingTimeInfo = useMemo(() => getRecordingTimeInfo(), []);
+  // const recordingTimeInfo = useMemo(() => getRecordingTimeInfo(), []);
+
+  // 模拟播放：每 50 毫秒时间增加 0.05 秒
+  useEffect(() => {
+    // 如果是紧凑模式，或者不在录音/播放状态，可以根据需求 return 暂停
+    const interval = setInterval(() => {
+      setCurrentTime((prev) => {
+        if (prev >= totalTime) {
+          clearInterval(interval);
+          return totalTime; // 播放结束
+        }
+        return prev + 0.05; // 平滑推进
+      });
+    }, 50);
+
+    return () => clearInterval(interval);
+  }, [totalTime]);
 
   if (mode !== 'recording') return null;
 
@@ -136,15 +158,21 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
       {/* 录音时长文本 */}
       {!isCompact ? (
         // 展开模式  // 时长样式
+        // <Text style={[styles.headerTime, { color: textColor + 'EA' }]}>
+        //   {formatTimeRange(recordingTimeInfo.currentSeconds, recordingTimeInfo.totalSeconds)}
+        // </Text>
         <Text style={[styles.headerTime, { color: textColor + 'EA' }]}>
-          {formatTimeRange(recordingTimeInfo.currentSeconds, recordingTimeInfo.totalSeconds)}
+            {formatTimeRange(currentTime, totalTime)}
         </Text>
       ) : (
         // 收起模式 //样式
         <View style={styles.compactRow}>
           {/* 时长样式 */}
-          <Text style={[styles.headerTime, styles.headerTimeCompact, { color: textColor + 'EA' }]}>
+          {/* <Text style={[styles.headerTime, styles.headerTimeCompact, { color: textColor + 'EA' }]}>
             {formatTimeRange(recordingTimeInfo.currentSeconds, recordingTimeInfo.totalSeconds)}
+          </Text> */}
+          <Text style={[styles.headerTime, styles.headerTimeCompact, { color: textColor + 'EA' }]}>
+              {formatTimeRange(currentTime, totalTime)}
           </Text>
 
           {/* 波形图 */}
@@ -180,11 +208,14 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
       {!isCompact ? (
         <WorkflowWaveformInteractive
           audioData={audioData}
-          currentTime={recordingTimeInfo.currentSeconds}
-          totalSeconds={recordingTimeInfo.totalSeconds}
+          // currentTime={recordingTimeInfo.currentSeconds}
+          // totalSeconds={recordingTimeInfo.totalSeconds}
+          currentTime={currentTime}  // 传入动态的时间
+          totalSeconds={totalTime}   // 传入总时间
           onTimeChange={(seconds) => {
             // 这里可以处理时间变化，例如更新录音进度
             console.log('Waveform time changed:', seconds);
+            setCurrentTime(seconds);
           }}
           colors={{
             wavePlayed: waveColor,
