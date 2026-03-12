@@ -18,15 +18,11 @@ interface WorkflowWaveformCountdownProps {
 
 export function formatHms(totalSeconds: number): string {
   const safeSeconds = Math.max(0, Math.floor(totalSeconds));
-  const hh = Math.floor(safeSeconds / 3600)
-    .toString()
-    .padStart(2, '0');
   const mm = Math.floor((safeSeconds % 3600) / 60)
     .toString()
     .padStart(2, '0');
-  // const ss = (safeSeconds % 60).toString().padStart(2, '0');
-  // return `${hh}:${mm}.${ss}`;
-  return `${hh}:${mm}`;
+  const ss = (safeSeconds % 60).toString().padStart(2, '0');
+  return `${mm}:${ss}`;
 }
 
 export function formatTimeRange(currentSeconds: number, totalSeconds: number): string {

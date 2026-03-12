@@ -3,8 +3,7 @@ import { Animated, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'r
 
 import type { WorkflowMode } from '@/constants/workflow_type';
 
-import { formatTimeRange } from '@/components/ui/workflow-waveform_countdown';
-import { WorkflowWaveformInteractive } from '@/components/ui/Workflow-waveform_Interactive';
+import { formatTimeRange } from '@/components/ui/Workflow-waveform_Interactive';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { Ionicons } from '@expo/vector-icons';
@@ -43,21 +42,25 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
 
   // 定义时间状态（总长设为 15 秒用于测试）
   const [currentTime, setCurrentTime] = useState(0);
+  const currentTimeRef = useRef(0);
   const totalTime = 15;
   
   // 波形图高度 函数 / 测试
   const waveHeights = useMemo(
-    () =>
-      Array.from({ length: 70 }).map((_, index) => {
-        const x = index / 69;
+    () => {
+      const barsPerSecond = 15;
+      const totalBars = Math.ceil(totalTime * barsPerSecond);
+      return Array.from({ length: totalBars }).map((_, index) => {
+        const x = index / (totalBars - 1);
         const burstA = Math.exp(-Math.pow((x - 0.28) / 0.06, 2));
         const burstB = Math.exp(-Math.pow((x - 0.50) / 0.12, 2));
         const burstC = Math.exp(-Math.pow((x - 0.86) / 0.05, 2));
         const base = 8 + (burstA * 30 + burstB * 22 + burstC * 26);
         const ripple = 2 + 8 * Math.abs(Math.sin(index * 0.55));
         return Math.max(6, Math.min(54, base * 0.6 + ripple * 0.4));
-      }),
-    []
+      });
+    },
+    [totalTime]
   );
 
   // 转换为音频数据格式（0-50范围）
@@ -124,18 +127,21 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
   // 获取录音时间信息
   // const recordingTimeInfo = useMemo(() => getRecordingTimeInfo(), []);
 
-  // 模拟播放：每 50 毫秒时间增加 0.05 秒
+  // 模拟播放：每 100 毫秒时间增加 0.1 秒，降低渲染频率
   useEffect(() => {
     // 如果是紧凑模式，或者不在录音/播放状态，可以根据需求 return 暂停
     const interval = setInterval(() => {
-      setCurrentTime((prev) => {
-        if (prev >= totalTime) {
-          clearInterval(interval);
-          return totalTime; // 播放结束
-        }
-        return prev + 0.05; // 平滑推进
-      });
-    }, 50);
+      if (currentTimeRef.current >= totalTime) {
+        clearInterval(interval);
+        return;
+      }
+      
+      const nextTime = currentTimeRef.current + 0.1;
+      currentTimeRef.current = nextTime;
+      
+      // 只有在 UI 需要显示时间或者处理交互时才更新 state
+      setCurrentTime(nextTime);
+    }, 100);
 
     return () => clearInterval(interval);
   }, [totalTime]);
@@ -177,19 +183,37 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
 
           {/* 波形图 */}
           <View style={styles.compactWaveRow}>
-            {waveHeights.slice(0, 26).map((h, index) => (
-              <View
-                key={`compact-wave-${index}`}
-                style={[
-                  styles.compactWaveBar,
-                  {
-                    backgroundColor: waveColor,
-                    height: Math.max(4, Math.round(h * 0.35)),
-                    opacity: 0.65,
-                  },
-                ]}
-              />
-            ))}
+             {waveHeights.slice(0, 26).map((h, index) => (
+                <View
+                  key={`compact-wave-${index}`}
+                  style={[
+                    styles.compactWaveBar,
+                    {
+                      backgroundColor: waveColor,
+                      height: Math.max(4, Math.round(h * 0.35)),
+                      opacity: 0.65,
+                    },
+                  ]}
+                />
+             ))}
+            {/* {waveHeights.slice(0, 30).map((h, index) => {
+              // 在收起模式下，我们简单显示一个静态的波形切片
+              // 或者可以根据 currentTime 显示当前进度的波形
+              const isPlayed = index < (currentTime * 15) % 30; 
+              return (
+                <View
+                  key={`compact-wave-${index}`}
+                  style={[
+                    styles.compactWaveBar,
+                    {
+                      backgroundColor: isPlayed ? waveColor : waveColor + '40',
+                      height: Math.max(4, Math.round(h * 0.35)),
+                      opacity: 0.8,
+                    },
+                  ]}
+                />
+              );
+            })} */}
           </View>
           
           {/* 绑定按钮 */}
@@ -205,26 +229,28 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
       )}
 
       {/* 展开模式 / 使用新的交互式波形组件 */}
-      {!isCompact ? (
-        <WorkflowWaveformInteractive
-          audioData={audioData}
-          // currentTime={recordingTimeInfo.currentSeconds}
-          // totalSeconds={recordingTimeInfo.totalSeconds}
-          currentTime={currentTime}  // 传入动态的时间
-          totalSeconds={totalTime}   // 传入总时间
-          onTimeChange={(seconds) => {
-            // 这里可以处理时间变化，例如更新录音进度
-            console.log('Waveform time changed:', seconds);
-            setCurrentTime(seconds);
-          }}
-          colors={{
-            wavePlayed: waveColor,
-            waveUnplayed: waveColor + '80', // 未播放部分半透明
-            axisColor: axisColor,
-            cursorColor: cursorColor,
-          }}
-        />
-      ) : null}
+      {/* <Animated.View style={{ opacity: waveOpacity }}>
+        {!isCompact ? (
+          <WorkflowWaveformInteractive
+            audioData={audioData}
+            currentTime={currentTime}  // 传入动态的时间
+            totalSeconds={totalTime}   // 传入总时间
+            onTimeChange={(seconds) => {
+              // 这里可以处理时间变化，例如更新录音进度
+              if (Math.abs(currentTimeRef.current - seconds) > 0.1) {
+                currentTimeRef.current = seconds;
+                setCurrentTime(seconds);
+              }
+            }}
+            colors={{
+              wavePlayed: waveColor,
+              waveUnplayed: waveColor + '40', // 未播放部分半透明
+              axisColor: axisColor,
+              cursorColor: cursorColor,
+            }}
+          />
+        ) : null}
+      </Animated.View> */}
 
       {/* 拖拽手柄 / 测试 */}
       <View style={styles.dragTouchZone}>
