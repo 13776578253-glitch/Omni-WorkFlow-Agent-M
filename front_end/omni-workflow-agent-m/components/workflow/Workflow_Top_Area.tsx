@@ -122,17 +122,21 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
           },
         ]}
       >   
-      {/* 录音时长文本  // 测试 */}
+      {/* 录音时长文本 */}
       {!isCompact ? (
+        // 展开模式  // 时长样式
         <Text style={[styles.headerTime, { color: textColor + 'EA' }]}>
           {formatTimeRange(getRecordingTimeInfo().currentSeconds, getRecordingTimeInfo().totalSeconds)}
         </Text>
       ) : (
+        // 收起模式 //样式
         <View style={styles.compactRow}>
+          {/* 时长样式 */}
           <Text style={[styles.headerTime, styles.headerTimeCompact, { color: textColor + 'EA' }]}>
             {formatTimeRange(getRecordingTimeInfo().currentSeconds, getRecordingTimeInfo().totalSeconds)}
           </Text>
 
+          {/* 波形图 */}
           <View style={styles.compactWaveRow}>
             {waveHeights.slice(0, 26).map((h, index) => (
               <View
@@ -148,7 +152,8 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
               />
             ))}
           </View>
-
+          
+          {/* 绑定按钮 */}
           <View style={styles.compactActions}>
             <TouchableOpacity style={styles.iconCircle} onPress={() => {}}>
               <Ionicons name="pause" size={18} color={textColor} />
@@ -160,6 +165,7 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
         </View>
       )}
 
+      {/* 展开模式 / 波形图样式 / 复杂逻辑 / 待处理*/}
       {!isCompact ? (
         <WorkflowWaveformCountdown
           waveHeights={waveHeights}
