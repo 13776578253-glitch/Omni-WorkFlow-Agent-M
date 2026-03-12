@@ -1,5 +1,5 @@
 // 测试逻辑 / 废弃
-//  暂保留 / 静态样式 / 验证组件样式
+// 保留 / 静态样式 / 验证组件样式
 import React from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 

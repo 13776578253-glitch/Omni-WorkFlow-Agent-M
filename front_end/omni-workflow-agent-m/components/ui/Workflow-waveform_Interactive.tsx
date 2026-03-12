@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
-    Animated,
-    Dimensions,
-    NativeScrollEvent,
-    NativeSyntheticEvent,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View
+  Animated,
+  Dimensions,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
 } from 'react-native';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -16,9 +16,9 @@ const CENTER_OFFSET = SCREEN_WIDTH / 2;
 // 核心参数设定（严格对齐时间与物理像素）
 const BAR_WIDTH = 3;
 const BAR_GAP = 2;
-const BAR_UNIT = BAR_WIDTH + BAR_GAP; // 5px
-const BARS_PER_SECOND = 15;           // 1秒 15根柱子
-const PIXELS_PER_SECOND = BARS_PER_SECOND * BAR_UNIT; // 1秒 = 75px (约等于一屏5秒)
+const BAR_UNIT = BAR_WIDTH + BAR_GAP;                  // 5px
+const BARS_PER_SECOND = 15;                            // 1秒 15根柱子
+const PIXELS_PER_SECOND = BARS_PER_SECOND * BAR_UNIT;  // 1秒 = 75px 
 
 interface WorkflowWaveformInteractiveProps {
   // 传入的振幅数组（由你的音频库生成的 0~1 或具体高度的数据）
@@ -179,9 +179,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   waveRow: {
-    height: 96,
+    height: 120,
     flexDirection: 'row',
     alignItems: 'center',
+    marginLeft: -14,
   },
   waveBar: {
     width: BAR_WIDTH,
@@ -205,7 +206,7 @@ const styles = StyleSheet.create({
     height: 110,
     left: CENTER_OFFSET,
     top: 0,
-    marginLeft: -1,
+    marginLeft: -10,
     zIndex: 10,
   },
   cursorDot: {

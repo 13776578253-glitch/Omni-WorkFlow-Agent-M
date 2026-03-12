@@ -3,7 +3,8 @@ import { Animated, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'r
 
 import type { WorkflowMode } from '@/constants/workflow_type';
 
-import { formatTimeRange, WorkflowWaveformCountdown } from '@/components/ui/workflow-waveform_countdown';
+import { formatTimeRange } from '@/components/ui/workflow-waveform_countdown';
+import { WorkflowWaveformInteractive } from '@/components/ui/Workflow-waveform_Interactive';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,11 +14,12 @@ interface WorkflowTopAreaProps {
   onHeightChange?: (height: number) => void;
   forcedCompact?: boolean;
 }
+
 // 常量定义
-export const TOP_AREA_EXPANDED_HEIGHT = 220;     // 展开状态高度
-export const TOP_AREA_COMPACT_HEIGHT = 62;       // 紧凑状态高度
-const GESTURE_LOCK_DISTANCE = 8;          // 手势锁定最小距离 (px)
-const GESTURE_LOCK_RATIO = 1.1;           // 垂直水平手势判断
+export const TOP_AREA_EXPANDED_HEIGHT = 220;        // 展开状态高度
+export const TOP_AREA_COMPACT_HEIGHT = 62;          // 紧凑状态高度
+// const GESTURE_LOCK_DISTANCE = 8;                 // 手势锁定最小距离 (px)
+// const GESTURE_LOCK_RATIO = 1.1;                  // 垂直水平手势判断
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -52,10 +54,16 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
     []
   );
 
+  // 转换为音频数据格式（0-50范围）
+  const audioData = useMemo(() => 
+    waveHeights.map(h => Math.min(50, h * 0.8)), // 适当缩放
+    [waveHeights]
+  );
+
   const [isCompact, setIsCompact] = useState(false);
   const panelHeightAnim = useRef(new Animated.Value(TOP_AREA_EXPANDED_HEIGHT)).current;
-  const dragStartHeightRef = useRef(TOP_AREA_EXPANDED_HEIGHT);
-  const axisLockRef = useRef<'vertical' | 'horizontal' | null>(null);  // 手势锁定
+  // const dragStartHeightRef = useRef(TOP_AREA_EXPANDED_HEIGHT);
+  // const axisLockRef = useRef<'vertical' | 'horizontal' | null>(null);  // 手势锁定
 
   // 动画 执行 函数
   const animateTo = useCallback(
@@ -107,6 +115,9 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
     animateTo(!isCompact);
   }, [animateTo, forcedCompact, isCompact]);
 
+  // 获取录音时间信息
+  const recordingTimeInfo = useMemo(() => getRecordingTimeInfo(), []);
+
   if (mode !== 'recording') return null;
 
   return (
@@ -126,14 +137,14 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
       {!isCompact ? (
         // 展开模式  // 时长样式
         <Text style={[styles.headerTime, { color: textColor + 'EA' }]}>
-          {formatTimeRange(getRecordingTimeInfo().currentSeconds, getRecordingTimeInfo().totalSeconds)}
+          {formatTimeRange(recordingTimeInfo.currentSeconds, recordingTimeInfo.totalSeconds)}
         </Text>
       ) : (
         // 收起模式 //样式
         <View style={styles.compactRow}>
           {/* 时长样式 */}
           <Text style={[styles.headerTime, styles.headerTimeCompact, { color: textColor + 'EA' }]}>
-            {formatTimeRange(getRecordingTimeInfo().currentSeconds, getRecordingTimeInfo().totalSeconds)}
+            {formatTimeRange(recordingTimeInfo.currentSeconds, recordingTimeInfo.totalSeconds)}
           </Text>
 
           {/* 波形图 */}
@@ -165,16 +176,21 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
         </View>
       )}
 
-      {/* 展开模式 / 波形图样式 / 复杂逻辑 / 待处理*/}
+      {/* 展开模式 / 使用新的交互式波形组件 */}
       {!isCompact ? (
-        <WorkflowWaveformCountdown
-          waveHeights={waveHeights}
-          waveOpacity={waveOpacity}
-          axisOpacity={axisOpacity}
+        <WorkflowWaveformInteractive
+          audioData={audioData}
+          currentTime={recordingTimeInfo.currentSeconds}
+          totalSeconds={recordingTimeInfo.totalSeconds}
+          onTimeChange={(seconds) => {
+            // 这里可以处理时间变化，例如更新录音进度
+            console.log('Waveform time changed:', seconds);
+          }}
           colors={{
-            waveColor,
-            axisColor,
-            cursorColor,
+            wavePlayed: waveColor,
+            waveUnplayed: waveColor + '80', // 未播放部分半透明
+            axisColor: axisColor,
+            cursorColor: cursorColor,
           }}
         />
       ) : null}
@@ -214,8 +230,8 @@ const styles = StyleSheet.create({
     fontSize: 17,        // 展开样式
     fontWeight: '500',
     textAlign: 'center',
-    marginBottom: 5,
-    letterSpacing: 1,    // 文字间距
+    marginBottom: 20,
+    letterSpacing: 2,    // 文字间距
   },
   headerTimeCompact: {
     fontSize: 16,        // 缩小样式
@@ -227,9 +243,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 8,        // 绝对高度
-    paddingBottom: 2,     // 无用样式
+    paddingTop: 7,        // 绝对高度
+    paddingBottom: 10,     // 无用样式
   },
+  // 收起状态 / 波形图样式
   compactWaveRow: {
     flex: 1,
     flexDirection: 'row',
