@@ -1,11 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-import type { WorkflowMode } from '@/constants/workflow_type';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { formatTimeRange } from '@/components/ui/Workflow-waveform_Interactive';
-
+import type { WorkflowMode } from '@/constants/workflow_type';
 import { useThemeColor } from '@/hooks/use-theme-color';
+
+import { useAudioPlayer } from '@/services/workflow/Workflow_audio_read';
+
+// import { WorkflowAudioService } from '@/services/workflow/Workflow_audio_read';
 import { Ionicons } from '@expo/vector-icons';
 
 interface WorkflowTopAreaProps {
@@ -17,21 +19,10 @@ interface WorkflowTopAreaProps {
 // 常量定义
 export const TOP_AREA_EXPANDED_HEIGHT = 220;        // 展开状态高度
 export const TOP_AREA_COMPACT_HEIGHT = 62;          // 紧凑状态高度
-// const GESTURE_LOCK_DISTANCE = 8;                 // 手势锁定最小距离 (px)
-// const GESTURE_LOCK_RATIO = 1.1;                  // 垂直水平手势判断
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
-
-
-
-// 秒数 转换 / 测试
-// function getRecordingTimeInfo() {
-//   const currentSeconds = 0;
-//   const totalSeconds = 0;
-//   return { currentSeconds, totalSeconds };
-// }
 
 export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: WorkflowTopAreaProps) {
   const bgColor = useThemeColor({ light: '#F3F4F6', dark: '#2A2A2E' }, 'background');
@@ -40,39 +31,27 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
   const axisColor = useThemeColor({ light: '#6B7280', dark: '#6B7280' }, 'icon');   // 时间轴
   const cursorColor = useThemeColor({ light: '#8FA0BF', dark: '#8FA0BF' }, 'tint'); // 游标
 
-  // 定义时间状态（总长设为 15 秒用于测试）
-  const [currentTime, setCurrentTime] = useState(0);
-  const currentTimeRef = useRef(0);
-  const totalTime = 15;
+  // 使用自定义 Hook 管理音频播放逻辑
+  const {
+    currentTime,
+    totalTime,
+    audioData,
+    isLoading,
+    isPlaying,
+    togglePlay,
+    stopPlay,
+    loadAudio,
+  } = useAudioPlayer();
   
-  // 波形图高度 函数 / 测试
-  const waveHeights = useMemo(
-    () => {
-      const barsPerSecond = 15;
-      const totalBars = Math.ceil(totalTime * barsPerSecond);
-      return Array.from({ length: totalBars }).map((_, index) => {
-        const x = index / (totalBars - 1);
-        const burstA = Math.exp(-Math.pow((x - 0.28) / 0.06, 2));
-        const burstB = Math.exp(-Math.pow((x - 0.50) / 0.12, 2));
-        const burstC = Math.exp(-Math.pow((x - 0.86) / 0.05, 2));
-        const base = 8 + (burstA * 30 + burstB * 22 + burstC * 26);
-        const ripple = 2 + 8 * Math.abs(Math.sin(index * 0.55));
-        return Math.max(6, Math.min(54, base * 0.6 + ripple * 0.4));
-      });
-    },
-    [totalTime]
-  );
-
-  // 转换为音频数据格式（0-50范围）
-  const audioData = useMemo(() => 
-    waveHeights.map(h => Math.min(50, h * 0.8)), // 适当缩放
-    [waveHeights]
-  );
+  // 初始化：读取音频数据
+  useEffect(() => {
+    if (mode === 'recording') { // 这里假设 mode='recording' 是触发场景，实际可能是 'review' 或其他
+      loadAudio();
+    }
+  }, [mode, loadAudio]);
 
   const [isCompact, setIsCompact] = useState(false);
   const panelHeightAnim = useRef(new Animated.Value(TOP_AREA_EXPANDED_HEIGHT)).current;
-  // const dragStartHeightRef = useRef(TOP_AREA_EXPANDED_HEIGHT);
-  // const axisLockRef = useRef<'vertical' | 'horizontal' | null>(null);  // 手势锁定
 
   // 动画 执行 函数
   const animateTo = useCallback(
@@ -123,29 +102,7 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
     }
     animateTo(!isCompact);
   }, [animateTo, forcedCompact, isCompact]);
-
-  // 获取录音时间信息
-  // const recordingTimeInfo = useMemo(() => getRecordingTimeInfo(), []);
-
-  // 模拟播放：每 100 毫秒时间增加 0.1 秒，降低渲染频率
-  useEffect(() => {
-    // 如果是紧凑模式，或者不在录音/播放状态，可以根据需求 return 暂停
-    const interval = setInterval(() => {
-      if (currentTimeRef.current >= totalTime) {
-        clearInterval(interval);
-        return;
-      }
-      
-      const nextTime = currentTimeRef.current + 0.1;
-      currentTimeRef.current = nextTime;
-      
-      // 只有在 UI 需要显示时间或者处理交互时才更新 state
-      setCurrentTime(nextTime);
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, [totalTime]);
-
+  
   if (mode !== 'recording') return null;
 
   return (
@@ -163,99 +120,71 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
       >   
       {/* 录音时长文本 */}
       {!isCompact ? (
-        // 展开模式  // 时长样式
-        // <Text style={[styles.headerTime, { color: textColor + 'EA' }]}>
-        //   {formatTimeRange(recordingTimeInfo.currentSeconds, recordingTimeInfo.totalSeconds)}
-        // </Text>
-        <Text style={[styles.headerTime, { color: textColor + 'EA' }]}>
-            {formatTimeRange(currentTime, totalTime)}
-        </Text>
+        // 展开模式
+        <View>
+          <Text style={[styles.headerTime, { color: textColor + 'EA' }]}>
+              {isLoading ? 'Loading...' : formatTimeRange(currentTime, totalTime)}
+          </Text>
+        </View>
       ) : (
-        // 收起模式 //样式
+        // 收起模式
         <View style={styles.compactRow}>
-          {/* 时长样式 */}
-          {/* <Text style={[styles.headerTime, styles.headerTimeCompact, { color: textColor + 'EA' }]}>
-            {formatTimeRange(recordingTimeInfo.currentSeconds, recordingTimeInfo.totalSeconds)}
-          </Text> */}
           <Text style={[styles.headerTime, styles.headerTimeCompact, { color: textColor + 'EA' }]}>
-              {formatTimeRange(currentTime, totalTime)}
+              {isLoading ? '...' : formatTimeRange(currentTime, totalTime)}
           </Text>
 
-          {/* 波形图 */}
+          {/* 波形图 - 简单展示部分数据 */}
           <View style={styles.compactWaveRow}>
-             {waveHeights.slice(0, 26).map((h, index) => (
+             {!isLoading && audioData.slice(0, 30).map((h: number, index: number) => {
+               // 简单模拟进度：根据当前时间比例计算高亮
+               const progressRatio = totalTime > 0 ? currentTime / totalTime : 0;
+               const highlightIndex = Math.floor(progressRatio * 30); 
+               const isPlayed = index <= highlightIndex;
+               
+               return (
                 <View
                   key={`compact-wave-${index}`}
                   style={[
                     styles.compactWaveBar,
                     {
-                      backgroundColor: waveColor,
-                      height: Math.max(4, Math.round(h * 0.35)),
-                      opacity: 0.65,
-                    },
-                  ]}
-                />
-             ))}
-            {/* {waveHeights.slice(0, 30).map((h, index) => {
-              // 在收起模式下，我们简单显示一个静态的波形切片
-              // 或者可以根据 currentTime 显示当前进度的波形
-              const isPlayed = index < (currentTime * 15) % 30; 
-              return (
-                <View
-                  key={`compact-wave-${index}`}
-                  style={[
-                    styles.compactWaveBar,
-                    {
-                      backgroundColor: isPlayed ? waveColor : waveColor + '40',
-                      height: Math.max(4, Math.round(h * 0.35)),
+                      backgroundColor: isPlayed ? waveColor : waveColor + '40', // 已播放高亮，未播放半透明
+                      height: Math.max(4, Math.round(h * 0.7)), // 适当调整高度
                       opacity: 0.8,
                     },
                   ]}
                 />
-              );
-            })} */}
+               );
+             })}
           </View>
           
           {/* 绑定按钮 */}
           <View style={styles.compactActions}>
-            <TouchableOpacity style={styles.iconCircle} onPress={() => {}}>
-              <Ionicons name="pause" size={18} color={textColor} />
+            <TouchableOpacity style={styles.iconCircle} onPress={togglePlay}>
+              <Ionicons name={isPlaying ? "pause" : "play"} size={18} color={textColor} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconCircle} onPress={() => {}}>
+            <TouchableOpacity style={styles.iconCircle} onPress={stopPlay}>
               <Ionicons name="stop-circle" size={18} color={textColor} />
             </TouchableOpacity>
           </View>
         </View>
       )}
 
-      {/* 展开模式 / 使用新的交互式波形组件 */}
+      {/* 展开模式 / 暂时注释掉交互式波形组件 */}
       {/* <Animated.View style={{ opacity: waveOpacity }}>
-        {!isCompact ? (
-          <WorkflowWaveformInteractive
-            audioData={audioData}
-            currentTime={currentTime}  // 传入动态的时间
-            totalSeconds={totalTime}   // 传入总时间
-            onTimeChange={(seconds) => {
-              // 这里可以处理时间变化，例如更新录音进度
-              if (Math.abs(currentTimeRef.current - seconds) > 0.1) {
-                currentTimeRef.current = seconds;
-                setCurrentTime(seconds);
-              }
-            }}
-            colors={{
-              wavePlayed: waveColor,
-              waveUnplayed: waveColor + '40', // 未播放部分半透明
-              axisColor: axisColor,
-              cursorColor: cursorColor,
-            }}
-          />
-        ) : null}
+         {!isCompact && !isLoading ? (
+           <View style={{ height: 120, justifyContent: 'center', alignItems: 'center' }}>
+             <Text style={{ color: textColor }}>Waveform Area (Under Reconstruction)</Text>
+           </View>
+         ) : null}
       </Animated.View> */}
+      
+      {/* Loading Indicator */}
+      {isLoading && !isCompact && (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="small" color={textColor} />
+        </View>
+      )}
 
-      {/* 拖拽手柄 / 测试 */}
-      <View style={styles.dragTouchZone}>
-        <View style={[styles.dragHandle, { backgroundColor: axisColor + '66' }]} />
-      </View>
       </Animated.View>
     </Pressable>
   );
