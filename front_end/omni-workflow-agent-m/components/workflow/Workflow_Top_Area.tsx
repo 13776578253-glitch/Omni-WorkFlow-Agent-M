@@ -1,14 +1,16 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { formatTimeRange } from '@/components/ui/Workflow-waveform_Interactive';
-import type { WorkflowMode } from '@/constants/workflow_type';
-import { useThemeColor } from '@/hooks/use-theme-color';
+import { Ionicons } from '@expo/vector-icons';
 
+import type { WorkflowMode } from '@/constants/workflow_type';
+
+import { formatTimeRange } from '@/components/ui/Workflow-waveform_Interactive';
 import { WorkflowWaveformTest } from '@/components/ui/Workflow-waveform_Test';
+
 import { useAudioPlayer } from '@/services/workflow/Workflow_audio_read';
 
-import { Ionicons } from '@expo/vector-icons';
+import { useThemeColor } from '@/hooks/use-theme-color';
 
 interface WorkflowTopAreaProps {
   mode: WorkflowMode;
@@ -27,12 +29,14 @@ function clamp(value: number, min: number, max: number) {
 export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: WorkflowTopAreaProps) {
   const bgColor = useThemeColor({ light: '#F3F4F6', dark: '#2A2A2E' }, 'background');
   const textColor = useThemeColor({}, 'text');
-  const waveColor = useThemeColor({ light: '#94A3B8', dark: '#8FA0BF' }, 'text');   // 波形图
-  const wavePlayedColor = useThemeColor({ light: '#7C3AED', dark: '#A78BFA' }, 'tint'); // 已播放波形 (亮色主题用紫色，暗色主题用浅紫)
+
+  // 波形图样式 / 待拆分
+  const waveColor = useThemeColor({ light: '#94A3B8', dark: '#8FA0BF' }, 'text');         // 波形图
+  const wavePlayedColor = useThemeColor({ light: '#7C3AED', dark: '#A78BFA' }, 'tint');   // 已播放波形 (亮色主题用紫色，暗色主题用浅紫)
   const waveUnplayedColor = useThemeColor({ light: '#E2E8F0', dark: '#3F3F46' }, 'text'); // 未播放波形 (亮色主题用浅灰，暗色主题用深灰)
   
-  const axisColor = useThemeColor({ light: '#6B7280', dark: '#9CA3AF' }, 'icon');   // 时间轴
-  const cursorColor = useThemeColor({ light: '#7C3AED', dark: '#A78BFA' }, 'tint'); // 游标 (与已播放波形保持一致)
+  const axisColor = useThemeColor({ light: '#6B7280', dark: '#9CA3AF' }, 'icon');         // 时间轴
+  const cursorColor = useThemeColor({ light: '#7C3AED', dark: '#A78BFA' }, 'tint');       // 游标 (与已播放波形保持一致)
 
   // 使用自定义 Hook 管理音频播放逻辑
   const {
@@ -194,7 +198,7 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
          ) : null}
       </Animated.View>
       
-      {/* Loading Indicator */}
+      {/* 动画加载 - 等待 */}
       {isLoading && !isCompact && (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="small" color={textColor} />
@@ -246,7 +250,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: 7,        // 绝对高度
-    paddingBottom: 10,     // 无用样式
+    paddingBottom: 10,     
   },
   // 收起状态 / 波形图样式
   compactWaveRow: {
