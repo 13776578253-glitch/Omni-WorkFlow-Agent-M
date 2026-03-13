@@ -1,3 +1,6 @@
+// 测试逻辑 / 废弃
+// 保留 / 动态样式 / 验证组件样式
+
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Animated,

@@ -42,21 +42,16 @@ export function formatTimeRange(currentSeconds: number, totalSeconds: number): s
   return `${formatHms(currentSeconds)}/${formatHms(totalSeconds)}`;
 }
 
-// 静态波形组件（使用 Memo 优化，避免重复渲染）
+// 静态波形组件（只包含波形条，不包含时间轴）
 const StaticWaveform = React.memo(({ 
   audioData, 
   color, 
-  axisLabels,
-  axisColor 
 }: { 
   audioData: number[]; 
   color: string;
-  axisLabels: number[];
-  axisColor: string;
 }) => {
   return (
     <View style={styles.staticContainer}>
-      {/* 波形层 */}
       <View style={styles.waveRow}>
         {audioData.map((h, index) => (
           <View
@@ -71,24 +66,34 @@ const StaticWaveform = React.memo(({
           />
         ))}
       </View>
+    </View>
+  );
+});
 
-      {/* 时间轴层 */}
-      <View style={styles.axisRow}>
-        {axisLabels.map((sec) => (
-          <Text
-            key={`axis-${sec}`}
-            style={[
-              styles.axisText,
-              {
-                color: axisColor,
-                left: sec * PIXELS_PER_SECOND,
-              },
-            ]}
-          >
-            {formatHms(sec)}
-          </Text>
-        ))}
-      </View>
+// 独立的时间轴组件
+const StaticAxis = React.memo(({ 
+  axisLabels,
+  axisColor 
+}: { 
+  axisLabels: number[];
+  axisColor: string;
+}) => {
+  return (
+    <View style={styles.axisRow}>
+      {axisLabels.map((sec) => (
+        <Text
+          key={`axis-${sec}`}
+          style={[
+            styles.axisText,
+            {
+              color: axisColor,
+              left: sec * PIXELS_PER_SECOND,
+            },
+          ]}
+        >
+          {formatHms(sec)}
+        </Text>
+      ))}
     </View>
   );
 });
@@ -110,7 +115,7 @@ export function WorkflowWaveformTest({
     });
   }, [currentTime, progress]);
 
-  // 左侧（已播放）动画样式：初始位置在屏幕中心，向左移动
+  // 左侧（已播放）动画样式
   const leftAnimatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
@@ -119,11 +124,20 @@ export function WorkflowWaveformTest({
     };
   });
 
-  // 右侧（未播放）动画样式：初始位置在容器左侧（即屏幕中心），向左移动
+  // 右侧（未播放）动画样式
   const rightAnimatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
         { translateX: -progress.value * PIXELS_PER_SECOND }
+      ],
+    };
+  });
+
+  // 时间轴动画样式（始终跟随左侧，不被遮罩切割）
+  const axisAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        { translateX: CENTER_OFFSET - progress.value * PIXELS_PER_SECOND }
       ],
     };
   });
@@ -135,31 +149,40 @@ export function WorkflowWaveformTest({
 
   return (
     <View style={styles.container}>
-      {/* 左侧遮罩容器：显示高亮波形 (Played) */}
-      <View style={styles.leftMask}>
-        <Animated.View style={[styles.contentContainer, leftAnimatedStyle]}>
-          <StaticWaveform 
-            audioData={audioData} 
-            color={colors.wavePlayed} 
-            axisLabels={axisLabels}
-            axisColor={colors.axisColor}
-          />
-        </Animated.View>
+      {/* 1. 波形图层 (Masked) */}
+      <View style={styles.waveformLayer} pointerEvents="none">
+        {/* 左侧遮罩容器：显示高亮波形 (Played) */}
+        <View style={styles.leftMask}>
+          <Animated.View style={[styles.contentContainer, leftAnimatedStyle]}>
+            <StaticWaveform 
+              audioData={audioData} 
+              color={colors.wavePlayed} 
+            />
+          </Animated.View>
+        </View>
+
+        {/* 右侧遮罩容器：显示暗色波形 (Unplayed) */}
+        <View style={styles.rightMask}>
+          <Animated.View style={[styles.contentContainer, rightAnimatedStyle]}>
+            <StaticWaveform 
+              audioData={audioData} 
+              color={colors.waveUnplayed} 
+            />
+          </Animated.View>
+        </View>
       </View>
 
-      {/* 右侧遮罩容器：显示暗色波形 (Unplayed) */}
-      <View style={styles.rightMask}>
-        <Animated.View style={[styles.contentContainer, rightAnimatedStyle]}>
-          <StaticWaveform 
-            audioData={audioData} 
-            color={colors.waveUnplayed} 
-            axisLabels={axisLabels}
-            axisColor={colors.axisColor}
-          />
-        </Animated.View>
+      {/* 2. 时间轴层 (Unmasked, 独立渲染) */}
+      <View style={styles.axisLayer} pointerEvents="none">
+         <Animated.View style={[styles.contentContainer, axisAnimatedStyle]}>
+            <StaticAxis 
+              axisLabels={axisLabels} 
+              axisColor={colors.axisColor} 
+            />
+         </Animated.View>
       </View>
 
-      {/* 居中固定游标 */}
+      {/* 3. 游标层 */}
       <View style={[styles.cursor, { backgroundColor: colors.cursorColor }]} pointerEvents="none">
         <View style={[styles.cursorDot, { backgroundColor: colors.cursorColor, top: -6 }]} />
         <View style={[styles.cursorDot, { backgroundColor: colors.cursorColor, bottom: -6 }]} />
@@ -170,11 +193,29 @@ export function WorkflowWaveformTest({
 
 const styles = StyleSheet.create({
   container: {
-    height: 140,
+    height: 160,    // 增加容器高度，为下方时间轴腾出空间 (原 140 -> 160)
     justifyContent: 'center',
     position: 'relative',
     width: '100%',
-    backgroundColor: 'transparent', // 确保背景透明
+    backgroundColor: 'transparent',
+    paddingBottom: 20, // 增加底部内边距，防止时间轴贴底
+  },
+  waveformLayer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120, // 仅包含波形高度
+    zIndex: 1,
+  },
+  axisLayer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 40, // 仅包含时间轴高度
+    zIndex: 2, // 确保时间轴在波形上方（或下方独立层）
+    overflow: 'hidden', // 时间轴不需要左右裁剪，但容器需要裁剪防止溢出屏幕
   },
   leftMask: {
     position: 'absolute',
@@ -198,15 +239,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     top: 0,
-    // 宽度需要足够容纳所有波形，这里设为一个较大的值或者动态计算
-    // 由于是 overflow: visible (默认)，其实只要 content 存在即可
     minWidth: SCREEN_WIDTH, 
     flexDirection: 'column',
     justifyContent: 'center',
-    paddingTop: 10, // 垂直居中微调
   },
   staticContainer: {
     flexDirection: 'column',
+    height: '100%',
+    justifyContent: 'center',
   },
   waveRow: {
     height: 100,
@@ -220,15 +260,17 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   axisRow: {
-    height: 24,
-    marginTop: 19,
+    height: 40, // 增加高度
+    marginTop: 0,
     position: 'relative',
+    justifyContent: 'center', // 垂直居中
   },
   axisText: {
     position: 'absolute',
     fontSize: 11,
     fontWeight: '500',
-    transform: [{ translateX: -15 }], // 文字居中对齐刻度
+    top: 5, // 手动指定 top，避免 layout 不确定性
+    transform: [{ translateX: -25 }], // 文字居中对齐刻度 (微调：原 -15 -> -17)
   },
   cursor: {
     position: 'absolute',
