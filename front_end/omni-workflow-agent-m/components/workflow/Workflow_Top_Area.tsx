@@ -5,9 +5,9 @@ import { formatTimeRange } from '@/components/ui/Workflow-waveform_Interactive';
 import type { WorkflowMode } from '@/constants/workflow_type';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
+import { WorkflowWaveformTest } from '@/components/ui/Workflow-waveform_Test';
 import { useAudioPlayer } from '@/services/workflow/Workflow_audio_read';
 
-// import { WorkflowAudioService } from '@/services/workflow/Workflow_audio_read';
 import { Ionicons } from '@expo/vector-icons';
 
 interface WorkflowTopAreaProps {
@@ -28,8 +28,11 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
   const bgColor = useThemeColor({ light: '#F3F4F6', dark: '#2A2A2E' }, 'background');
   const textColor = useThemeColor({}, 'text');
   const waveColor = useThemeColor({ light: '#94A3B8', dark: '#8FA0BF' }, 'text');   // 波形图
-  const axisColor = useThemeColor({ light: '#6B7280', dark: '#6B7280' }, 'icon');   // 时间轴
-  const cursorColor = useThemeColor({ light: '#8FA0BF', dark: '#8FA0BF' }, 'tint'); // 游标
+  const wavePlayedColor = useThemeColor({ light: '#7C3AED', dark: '#A78BFA' }, 'tint'); // 已播放波形 (亮色主题用紫色，暗色主题用浅紫)
+  const waveUnplayedColor = useThemeColor({ light: '#E2E8F0', dark: '#3F3F46' }, 'text'); // 未播放波形 (亮色主题用浅灰，暗色主题用深灰)
+  
+  const axisColor = useThemeColor({ light: '#6B7280', dark: '#9CA3AF' }, 'icon');   // 时间轴
+  const cursorColor = useThemeColor({ light: '#7C3AED', dark: '#A78BFA' }, 'tint'); // 游标 (与已播放波形保持一致)
 
   // 使用自定义 Hook 管理音频播放逻辑
   const {
@@ -169,14 +172,27 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
         </View>
       )}
 
-      {/* 展开模式 / 暂时注释掉交互式波形组件 */}
-      {/* <Animated.View style={{ opacity: waveOpacity }}>
+      {/* 展开模式 / 使用新的交互式波形组件 */}
+      <Animated.View style={{ opacity: waveOpacity }}>
          {!isCompact && !isLoading ? (
-           <View style={{ height: 120, justifyContent: 'center', alignItems: 'center' }}>
-             <Text style={{ color: textColor }}>Waveform Area (Under Reconstruction)</Text>
-           </View>
+           <WorkflowWaveformTest
+             audioData={audioData}
+             currentTime={currentTime}
+             totalSeconds={totalTime}
+             onTimeChange={(seconds) => {
+               // 这里可以处理拖拽/点击 seek
+               // 目前 WorkflowWaveformTest 还没实现手势，但这预留好了
+               // seekTo(seconds); 
+             }}
+             colors={{
+               wavePlayed: wavePlayedColor,
+               waveUnplayed: waveUnplayedColor,
+               axisColor: axisColor,
+               cursorColor: cursorColor,
+             }}
+           />
          ) : null}
-      </Animated.View> */}
+      </Animated.View>
       
       {/* Loading Indicator */}
       {isLoading && !isCompact && (
@@ -216,7 +232,7 @@ const styles = StyleSheet.create({
     fontSize: 17,        // 展开样式
     fontWeight: '500',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 14,     // 减小间距 (原 20 -> 8)
     letterSpacing: 2,    // 文字间距
   },
   headerTimeCompact: {

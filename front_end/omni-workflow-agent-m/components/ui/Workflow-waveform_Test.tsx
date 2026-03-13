@@ -1,14 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import {
-  Animated,
-  Dimensions,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View
-} from 'react-native';
+import React, { useEffect, useMemo } from 'react';
+import { Dimensions, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CENTER_OFFSET = SCREEN_WIDTH / 2;
@@ -19,44 +16,6 @@ const BAR_GAP = 2;
 const BAR_UNIT = BAR_WIDTH + BAR_GAP;                  // 5px
 const BARS_PER_SECOND = 15;                            // 1秒 15根柱子
 const PIXELS_PER_SECOND = BARS_PER_SECOND * BAR_UNIT;  // 1秒 = 75px 
-
-// 单独抽离波形柱组件并使用 React.memo
-const WaveBar = React.memo(({ 
-  h, 
-  xPosition, 
-  scrollX, 
-  colors 
-}: { 
-  h: number; 
-  xPosition: number; 
-  scrollX: Animated.Value; 
-  colors: { wavePlayed: string; waveUnplayed: string } 
-}) => {
-  const colorInterpolation = scrollX.interpolate({
-    inputRange: [xPosition - 1, xPosition + 1],
-    outputRange: [colors.waveUnplayed, colors.wavePlayed],
-    extrapolate: 'clamp',
-  });
-
-  const opacity = scrollX.interpolate({
-    inputRange: [xPosition - BAR_UNIT * 10, xPosition, xPosition + BAR_UNIT * 10],
-    outputRange: [0.95, 0.8, 0.4],
-    extrapolate: 'clamp',
-  });
-
-  return (
-    <Animated.View
-      style={[
-        styles.waveBar,
-        {
-          height: Math.max(4, h),
-          backgroundColor: colorInterpolation,
-          opacity: opacity,
-        },
-      ]}
-    />
-  );
-});
 
 interface WorkflowWaveformTestProps {
   // 传入的振幅数组（由你的音频库生成的 0~1 或具体高度的数据）
@@ -76,139 +35,184 @@ export function formatHms(totalSeconds: number): string {
   const safeSeconds = Math.max(0, Math.floor(totalSeconds));
   const mm = Math.floor((safeSeconds % 3600) / 60).toString().padStart(2, '0');
   const ss = (safeSeconds % 60).toString().padStart(2, '0');
-  return `${mm}:${ss}`; // 预览音频通常需要显示到秒
+  return `${mm}:${ss}`;
 }
 
 export function formatTimeRange(currentSeconds: number, totalSeconds: number): string {
   return `${formatHms(currentSeconds)}/${formatHms(totalSeconds)}`;
 }
 
+// 静态波形组件（使用 Memo 优化，避免重复渲染）
+const StaticWaveform = React.memo(({ 
+  audioData, 
+  color, 
+  axisLabels,
+  axisColor 
+}: { 
+  audioData: number[]; 
+  color: string;
+  axisLabels: number[];
+  axisColor: string;
+}) => {
+  return (
+    <View style={styles.staticContainer}>
+      {/* 波形层 */}
+      <View style={styles.waveRow}>
+        {audioData.map((h, index) => (
+          <View
+            key={`wave-${index}`}
+            style={[
+              styles.waveBar,
+              {
+                height: Math.max(4, h),
+                backgroundColor: color,
+              },
+            ]}
+          />
+        ))}
+      </View>
+
+      {/* 时间轴层 */}
+      <View style={styles.axisRow}>
+        {axisLabels.map((sec) => (
+          <Text
+            key={`axis-${sec}`}
+            style={[
+              styles.axisText,
+              {
+                color: axisColor,
+                left: sec * PIXELS_PER_SECOND,
+              },
+            ]}
+          >
+            {formatHms(sec)}
+          </Text>
+        ))}
+      </View>
+    </View>
+  );
+});
+
 export function WorkflowWaveformTest({
   audioData,
-  currentTime,
+  currentTime = 0,
   totalSeconds,
-  onTimeChange,
   colors,
 }: WorkflowWaveformTestProps) {
-  // 记录滚动距离的动画值
-  const scrollX = useRef(new Animated.Value(0)).current;
-  const scrollRef = useRef<ScrollView>(null);
-  const isUserScrollingRef = useRef(false);
-  const lastUserTimeRef = useRef<number | null>(null);
-  // 时间轴刻度数组 [0, 1, 2, 3...]
+  // 使用 SharedValue 驱动动画，确保 60fps 流畅度
+  const progress = useSharedValue(0);
+
+  // 监听 currentTime 变化，平滑过渡
+  useEffect(() => {
+    progress.value = withTiming(currentTime, {
+      duration: 100, // 与外部更新频率保持一致 (100ms)
+      easing: Easing.linear,
+    });
+  }, [currentTime, progress]);
+
+  // 左侧（已播放）动画样式：初始位置在屏幕中心，向左移动
+  const leftAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        { translateX: CENTER_OFFSET - progress.value * PIXELS_PER_SECOND }
+      ],
+    };
+  });
+
+  // 右侧（未播放）动画样式：初始位置在容器左侧（即屏幕中心），向左移动
+  const rightAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        { translateX: -progress.value * PIXELS_PER_SECOND }
+      ],
+    };
+  });
+
+  // 预计算时间轴标签
   const axisLabels = useMemo(() => {
     return Array.from({ length: Math.ceil(totalSeconds) + 1 }).map((_, i) => i);
   }, [totalSeconds]);
 
-  // 处理滚动事件，同步给父组件当前秒数
-  const handleScroll = useCallback(
-    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const offsetX = Math.max(0, e.nativeEvent.contentOffset.x);
-      const currentSecond = offsetX / PIXELS_PER_SECOND;
-      lastUserTimeRef.current = currentSecond;
-      if (onTimeChange) {
-        // 为了防止频繁渲染卡顿，只抛出精度到 0.1 的数值，或者在父组件用 useRef 接收
-        onTimeChange(Math.min(currentSecond, totalSeconds));
-      }
-    },
-    [onTimeChange, totalSeconds]
-  );
-
-  useEffect(() => {
-    if (currentTime == null) return;
-    if (isUserScrollingRef.current) return;
-    if (lastUserTimeRef.current != null && Math.abs(lastUserTimeRef.current - currentTime) < 0.05) return;
-    const clamped = Math.max(0, Math.min(currentTime, totalSeconds));
-    const targetX = clamped * PIXELS_PER_SECOND;
-    scrollRef.current?.scrollTo({ x: targetX, animated: false });
-  }, [currentTime, totalSeconds]);
-
   return (
     <View style={styles.container}>
-      {/* 居中固定游标 (绝对定位，不随列表滚动) */}
+      {/* 左侧遮罩容器：显示高亮波形 (Played) */}
+      <View style={styles.leftMask}>
+        <Animated.View style={[styles.contentContainer, leftAnimatedStyle]}>
+          <StaticWaveform 
+            audioData={audioData} 
+            color={colors.wavePlayed} 
+            axisLabels={axisLabels}
+            axisColor={colors.axisColor}
+          />
+        </Animated.View>
+      </View>
+
+      {/* 右侧遮罩容器：显示暗色波形 (Unplayed) */}
+      <View style={styles.rightMask}>
+        <Animated.View style={[styles.contentContainer, rightAnimatedStyle]}>
+          <StaticWaveform 
+            audioData={audioData} 
+            color={colors.waveUnplayed} 
+            axisLabels={axisLabels}
+            axisColor={colors.axisColor}
+          />
+        </Animated.View>
+      </View>
+
+      {/* 居中固定游标 */}
       <View style={[styles.cursor, { backgroundColor: colors.cursorColor }]} pointerEvents="none">
         <View style={[styles.cursorDot, { backgroundColor: colors.cursorColor, top: -6 }]} />
         <View style={[styles.cursorDot, { backgroundColor: colors.cursorColor, bottom: -6 }]} />
       </View>
-
-      {/* 滚动区域 */}
-      <Animated.ScrollView
-        ref={scrollRef}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        bounces={false}
-        onScrollBeginDrag={() => {
-          isUserScrollingRef.current = true;
-        }}
-        onScrollEndDrag={() => {
-          isUserScrollingRef.current = false;
-        }}
-        onMomentumScrollEnd={() => {
-          isUserScrollingRef.current = false;
-        }}
-        scrollEventThrottle={16} // 16ms 触发一次，保证动画流畅度
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-          { useNativeDriver: false, listener: handleScroll } // 因为要获取数值，必须设为 false
-        )}
-        contentContainerStyle={{
-          paddingLeft: CENTER_OFFSET,  // 保证0秒在正中间
-          paddingRight: CENTER_OFFSET, // 保证最后一秒能滑到正中间
-        }}
-      >
-        <View style={styles.scrollContent}>
-          {/* 1. 波形图层 */}
-          <View style={styles.waveRow}>
-            {audioData.map((h, index) => (
-              <WaveBar
-                key={`wave-${index}`}
-                h={h}
-                xPosition={index * BAR_UNIT}
-                scrollX={scrollX}
-                colors={colors}
-              />
-            ))}
-          </View>
-
-          {/* 2. 底层时间轴层 */}
-          <View style={styles.axisRow}>
-            {axisLabels.map((sec) => (
-              <Text
-                key={`axis-${sec}`}
-                style={[
-                  styles.axisText,
-                  {
-                    color: colors.axisColor,
-                    // 绝对定位，严格保证 1秒=75px
-                    left: sec * PIXELS_PER_SECOND, 
-                  },
-                ]}
-              >
-                {formatHms(sec)}
-              </Text>
-            ))}
-          </View>
-        </View>
-      </Animated.ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    height: 140, // 预留波形和时间轴的高度
+    height: 140,
     justifyContent: 'center',
     position: 'relative',
     width: '100%',
+    backgroundColor: 'transparent', // 确保背景透明
   },
-  scrollContent: {
+  leftMask: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: '50%', // 只显示左半边
+    overflow: 'hidden', // 关键：裁剪内容
+    zIndex: 2,
+  },
+  rightMask: {
+    position: 'absolute',
+    left: '50%', // 从屏幕中间开始
+    top: 0,
+    bottom: 0,
+    width: '50%', // 显示右半边
+    overflow: 'hidden', // 关键：裁剪内容
+    zIndex: 1,
+  },
+  contentContainer: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    // 宽度需要足够容纳所有波形，这里设为一个较大的值或者动态计算
+    // 由于是 overflow: visible (默认)，其实只要 content 存在即可
+    minWidth: SCREEN_WIDTH, 
     flexDirection: 'column',
     justifyContent: 'center',
+    paddingTop: 10, // 垂直居中微调
+  },
+  staticContainer: {
+    flexDirection: 'column',
   },
   waveRow: {
-    height: 120,
+    height: 100,
     flexDirection: 'row',
     alignItems: 'center',
+    // 不需要 marginLeft，通过 transform 控制位置
   },
   waveBar: {
     width: BAR_WIDTH,
@@ -217,26 +221,27 @@ const styles = StyleSheet.create({
   },
   axisRow: {
     height: 24,
-    marginTop: 8,
+    marginTop: 19,
     position: 'relative',
   },
   axisText: {
     position: 'absolute',
     fontSize: 11,
     fontWeight: '500',
-    transform: [{ translateX: -15 }], // 文字居中微调，使其对齐刻度线
+    transform: [{ translateX: -15 }], // 文字居中对齐刻度
   },
   cursor: {
     position: 'absolute',
     width: 2,
-    height: 110,
+    height: 110,    // 游标高度 (增加高度可以上下延伸)
     left: CENTER_OFFSET,
-    top: 0,
+    top: 0,         // 垂直位置 (负值向上移动，正值向下移动，0 为对齐顶部)
+    marginLeft: -12, // 严格居中 (width=2, marginLeft=-1)
     zIndex: 10,
   },
   cursorDot: {
     position: 'absolute',
-    width: 6, // 改小了一点，显得更精致
+    width: 6,
     height: 6,
     borderRadius: 3,
     left: -2,
