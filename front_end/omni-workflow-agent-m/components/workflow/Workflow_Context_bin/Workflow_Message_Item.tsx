@@ -17,7 +17,7 @@ export function WorkflowMessageItem({ message, onUpdate }: WorkflowMessageItemPr
   const [isEditing, setIsEditing] = useState(false);
   const isUser = message.role === 'user';
 
-  // Theme colors for indicators
+  // 容器标识器 颜色 / 待处理
   const aiIndicatorColor = useThemeColor({ light: '#60A5FA', dark: '#60A5FA' }, 'tint'); // Light Blue
   const userIndicatorColor = useThemeColor({ light: '#2DD4BF', dark: '#2DD4BF' }, 'tint'); // Teal/Blue-Green
 
@@ -36,7 +36,7 @@ export function WorkflowMessageItem({ message, onUpdate }: WorkflowMessageItemPr
 
   return (
     <View style={[styles.container, isUser ? styles.containerRight : styles.containerLeft]}>
-      {/* AI Indicator Bar (Left) */}
+      {/* AI 栏（左） */}
       {!isUser && (
         <View style={[styles.indicatorBar, { backgroundColor: aiIndicatorColor, marginRight: 12 }]} />
       )}
@@ -55,7 +55,7 @@ export function WorkflowMessageItem({ message, onUpdate }: WorkflowMessageItemPr
         )}
       </View>
 
-      {/* User Indicator Bar (Right) */}
+      {/* User 栏（右） */}
       {isUser && (
         <View style={[styles.indicatorBar, { backgroundColor: userIndicatorColor, marginLeft: 12 }]} />
       )}

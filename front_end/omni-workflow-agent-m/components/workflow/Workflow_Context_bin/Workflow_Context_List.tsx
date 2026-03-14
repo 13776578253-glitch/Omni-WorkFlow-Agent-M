@@ -7,10 +7,10 @@ import { DEFAULT_INITIAL_MESSAGES, WorkflowMessage } from './Workflow_Context_Da
 import { WorkflowMessageItem } from './Workflow_Message_Item';
 
 interface WorkflowContextListProps {
-  messages?: WorkflowMessage[];                      // 消息列表
-  contentPaddingTop?: number;                        // 内容顶部内边距
-  onScrollOffsetChange?: (offsetY: number) => void;  // 滚动偏移量
-  onMessageUpdate?: (id: string, newText: string) => void; // 消息更新回调
+  messages?: WorkflowMessage[];                             // 消息列表
+  contentPaddingTop?: number;                               // 内容顶部内边距
+  onScrollOffsetChange?: (offsetY: number) => void;         // 滚动偏移量
+  onMessageUpdate?: (id: string, newText: string) => void;  // 消息更新回调
 }
 
 export function WorkflowContextList({

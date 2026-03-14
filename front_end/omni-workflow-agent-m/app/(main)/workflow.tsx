@@ -143,7 +143,7 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
     return () => { showSub.remove(); hideSub.remove(); };
   }, [setPagerScrollEnabled]);
 
-  // 实时检测输入内容以触发录音模式
+  // 实时检测输入内容以触发录音模式 / 测试逻辑 / 待处理
   useEffect(() => {
     if (inputText.includes('录音') && mode !== 'recording') {
       setMode('recording');

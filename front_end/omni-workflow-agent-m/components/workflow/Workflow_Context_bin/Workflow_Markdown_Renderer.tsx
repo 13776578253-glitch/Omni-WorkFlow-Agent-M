@@ -6,7 +6,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 
 interface WorkflowMarkdownRendererProps {
   content: string;
-  align?: 'left' | 'right';
+  align?: 'left' | 'right';  // 文本对齐方式
 }
 
 // 渲染 Markdown 内容
@@ -20,7 +20,7 @@ export function WorkflowMarkdownRenderer({ content, align = 'left' }: WorkflowMa
       color: textColor,
       fontSize: 16,
       lineHeight: 24,
-      textAlign: align, // 文本对齐方式
+      textAlign: align,     // 文本对齐方式
     },
     heading1: {
       color: textColor,
