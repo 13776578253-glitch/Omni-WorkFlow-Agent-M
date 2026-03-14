@@ -31,10 +31,10 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
 
   // 波形图样式 / 待拆分
   const waveColor = useThemeColor({ light: '#94A3B8', dark: '#8FA0BF' }, 'text');             // 波形图
-  const wavePlayedColor = useThemeColor({ light: '#3a7fedff', dark: '#fcfcfcff' }, 'tint');   // 已播放波形
+  const wavePlayedColor = useThemeColor({ light: '#0a7ea4', dark: '#fcfcfcff' }, 'tint');   // 已播放波形
   const waveUnplayedColor = useThemeColor({ light: '#E2E8F0', dark: '#3F3F46' }, 'text');     // 未播放波形
   const axisColor = useThemeColor({ light: '#6B7280', dark: '#9CA3AF' }, 'icon');             // 时间轴
-  const cursorColor = useThemeColor({ light: '#3a7fedff', dark: '#ffffffc2' }, 'tint');       // 游标 (与已播放波形保持一致)
+  const cursorColor = useThemeColor({ light: '#0a7ea4', dark: '#ffffffc2' }, 'tint');       // 游标 (与已播放波形保持一致)
 
   // 使用自定义 Hook 管理音频播放逻辑
   const {

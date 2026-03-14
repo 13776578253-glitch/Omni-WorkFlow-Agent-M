@@ -29,8 +29,8 @@ export function AuthValidation({
   const cardColor = useThemeColor({ light: '#FFFFFF', dark: '#1C1C1E' }, 'card');
   const borderColor = useThemeColor({ light: '#D1D5DB', dark: '#3F3F46' }, 'border');
   const captionColor = useThemeColor({ light: '#6B7280', dark: '#9CA3AF' }, 'icon');
-  const linkColor = useThemeColor({ light: '#2563EB', dark: '#1D4ED8' }, 'tint');
-  const actionTextColor = useThemeColor({ light: '#2563EB', dark: '#FFFFFF' }, 'tint');
+  const linkColor = useThemeColor({ light: '#0a7ea4', dark: '#0a7ea4' }, 'tint');
+  const actionTextColor = useThemeColor({ light: '#0a7ea4', dark: '#FFFFFF' }, 'tint');
 
   const [countdown, setCountdown] = useState(60);
   const [code, setCode] = useState('');
