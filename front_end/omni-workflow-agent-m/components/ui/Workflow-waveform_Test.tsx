@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
     top: 5, // 手动指定 top，避免 layout 不确定性
-    transform: [{ translateX: -25 }], // 文字居中对齐刻度 (微调：原 -15 -> -17)
+    transform: [{ translateX: -25 }], // 文字居中对齐刻度
   },
   cursor: {
     position: 'absolute',
