@@ -1,24 +1,25 @@
-﻿// app/(main)/workflow.tsx
-import AsyncStorage from '@react-native-async-storage/async-storage'; // 本地存储 / 测试
+﻿import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-
+import * as Haptics from 'expo-haptics';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import * as Haptics from 'expo-haptics'; // 触觉反馈 / 测试
-
 import type { QuickActionNames, QuickActionPrompts, UserDataState } from '@/constants/type';
 import type { WorkflowMode, WorkflowPressRecordingSession } from '@/constants/workflow_type';
-
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 import { WorkflowRecordingOverlay } from '@/components/ui/workflow-recording-overlay';
-import { DEFAULT_WORKFLOW_MESSAGES, WorkflowContentArea, type WorkflowMessage } from '@/components/workflow/Workflow_ContentArea';
+import { WorkflowContentArea } from '@/components/workflow/Workflow_ContentArea';
 import { WorkflowInputBar } from '@/components/workflow/Workflow_InputBar';
 import { WorkflowQuickActions, type QuickActionKey } from '@/components/workflow/Workflow_QuickActions';
-import { WorkflowTopArea, TOP_AREA_EXPANDED_HEIGHT } from '@/components/workflow/Workflow_Top_Area';
+import { TOP_AREA_EXPANDED_HEIGHT, WorkflowTopArea } from '@/components/workflow/Workflow_Top_Area';
 
+import {
+  MARKDOWN_MOCK_DATA,
+  WorkflowMessage
+} from '@/components/workflow/Workflow_Context_bin/Workflow_Context_Data';
+import { WorkflowStorage } from '@/services/workflow/Workflow_Storage';
 import { createWorkflowUploadService } from '@/services/workflow/Workflow_Upload';
 
 interface WorkflowScreenProps {
@@ -35,17 +36,13 @@ const USER_DATA_STORAGE_KEY = '@omni_workflow_user_data_v1';
 
 // 快捷操作 默认 名称
 const DEFAULT_QUICK_ACTION_NAMES: QuickActionNames = { 
-  solt1: 'Preset 1',
-  solt2: 'Preset 2',
-  solt3: 'Preset 3',
-  solt4: 'Preset 4',
+// 快捷操作 默认 名称
+  solt1: 'Preset 1', solt2: 'Preset 2', solt3: 'Preset 3', solt4: 'Preset 4',
 };
 // 快捷操作 默认 提示文本
 const DEFAULT_QUICK_ACTION_PROMPTS: QuickActionPrompts = {
-  solt1: '',
-  solt2: '',
-  solt3: '',
-  solt4: '',
+// 快捷操作 默认 提示文本
+  solt1: '', solt2: '', solt3: '', solt4: '',
 };
 
 // 测试 / 工作流模式 检测切换
@@ -53,26 +50,6 @@ function detectModeFromInput(text: string): ActiveWorkflowMode {
   const value = text.toLowerCase();
   const recordingKeywords = ['录音', '语音', '音频', 'transcript', 'record'];
   return value.includes('1') || recordingKeywords.some((word) => value.includes(word)) ? 'recording' : 'document';
-}
-
-// 模拟消息列表 / 测试
-function buildMockMessages(mode: ActiveWorkflowMode, userText?: string): WorkflowMessage[] {
-  const now = Date.now();
-  const firstBatch: WorkflowMessage[] = userText
-    ? [
-        { id: `user-${now}`, role: 'user', text: userText },
-        {
-          id: `ai-${now}`,
-          role: 'ai',
-          text:
-            mode === 'recording'
-              ? '已识别到录音上下文，正在生成转写与结构化结果（mock）。'
-              : '已收到文本/文档输入，正在生成结构化结果（mock）。',
-        },
-      ]
-    : [];
-
-  return [...firstBatch, ...DEFAULT_WORKFLOW_MESSAGES.slice(0, 12)];
 }
 
 export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreenProps) {
@@ -83,6 +60,7 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   const [isAutoCompactLocked, setIsAutoCompactLocked] = useState(false);
   // 消息列表 / 测试
   const [messages, setMessages] = useState<WorkflowMessage[]>([]);
+
   const [quickActionNames, setQuickActionNames] = useState<QuickActionNames>(DEFAULT_QUICK_ACTION_NAMES);
   const [quickActionPrompts, setQuickActionPrompts] = useState<QuickActionPrompts>(DEFAULT_QUICK_ACTION_PROMPTS);
   // 快捷按钮状态 / UI 样式
@@ -104,10 +82,30 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
 
   // 安全区域 信息
   const insets = useSafeAreaInsets();
-
   const bgColor = useThemeColor({}, 'background');
 
-  // 快捷操作
+  // Load initial messages
+  useEffect(() => {
+    const init = async () => {
+      const stored = await WorkflowStorage.loadMessages();
+      if (stored && stored.length > 0) {
+        setMessages(stored);
+        setMode('document'); // Assume document mode if history exists
+      } else {
+        // Optional: setMessages(DEFAULT_INITIAL_MESSAGES);
+      }
+    };
+    init();
+  }, []);
+
+  // Save messages whenever they change
+  useEffect(() => {
+    if (messages.length > 0) {
+      WorkflowStorage.saveMessages(messages);
+    }
+  }, [messages]);
+
+  // Load Quick Actions
   const loadQuickActionNames = useCallback(async () => {
     try {
       const raw = await AsyncStorage.getItem(USER_DATA_STORAGE_KEY);
@@ -116,18 +114,9 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
         setQuickActionPrompts(DEFAULT_QUICK_ACTION_PROMPTS);
         return;
       }
-
       const parsed = JSON.parse(raw) as Partial<UserDataState>;
-      const storedNames = parsed.quickActionNames ?? {};
-      const storedPrompts = parsed.quickActionPrompts ?? {};
-      setQuickActionNames({
-        ...DEFAULT_QUICK_ACTION_NAMES,
-        ...storedNames,
-      });
-      setQuickActionPrompts({
-        ...DEFAULT_QUICK_ACTION_PROMPTS,
-        ...storedPrompts,
-      });
+      setQuickActionNames({ ...DEFAULT_QUICK_ACTION_NAMES, ...parsed.quickActionNames });
+      setQuickActionPrompts({ ...DEFAULT_QUICK_ACTION_PROMPTS, ...parsed.quickActionPrompts });
     } catch {
       setQuickActionNames(DEFAULT_QUICK_ACTION_NAMES);
       setQuickActionPrompts(DEFAULT_QUICK_ACTION_PROMPTS);
@@ -147,27 +136,18 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
       setPagerScrollEnabled(false);
       setKeyboardHeight(e.endCoordinates.height);
     });
-
     const hideSub = Keyboard.addListener('keyboardDidHide', () => {
       setPagerScrollEnabled(true);
       setKeyboardHeight(0);
     });
-
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
+    return () => { showSub.remove(); hideSub.remove(); };
   }, [setPagerScrollEnabled]);
 
   // 录音 波形动画定时器 / 待测试 / 待复用 / 准备拆分逻辑
   useEffect(() => {
     if (!isPressRecording) return;
-    const timer = setInterval(() => {
-      setWaveTick((prev) => prev + 1);
-    }, 65);
-    return () => {
-      clearInterval(timer);
-    };
+    const timer = setInterval(() => setWaveTick((p) => p + 1), 65);
+    return () => clearInterval(timer);
   }, [isPressRecording]);
 
   // 输入框 底部边距 计算
@@ -190,57 +170,66 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
     }
   }, [isAutoCompactLocked, mode]);
 
-  // 录音 波形原点 计算 / 测试 / 待拆分
-  const recordingDots = useMemo(
-    () =>
-      Array.from({ length: RECORD_DOT_COUNT }).map((_, index) => {
-        const centerIndex = (RECORD_DOT_COUNT - 1) / 2;
-        const distanceRatio = Math.abs(index - centerIndex) / centerIndex;
-        const envelope = Math.max(0.2, 1 - Math.pow(distanceRatio, 1.35));
-        const oscillation = 0.5 + 0.5 * Math.sin(waveTick * 0.42 + index * 0.58);
-        return {
-          key: `dock-record-dot-${index}`,
-          height: 5 + envelope * (4 + oscillation * 14),
-          opacity: 0.45 + envelope * (0.2 + oscillation * 0.35),
-        };
-      }),
-    [waveTick]
-  );
+  const recordingDots = useMemo(() => 
+    Array.from({ length: RECORD_DOT_COUNT }).map((_, index) => {
+      const centerIndex = (RECORD_DOT_COUNT - 1) / 2;
+      const distanceRatio = Math.abs(index - centerIndex) / centerIndex;
+      const envelope = Math.max(0.2, 1 - Math.pow(distanceRatio, 1.35));
+      const oscillation = 0.5 + 0.5 * Math.sin(waveTick * 0.42 + index * 0.58);
+      return {
+        key: `dock-record-dot-${index}`,
+        height: 5 + envelope * (4 + oscillation * 14),
+        opacity: 0.45 + envelope * (0.2 + oscillation * 0.35),
+      };
+    }),
+  [waveTick]);
 
-  // 工作流 模式 切换
-  const switchToMode = useCallback((nextMode: ActiveWorkflowMode, userText?: string) => {
-    setMode(nextMode);
-    setMessages(buildMockMessages(nextMode, userText));
-  }, []);
-
-  // 文本输入 提交
+  // Message Submission
   const handleSubmit = useCallback(() => {
     const trimmed = inputText.trim();
     if (!trimmed) return;
 
     const nextMode = detectModeFromInput(trimmed);
-    switchToMode(nextMode, trimmed);
+    if (mode === 'welcome') setMode(nextMode);
+
+    // 1. Add User Message
+    const userMsg: WorkflowMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      text: trimmed,
+    };
+
+    // 2. Add AI Mock Message (Cycled)
+    // Derive index from current AI message count for strict ordering across reloads
+    const aiMessageCount = messages.filter(m => m.role === 'ai').length;
+    const mockData = MARKDOWN_MOCK_DATA[aiMessageCount % MARKDOWN_MOCK_DATA.length];
+    
+    const aiMsg: WorkflowMessage = {
+      ...mockData,
+      id: `ai-${Date.now()}`, // Unique ID
+    };
+
+    setMessages(prev => [...prev, userMsg, aiMsg]);
     setInputText('');
-  }, [inputText, switchToMode]);
+  }, [inputText, mode, messages]);
 
-  // 快捷操作点击 事件
-  const handleQuickAction = useCallback(
-    (key: QuickActionKey) => {
-      // 样式变换
-      if (activeQuickActionKey === key) {
-        setActiveQuickActionKey(null);
-        return;
-      }
-      setActiveQuickActionKey(key);
-      const value = `${quickActionNames[key] ?? ''} ${quickActionPrompts[key] ?? ''}`.toLowerCase();
-      const recordingKeywords = ['录音', '语音', '音频', 'transcript', 'record'];
-      const nextMode: ActiveWorkflowMode = recordingKeywords.some((word) => value.includes(word)) ? 'recording' : 'document';
-      switchToMode(nextMode);
-    },
-    [activeQuickActionKey, quickActionNames, quickActionPrompts, switchToMode]
-  );
+  const handleMessageUpdate = useCallback((id: string, newText: string) => {
+    setMessages(prev => prev.map(msg => 
+      msg.id === id ? { ...msg, text: newText } : msg
+    ));
+  }, []);
 
-  // 录音操作 事件 / 测试 / 待修改 / 待拆分
+  // Quick Action
+  const handleQuickAction = useCallback((key: QuickActionKey) => {
+    if (activeQuickActionKey === key) {
+      setActiveQuickActionKey(null);
+      return;
+    }
+    setActiveQuickActionKey(key);
+    // Logic for quick action can be expanded here
+  }, [activeQuickActionKey]);
+
+  // Recording Logic (Simplified for refactor focus)
   const finalizePressRecord = useCallback(async (action: 'send' | 'cancel') => {
     setIsSlideCancelPreview(false);
     setIsPressRecording(false);
@@ -251,16 +240,14 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
     recordingSessionRef.current = stopped;
     if (stopped.phase === 'error' || action === 'cancel') return;
 
-    // 录音处理流程
     const pipelineResult = await uploadServiceRef.current.runPressToTalkPipeline(stopped);
-    recordingSessionRef.current = pipelineResult.session;
-
-    // 生成，模拟转写文本
     const transcriptText = pipelineResult.transcriptText.trim() || 'Mock transcript content.';
-    switchToMode('recording', transcriptText);
-  }, [switchToMode]);
+    
+    // Simulate input submission with transcript
+    setInputText(transcriptText);
+    // Ideally, call handleSubmit directly or let user confirm
+  }, []);
 
-  // 录音按钮按下 事件 / 测试 / 待拆分
   const handleRecordPressIn = useCallback(async () => {
     setIsSlideCancelPreview(false);
     setIsPressRecording(true);
@@ -312,6 +299,7 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
           messages={messages}
           contentPaddingTop={mode === 'recording' ? topAreaHeight + TOP_AREA_OFFSET : undefined}
           onScrollOffsetChange={handleContentScroll}
+          onMessageUpdate={handleMessageUpdate}
         />
         <View style={styles.topAreaDock}>
           <WorkflowTopArea

@@ -1,42 +1,33 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, StyleSheet, View } from 'react-native';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
 
-import { DEFAULT_WORKFLOW_MESSAGES, WorkflowMessage } from './Workflow_Context_Data';
+import { DEFAULT_INITIAL_MESSAGES, WorkflowMessage } from './Workflow_Context_Data';
 import { WorkflowMessageItem } from './Workflow_Message_Item';
 
 interface WorkflowContextListProps {
-  initialMessages?: WorkflowMessage[];               // 初始消息列表
+  messages?: WorkflowMessage[];                      // 消息列表
   contentPaddingTop?: number;                        // 内容顶部内边距
   onScrollOffsetChange?: (offsetY: number) => void;  // 滚动偏移量
+  onMessageUpdate?: (id: string, newText: string) => void; // 消息更新回调
 }
 
 export function WorkflowContextList({
-  initialMessages = DEFAULT_WORKFLOW_MESSAGES,
+  messages = DEFAULT_INITIAL_MESSAGES,
   contentPaddingTop,
   onScrollOffsetChange,
+  onMessageUpdate,
 }: WorkflowContextListProps) {
-  const [messages, setMessages] = useState<WorkflowMessage[]>(initialMessages);
   const bgColor = useThemeColor({}, 'background');
-
-  // 初始化消息列表
-  useEffect(() => {
-    setMessages(initialMessages);
-  }, [initialMessages]);
-
-  // 更新消息内容
-  const handleUpdateMessage = (id: string, newText: string) => {
-    setMessages((prevMessages) =>
-      prevMessages.map((msg) =>
-        msg.id === id ? { ...msg, text: newText } : msg
-      )
-    );
-  };
 
   // 处理滚动事件
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     onScrollOffsetChange?.(event.nativeEvent.contentOffset.y);
+  };
+
+  const handleUpdateMessage = (id: string, newText: string) => {
+    onMessageUpdate?.(id, newText);
   };
 
   return (

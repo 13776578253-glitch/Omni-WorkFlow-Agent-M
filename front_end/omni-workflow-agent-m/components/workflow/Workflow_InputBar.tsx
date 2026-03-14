@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, PanResponder, StyleSheet, TextInput, TouchableOpacity, View, type GestureResponderEvent, type ViewStyle } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -299,7 +299,10 @@ export function WorkflowInputBar({
                       borderColor: inactiveSendBorderColor,
                     },
               ]}
-              onPress={onSubmit}
+              onPress={() => {
+                Keyboard.dismiss();
+                onSubmit?.();
+              }}
             >
               <Ionicons
                 name="arrow-up"

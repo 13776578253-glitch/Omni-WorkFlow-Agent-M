@@ -1,23 +1,26 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import Markdown from 'react-native-markdown-display';
+import Markdown from 'react-native-markdown-display'; // 引入 Markdown 渲染器
 
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 interface WorkflowMarkdownRendererProps {
   content: string;
+  align?: 'left' | 'right';
 }
 
-export function WorkflowMarkdownRenderer({ content }: WorkflowMarkdownRendererProps) {
+// 渲染 Markdown 内容
+export function WorkflowMarkdownRenderer({ content, align = 'left' }: WorkflowMarkdownRendererProps) {
   const textColor = useThemeColor({}, 'text');
   const codeBgColor = useThemeColor({ light: '#f6f8fa', dark: '#161b22' }, 'background');
-  
-  // Custom markdown styles based on theme
+   
+  // 自定义 Markdown 样式 / 待修改
   const markdownStyles = StyleSheet.create({
     body: {
       color: textColor,
       fontSize: 16,
       lineHeight: 24,
+      textAlign: align, // Ensure text alignment follows prop
     },
     heading1: {
       color: textColor,
@@ -25,6 +28,7 @@ export function WorkflowMarkdownRenderer({ content }: WorkflowMarkdownRendererPr
       marginTop: 20,
       marginBottom: 10,
       fontWeight: 'bold',
+      textAlign: align,
     },
     heading2: {
       color: textColor,
@@ -32,10 +36,12 @@ export function WorkflowMarkdownRenderer({ content }: WorkflowMarkdownRendererPr
       marginTop: 16,
       marginBottom: 8,
       fontWeight: 'bold',
+      textAlign: align,
     },
     paragraph: {
       marginTop: 0,
       marginBottom: 10,
+      textAlign: align,
     },
     list_item: {
       marginTop: 4,

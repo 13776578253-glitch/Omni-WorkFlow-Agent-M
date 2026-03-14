@@ -1,51 +1,63 @@
+import { WorkflowMarkdownEditor } from '@/components/workflow/Workflow_Context_bin/Workflow_Markdown_Editor';
+import { WorkflowMarkdownRenderer } from '@/components/workflow/Workflow_Context_bin/Workflow_Markdown_Renderer';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import React, { useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
-import { WorkflowMarkdownEditor } from '@/components/workflow/Workflow_Context_bin/Workflow_Markdown_Editor';
-import { WorkflowMarkdownRenderer } from '@/components/workflow/Workflow_Context_bin/Workflow_Markdown_Renderer';
-
 interface WorkflowMessageItemProps {
-  message: {                          
+  message: {
     id: string;
     role: 'user' | 'ai';
     text: string;
   };
-  onUpdate: (id: string, newText: string) => void;   // 更新消息回调
+  onUpdate: (id: string, newText: string) => void;
 }
 
 export function WorkflowMessageItem({ message, onUpdate }: WorkflowMessageItemProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const isUser = message.role === 'user';
 
-  // 编辑点击事件
+  // Theme colors for indicators
+  const aiIndicatorColor = useThemeColor({ light: '#60A5FA', dark: '#60A5FA' }, 'tint'); // Light Blue
+  const userIndicatorColor = useThemeColor({ light: '#2DD4BF', dark: '#2DD4BF' }, 'tint'); // Teal/Blue-Green
+
   const handleEdit = () => {
     setIsEditing(true);
   };
 
-  // 保存编辑后文本
   const handleSave = (newText: string) => {
     onUpdate(message.id, newText);
     setIsEditing(false);
   };
 
-  // 取消编辑事件
   const handleCancel = () => {
     setIsEditing(false);
   };
 
   return (
-    <View style={styles.container}>
-      {isEditing ? (
-        // 编辑模式： Markdown 编辑器
-        <WorkflowMarkdownEditor 
-          initialContent={message.text} 
-          onSave={handleSave} 
-          onCancel={handleCancel} 
-        />
-      ) : (
-        // 查看模式：渲染 Markdown 内容
-        <TouchableOpacity onPress={handleEdit} activeOpacity={0.8} style={styles.rendererContainer}>
-          <WorkflowMarkdownRenderer content={message.text} />
-        </TouchableOpacity>
+    <View style={[styles.container, isUser ? styles.containerRight : styles.containerLeft]}>
+      {/* AI Indicator Bar (Left) */}
+      {!isUser && (
+        <View style={[styles.indicatorBar, { backgroundColor: aiIndicatorColor, marginRight: 12 }]} />
+      )}
+
+      <View style={styles.contentWrapper}>
+        {isEditing ? (
+          <WorkflowMarkdownEditor 
+            initialContent={message.text} 
+            onSave={handleSave} 
+            onCancel={handleCancel} 
+          />
+        ) : (
+          <TouchableOpacity onPress={handleEdit} activeOpacity={0.8} style={styles.rendererContainer}>
+            <WorkflowMarkdownRenderer content={message.text} align={isUser ? 'right' : 'left'} />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* User Indicator Bar (Right) */}
+      {isUser && (
+        <View style={[styles.indicatorBar, { backgroundColor: userIndicatorColor, marginLeft: 12 }]} />
       )}
     </View>
   );
@@ -53,10 +65,29 @@ export function WorkflowMessageItem({ message, onUpdate }: WorkflowMessageItemPr
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,   // 消息项间距
+    marginBottom: 16,
     width: '100%',
+    flexDirection: 'row',
+  },
+  containerLeft: {
+    justifyContent: 'flex-start',
+    paddingRight: 40, // Add padding to prevent full width stretch
+  },
+  containerRight: {
+    justifyContent: 'flex-end',
+    paddingLeft: 40, // Add padding to prevent full width stretch
+  },
+  contentWrapper: {
+    flex: 1,
+    maxWidth: '100%', // Ensure content takes available space but respects container padding
+  },
+  indicatorBar: {
+    width: 4,
+    borderRadius: 2,
+    marginTop: 4,
+    marginBottom: 4,
   },
   rendererContainer: {
-    paddingVertical: 8, // 渲染器内边距
+    paddingVertical: 8,
   },
 });
