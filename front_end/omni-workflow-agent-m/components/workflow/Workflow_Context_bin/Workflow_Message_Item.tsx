@@ -41,7 +41,7 @@ export function WorkflowMessageItem({ message, onUpdate }: WorkflowMessageItemPr
         <View style={[styles.indicatorBar, { backgroundColor: aiIndicatorColor, marginRight: 12 }]} />
       )}
 
-      <View style={styles.contentWrapper}>
+      <View style={[styles.contentWrapper, isUser ? { alignItems: 'flex-end' } : { width: '100%' }]}>
         {isEditing ? (
           <WorkflowMarkdownEditor 
             initialContent={message.text} 
@@ -71,15 +71,15 @@ const styles = StyleSheet.create({
   },
   containerLeft: {
     justifyContent: 'flex-start',
-    paddingRight: 40, // Add padding to prevent full width stretch
+    paddingRight: 40, 
   },
   containerRight: {
     justifyContent: 'flex-end',
-    paddingLeft: 40, // Add padding to prevent full width stretch
+    paddingLeft: 40, 
   },
   contentWrapper: {
     flex: 1,
-    maxWidth: '100%', // Ensure content takes available space but respects container padding
+    // maxWidth: '100%', // Removed to prevent forced stretching, will rely on flex behavior
   },
   indicatorBar: {
     width: 4,

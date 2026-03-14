@@ -20,7 +20,7 @@ export function WorkflowMarkdownRenderer({ content, align = 'left' }: WorkflowMa
       color: textColor,
       fontSize: 16,
       lineHeight: 24,
-      textAlign: align, // Ensure text alignment follows prop
+      textAlign: align, // 文本对齐方式
     },
     heading1: {
       color: textColor,
@@ -75,6 +75,6 @@ export function WorkflowMarkdownRenderer({ content, align = 'left' }: WorkflowMa
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%',
+    // width: '100%',  // 允许容器根据内容宽度调整
   },
 });

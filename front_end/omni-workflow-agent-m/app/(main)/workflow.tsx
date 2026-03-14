@@ -143,6 +143,13 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
     return () => { showSub.remove(); hideSub.remove(); };
   }, [setPagerScrollEnabled]);
 
+  // 实时检测输入内容以触发录音模式
+  useEffect(() => {
+    if (inputText.includes('录音') && mode !== 'recording') {
+      setMode('recording');
+    }
+  }, [inputText, mode]);
+
   // 录音 波形动画定时器 / 待测试 / 待复用 / 准备拆分逻辑
   useEffect(() => {
     if (!isPressRecording) return;
