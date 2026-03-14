@@ -5,8 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import type { WorkflowMode } from '@/constants/workflow_type';
 
-import { formatTimeRange } from '@/components/ui/Workflow-waveform_Interactive';
-import { WorkflowWaveformTest } from '@/components/ui/Workflow-waveform_Test';
+import { WorkflowWaveformTest, formatTimeRange } from '@/components/ui/Workflow-waveform_Test';
 
 import { useAudioPlayer } from '@/services/workflow/Workflow_audio_read';
 
@@ -31,12 +30,11 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
   const textColor = useThemeColor({}, 'text');
 
   // 波形图样式 / 待拆分
-  const waveColor = useThemeColor({ light: '#94A3B8', dark: '#8FA0BF' }, 'text');         // 波形图
-  const wavePlayedColor = useThemeColor({ light: '#7C3AED', dark: '#A78BFA' }, 'tint');   // 已播放波形 (亮色主题用紫色，暗色主题用浅紫)
-  const waveUnplayedColor = useThemeColor({ light: '#E2E8F0', dark: '#3F3F46' }, 'text'); // 未播放波形 (亮色主题用浅灰，暗色主题用深灰)
-  
-  const axisColor = useThemeColor({ light: '#6B7280', dark: '#9CA3AF' }, 'icon');         // 时间轴
-  const cursorColor = useThemeColor({ light: '#7C3AED', dark: '#A78BFA' }, 'tint');       // 游标 (与已播放波形保持一致)
+  const waveColor = useThemeColor({ light: '#94A3B8', dark: '#8FA0BF' }, 'text');             // 波形图
+  const wavePlayedColor = useThemeColor({ light: '#3a7fedff', dark: '#fcfcfcff' }, 'tint');   // 已播放波形
+  const waveUnplayedColor = useThemeColor({ light: '#E2E8F0', dark: '#3F3F46' }, 'text');     // 未播放波形
+  const axisColor = useThemeColor({ light: '#6B7280', dark: '#9CA3AF' }, 'icon');             // 时间轴
+  const cursorColor = useThemeColor({ light: '#3a7fedff', dark: '#ffffffc2' }, 'tint');       // 游标 (与已播放波形保持一致)
 
   // 使用自定义 Hook 管理音频播放逻辑
   const {
@@ -233,14 +231,14 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   headerTime: {
-    fontSize: 17,        // 展开样式
+    fontSize: 17,         // 展开样式
     fontWeight: '500',
     textAlign: 'center',
     marginBottom: 14,     // 减小间距 (原 20 -> 8)
-    letterSpacing: 2,    // 文字间距
+    letterSpacing: 2,     // 文字间距
   },
   headerTimeCompact: {
-    fontSize: 16,        // 缩小样式
+    fontSize: 16,         // 缩小样式
     marginBottom: 4,
     textAlign: 'left',
     alignSelf: 'flex-start',
