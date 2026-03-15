@@ -1,4 +1,5 @@
-﻿import AsyncStorage from '@react-native-async-storage/async-storage';
+﻿// app/(main)/workflow.tsx
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -8,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { QuickActionNames, QuickActionPrompts, UserDataState } from '@/constants/type';
 import type { WorkflowMode, WorkflowPressRecordingSession } from '@/constants/workflow_type';
 import { useThemeColor } from '@/hooks/use-theme-color';
-
+                                                                                                   
 import { WorkflowRecordingOverlay } from '@/components/ui/workflow-recording-overlay';
 import { WorkflowContentArea } from '@/components/workflow/Workflow_ContentArea';
 import { WorkflowInputBar } from '@/components/workflow/Workflow_InputBar';

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Dimensions, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { SharedValue, interpolate, interpolateColor, useAnimatedStyle, useDerivedValue } from 'react-native-reanimated';
 
@@ -22,11 +22,12 @@ interface Tab {
 interface TopNavBarProps {
   tabs: Tab[];
   scrollOffset: SharedValue<number>;     // PagerView 滑动偏移量
-  position: SharedValue<number>;          
-  onTabPress: (index: number) => void;    
+  position: SharedValue<number>;
+  onTabPress: (index: number) => void;
   activeTabIndex?: number;
   translateYCompensation?: number;       // 导航栏位移补偿
   containerRef?: React.Ref<any>;         // 容器引用
+  onSearchSubmit?: (query: string) => void;  // 搜索提交回调
 }
 
 // 定义 AnimatedTabItem 子组件 类型
@@ -63,10 +64,12 @@ const AnimatedTabItem = ({ index, tab, isDark, activeColor, progress, onPress }:
 export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress,
   activeTabIndex = 1,         // 默认激活 Tab
   translateYCompensation = 0, // 位移补偿
-  containerRef
+  containerRef,
+  onSearchSubmit,
 }: TopNavBarProps) => {
   // const LOG_TAG = '[KB-Compensate-TopNav]';
   const router = useRouter();
+  const [searchText, setSearchText] = useState('');
 
   const { effectiveColorScheme } = useThemeContext();
   const isDark = effectiveColorScheme === 'dark';
@@ -168,10 +171,20 @@ export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress,
                   { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' },
                 ]}
               >
+                <Ionicons
+                  name="search"
+                  size={16}
+                  color={themeColors.text + '70'}
+                  style={styles.searchIcon}
+                />
                 <TextInput
+                  value={searchText}
+                  onChangeText={setSearchText}
                   placeholder="搜索历史记录..."
                   placeholderTextColor={themeColors.text + '60'}
-                  style={{ color: themeColors.text, paddingHorizontal: 20, height: 40 }}
+                  returnKeyType="search"
+                  onSubmitEditing={() => onSearchSubmit?.(searchText)}
+                  style={[styles.searchInput, { color: themeColors.text }]}
                 />
               </View>
             </Animated.View>
@@ -257,17 +270,26 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     position: 'absolute',
-    width: '90%',
+    width: '100%',
     height: 44,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: 4,
   },
   searchBox: {
-    width: '95%',
+    width: '100%',
     height: 40,
     borderRadius: 12,
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  searchIcon: {
+    marginLeft: 12,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    paddingHorizontal: 8,
   },
 });
 

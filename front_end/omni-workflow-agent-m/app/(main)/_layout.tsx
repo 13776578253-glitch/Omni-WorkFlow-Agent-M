@@ -24,6 +24,7 @@ export default function MainLayout() {
   // 控制 PagerView 是否允许滑动
   const [pagerScrollEnabled, setPagerScrollEnabled] = useState(true);
   const [activeTabIndex, setActiveTabIndex] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');            // 历史页 搜索查询状态 / 测试
   const ENABLE_PAGER_SWIPE = false;
 
   // 初始化导航栏位移补偿相关变量
@@ -137,17 +138,19 @@ export default function MainLayout() {
           position.value = e.nativeEvent.position;
         }}
       >
-
+        {/* 首页 */}
         <View key="1" style={{ flex: 1, backgroundColor: themeColors.background }}>
           <HomeScreen onDrawerStateChange={handleDrawerState} />
         </View>
 
+        {/* 工作流 */}
         <View key="2" style={{ flex: 1, backgroundColor: themeColors.background }}>
           <WorkflowScreen setPagerScrollEnabled={setPagerScrollEnabled} />
         </View>
 
+        {/* 历史 */}
         <View key="3" style={{ flex: 1, backgroundColor: themeColors.background }}>
-          <HistoryScreen />
+          <HistoryScreen searchQuery={searchQuery} />
         </View>
 
       </PagerView>
@@ -160,6 +163,7 @@ export default function MainLayout() {
         activeTabIndex={activeTabIndex}
         translateYCompensation={keyboardVisible ? navCompensation : 0}
         containerRef={topNavRef}
+        onSearchSubmit={setSearchQuery}
       />
     </View>
   );

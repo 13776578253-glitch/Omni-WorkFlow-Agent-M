@@ -4,5 +4,7 @@
     "source.organizeImports": "explicit",
     "source.sortMembers": "explicit"
   },
-  "editor.fontSize": 14
+  "editor.fontSize": 14,
+  "editor.hover.sticky": false,
+  "editor.hover.enabled": "off"
 }
