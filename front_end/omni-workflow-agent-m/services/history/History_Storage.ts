@@ -1,16 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const STORAGE_KEY = '@omni_history_sessions_v1';
+const STORAGE_KEY = '@omni_history_sessions_v1'; // 存储键 / 测试
 
 export interface HistorySession {
-  id: string;
-  title: string;
-  createdAt: number;    // ms timestamp
-  isPinned: boolean;
-  previewText?: string;
+  id: string;           // id / 测试 / UUID
+  title: string;        // 会话标题
+  createdAt: number;    // 创建时间戳
+  isPinned: boolean;    // 置顶状态
+  previewText?: string; // 预览文本（可选）
 }
 
-// ── Mock seeds (used when storage is empty) ─────────────────────────────────
+// 模拟数据 / 空值填充数据 / 测试
 const MOCK_SESSIONS: HistorySession[] = [
   {
     id: 'mock-1',
@@ -63,8 +63,8 @@ const MOCK_SESSIONS: HistorySession[] = [
   },
 ];
 
-// ── Internal helpers ──────────────────────────────────────────────────────────
-
+// 私有 API
+// 读取原始数据 / 写入原始数据
 async function readRaw(): Promise<HistorySession[] | null> {
   const raw = await AsyncStorage.getItem(STORAGE_KEY);
   return raw ? JSON.parse(raw) : null;
@@ -74,13 +74,12 @@ async function writeRaw(sessions: HistorySession[]): Promise<void> {
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
 }
 
-// ── Public API ────────────────────────────────────────────────────────────────
-
-/** Load sessions. Seeds mock data if storage is empty. */
+// 公共 API
+// 加载会话 / 保存会话 / 添加会话 / 删除会话 / 重命名会话 / 切换置顶状态
 export async function loadSessions(): Promise<HistorySession[]> {
   const stored = await readRaw();
   if (stored !== null) return stored;
-  // First run: seed mock data
+  // 初始化 写入mock数据
   await writeRaw(MOCK_SESSIONS);
   return MOCK_SESSIONS;
 }

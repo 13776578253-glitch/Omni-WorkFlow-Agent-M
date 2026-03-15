@@ -1,14 +1,7 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, {
-  Easing,
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 
 import { Ionicons } from '@expo/vector-icons';
 
@@ -17,7 +10,7 @@ import { Colors } from '@/constants/theme';
 
 import type { HistorySession } from '@/services/history/History_Storage';
 
-const SLIDE_OFFSET = 400; // 足够大，确保完全移出屏幕
+const SLIDE_OFFSET = 400; // 确保 移出屏幕
 
 interface HistoryActionSheetProps {
   session: HistorySession | null;
@@ -43,7 +36,7 @@ export default function History_ActionSheet({
   const translateY = useSharedValue(SLIDE_OFFSET);
   const closingRef = useRef(false); // 动画锁：防止重复触发关闭
 
-  // ── 入场动画（timing，无弹跳） ─────────────────────────────────────────────
+  // 滑入动画
   const animateIn = useCallback(() => {
     closingRef.current = false;
     translateY.value = SLIDE_OFFSET;
@@ -53,7 +46,7 @@ export default function History_ActionSheet({
     });
   }, [translateY]);
 
-  // ── 退场动画 + 回调 ──────────────────────────────────────────────────────
+  // 滑出动画 / 回调 onClose
   const animateOut = useCallback((done: () => void) => {
     if (closingRef.current) return;
     closingRef.current = true;
@@ -77,15 +70,15 @@ export default function History_ActionSheet({
     if (visible) animateIn();
   }, [visible, animateIn]);
 
-  // ── 拖拽下滑关闭手势 ──────────────────────────────────────────────────────
+  // 拖拽下滑关闭手势 
   const panGesture = Gesture.Pan()
     .onUpdate((e) => {
-      // 只允许向下拖，不允许向上
+      // 仅允许向下拖动，且 translateY 不为负
       translateY.value = Math.max(0, e.translationY);
     })
     .onEnd((e) => {
+      // 超过阈值或快速下滑关闭 / 否则回弹
       if (e.translationY > 80 || e.velocityY > 500) {
-        // 超过阈值 → 关闭（timing，无弹跳）
         translateY.value = withTiming(
           SLIDE_OFFSET,
           { duration: 200, easing: Easing.in(Easing.quad) },
@@ -94,7 +87,7 @@ export default function History_ActionSheet({
           }
         );
       } else {
-        // 未超阈值 → 回弹（高阻尼 spring，几乎无弹跳）
+        // 回弹到初始位置
         translateY.value = withSpring(0, { damping: 40, stiffness: 400, mass: 0.6 });
       }
     });
@@ -105,6 +98,7 @@ export default function History_ActionSheet({
 
   if (!session) return null;
 
+  // 主题色 / 测试
   const cardBg = isDark ? '#1C1C1E' : '#FFFFFF';
   const handleColor = isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.18)';
   const separatorColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)';
@@ -118,10 +112,10 @@ export default function History_ActionSheet({
       onRequestClose={handleClose}
     >
       <GestureHandlerRootView style={styles.rootView}>
-        {/* 背景遮罩 —— Pressable 点击关闭 */}
+        {/* 背景遮罩 / Pressable 点击关闭 */}
         <Pressable style={styles.overlay} onPress={handleClose} />
 
-        {/* Sheet 主体 —— GestureDetector 接管拖拽 */}
+        {/* Sheet 主体 / GestureDetector 拖拽接管 */}
         <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.sheet, { backgroundColor: cardBg }, sheetStyle]}>
 
@@ -135,7 +129,7 @@ export default function History_ActionSheet({
             {session.title}
           </Text>
 
-          {/* ── 删除 ── */}
+          {/* 删除 */}
           <TouchableOpacity
             style={styles.actionRow}
             activeOpacity={0.7}
@@ -147,7 +141,7 @@ export default function History_ActionSheet({
 
           <View style={[styles.separator, { backgroundColor: separatorColor }]} />
 
-          {/* ── 重命名 ── */}
+          {/* 重命名 */}
           <TouchableOpacity
             style={styles.actionRow}
             activeOpacity={0.7}
@@ -159,7 +153,7 @@ export default function History_ActionSheet({
 
           <View style={[styles.separator, { backgroundColor: separatorColor }]} />
 
-          {/* ── 置顶 ── */}
+          {/* 置顶 */}
           <TouchableOpacity
             style={styles.actionRow}
             activeOpacity={0.7}
@@ -176,7 +170,7 @@ export default function History_ActionSheet({
             </Text>
           </TouchableOpacity>
 
-          {/* 底部安全区 */}
+          {/* 底部 安全区 */}
           <View style={styles.bottomSafe} />
         </Animated.View>
       </GestureDetector>

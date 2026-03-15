@@ -9,14 +9,15 @@ import { Colors } from '@/constants/theme';
 import type { HistorySession } from '@/services/history/History_Storage';
 
 interface HistoryItemProps {
-  session: HistorySession;
-  onPress: (session: HistorySession) => void;
-  onLongPress: (session: HistorySession) => void;
-  isEditing?: boolean;
-  onRenameConfirm?: (newTitle: string) => void;
-  onRenameCancel?: () => void;
+  session: HistorySession;                        // 会话数据
+  onPress: (session: HistorySession) => void;     // 会话点击
+  onLongPress: (session: HistorySession) => void; // 会话长按
+  isEditing?: boolean;                            // 编辑状态
+  onRenameConfirm?: (newTitle: string) => void;   // 重命名确认
+  onRenameCancel?: () => void;                    // 重命名取消
 }
 
+// 格式化日期显示 
 function formatDate(ts: number): string {
   const now = new Date();
   const d = new Date(ts);
@@ -40,6 +41,7 @@ function formatDate(ts: number): string {
   return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
 }
 
+// 会话项组件 
 export default function History_Item({
   session,
   onPress,
@@ -56,33 +58,35 @@ export default function History_Item({
   const confirmedRef = useRef(false);
   const inputRef = useRef<TextInput>(null);
 
-  // isEditing 变为 true 时重置文本并手动聚焦（autoFocus 仅在 mount 时生效，这里用 ref）
+  // isEditing 变为 true 时重置文本并手动聚焦 / autoFocus 仅在 mount 时生效，这里用 ref
   useEffect(() => {
     if (isEditing) {
       setEditText(session.title);
       confirmedRef.current = false;
-      // 延一帧确保 TextInput 已渲染再 focus
+      // 延帧确保 TextInput 已渲染 再 focus
       requestAnimationFrame(() => {
-        inputRef.current?.focus();
+        inputRef.current?.focus();  // 手动聚焦输入框
       });
     }
   }, [isEditing, session.title]);
 
   const handleConfirm = () => {
     if (confirmedRef.current) return;
-    confirmedRef.current = true;
-    const trimmed = editText.trim();
+    confirmedRef.current = true;      // 标记已确认
+    const trimmed = editText.trim();  // 去除首尾空格
     onRenameConfirm?.(trimmed || session.title);
   };
 
   const handleBlur = () => {
     if (confirmedRef.current) return;
-    // Blur without Enter = cancel
+    // 失焦时未确认，标记取消
     onRenameCancel?.();
   };
 
+  // 编辑样式 / 待确认
   const editingBg = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)';
 
+  // 编辑模式渲染
   if (isEditing) {
     return (
       <View
@@ -114,6 +118,7 @@ export default function History_Item({
     );
   }
 
+  // 标准模式渲染
   return (
     <TouchableOpacity
       activeOpacity={0.7}
@@ -158,7 +163,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '400',
     marginBottom: 4,
-    padding: 0,           // remove default TextInput padding to match Text visually
+    padding: 0,           // 去除默认内边距 / 避免输入时跳动
     margin: 0,
   },
   date: {
