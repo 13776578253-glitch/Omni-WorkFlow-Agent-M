@@ -1,6 +1,14 @@
-import React, { useEffect } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
-import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import React, { useCallback, useEffect, useRef } from 'react';
+import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { Ionicons } from '@expo/vector-icons';
 
@@ -9,6 +17,8 @@ import { Colors } from '@/constants/theme';
 
 import type { HistorySession } from '@/services/history/History_Storage';
 
+const SLIDE_OFFSET = 400; // 足够大，确保完全移出屏幕
+
 interface HistoryActionSheetProps {
   session: HistorySession | null;
   visible: boolean;
@@ -16,22 +26,6 @@ interface HistoryActionSheetProps {
   onDelete: (session: HistorySession) => void;
   onRename: (session: HistorySession) => void;
   onTogglePin: (session: HistorySession) => void;
-}
-
-interface ActionRowProps {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  label: string;
-  color: string;
-  onPress: () => void;
-}
-
-function ActionRow({ icon, label, color, onPress }: ActionRowProps) {
-  return (
-    <TouchableOpacity style={styles.actionRow} onPress={onPress} activeOpacity={0.7}>
-      <Ionicons name={icon} size={22} color={color} style={styles.actionIcon} />
-      <Text style={[styles.actionLabel, { color }]}>{label}</Text>
-    </TouchableOpacity>
-  );
 }
 
 export default function History_ActionSheet({
@@ -46,10 +40,74 @@ export default function History_ActionSheet({
   const isDark = effectiveColorScheme === 'dark';
   const themeColors = Colors[effectiveColorScheme];
 
+  const translateY = useSharedValue(SLIDE_OFFSET);
+  const closingRef = useRef(false); // 动画锁：防止重复触发关闭
+
+  // ── 入场动画（timing，无弹跳） ─────────────────────────────────────────────
+  const animateIn = useCallback(() => {
+    closingRef.current = false;
+    translateY.value = SLIDE_OFFSET;
+    translateY.value = withTiming(0, {
+      duration: 260,
+      easing: Easing.out(Easing.quad),
+    });
+  }, [translateY]);
+
+  // ── 退场动画 + 回调 ──────────────────────────────────────────────────────
+  const animateOut = useCallback((done: () => void) => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    translateY.value = withTiming(
+      SLIDE_OFFSET,
+      { duration: 220, easing: Easing.in(Easing.quad) },
+      (finished) => {
+        if (finished) runOnJS(done)();
+      }
+    );
+  }, [translateY]);
+
+  const handleClose = useCallback(() => {
+    animateOut(() => {
+      closingRef.current = false;
+      onClose();
+    });
+  }, [animateOut, onClose]);
+
+  useEffect(() => {
+    if (visible) animateIn();
+  }, [visible, animateIn]);
+
+  // ── 拖拽下滑关闭手势 ──────────────────────────────────────────────────────
+  const panGesture = Gesture.Pan()
+    .onUpdate((e) => {
+      // 只允许向下拖，不允许向上
+      translateY.value = Math.max(0, e.translationY);
+    })
+    .onEnd((e) => {
+      if (e.translationY > 80 || e.velocityY > 500) {
+        // 超过阈值 → 关闭（timing，无弹跳）
+        translateY.value = withTiming(
+          SLIDE_OFFSET,
+          { duration: 200, easing: Easing.in(Easing.quad) },
+          (finished) => {
+            if (finished) runOnJS(onClose)();
+          }
+        );
+      } else {
+        // 未超阈值 → 回弹（高阻尼 spring，几乎无弹跳）
+        translateY.value = withSpring(0, { damping: 40, stiffness: 400, mass: 0.6 });
+      }
+    });
+
+  const sheetStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+
   if (!session) return null;
 
   const cardBg = isDark ? '#1C1C1E' : '#FFFFFF';
-  const separatorColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+  const handleColor = isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.18)';
+  const separatorColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)';
 
   return (
     <Modal
@@ -57,50 +115,72 @@ export default function History_ActionSheet({
       transparent
       animationType="none"
       statusBarTranslucent
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.overlay} />
-      </TouchableWithoutFeedback>
+      <GestureHandlerRootView style={styles.rootView}>
+        {/* 背景遮罩 —— Pressable 点击关闭 */}
+        <Pressable style={styles.overlay} onPress={handleClose} />
 
-      <Animated.View
-        entering={SlideInDown.springify().damping(20).stiffness(200)}
-        exiting={SlideOutDown.duration(200)}
-        style={[styles.sheet, { backgroundColor: cardBg }]}
-      >
-        {/* Title preview */}
-        <View style={[styles.titleRow, { borderBottomColor: separatorColor }]}>
-          <Text style={[styles.sheetTitle, { color: themeColors.text }]} numberOfLines={1}>
+        {/* Sheet 主体 —— GestureDetector 接管拖拽 */}
+        <GestureDetector gesture={panGesture}>
+        <Animated.View style={[styles.sheet, { backgroundColor: cardBg }, sheetStyle]}>
+
+          {/* 拖动把手 */}
+          <View style={styles.handleWrap}>
+            <View style={[styles.handle, { backgroundColor: handleColor }]} />
+          </View>
+
+          {/* Session 标题预览 */}
+          <Text style={[styles.sessionTitle, { color: themeColors.icon }]} numberOfLines={1}>
             {session.title}
           </Text>
-        </View>
 
-        <ActionRow
-          icon="trash-outline"
-          label="删除"
-          color="#FF3B30"
-          onPress={() => { onDelete(session); onClose(); }}
-        />
-        <View style={[styles.separator, { backgroundColor: separatorColor }]} />
+          {/* ── 删除 ── */}
+          <TouchableOpacity
+            style={styles.actionRow}
+            activeOpacity={0.7}
+            onPress={() => { onDelete(session); handleClose(); }}
+          >
+            <Ionicons name="trash-outline" size={20} color="#FF3B30" style={styles.actionIcon} />
+            <Text style={[styles.actionLabel, { color: '#FF3B30' }]}>删除</Text>
+          </TouchableOpacity>
 
-        <ActionRow
-          icon="pencil-outline"
-          label="重命名"
-          color={themeColors.text}
-          onPress={() => { onRename(session); onClose(); }}
-        />
-        <View style={[styles.separator, { backgroundColor: separatorColor }]} />
+          <View style={[styles.separator, { backgroundColor: separatorColor }]} />
 
-        <ActionRow
-          icon={session.isPinned ? 'pin' : 'pin-outline'}
-          label={session.isPinned ? '取消置顶' : '置顶'}
-          color={themeColors.text}
-          onPress={() => { onTogglePin(session); onClose(); }}
-        />
+          {/* ── 重命名 ── */}
+          <TouchableOpacity
+            style={styles.actionRow}
+            activeOpacity={0.7}
+            onPress={() => { onRename(session); handleClose(); }}
+          >
+            <Ionicons name="pencil-outline" size={20} color={themeColors.text} style={styles.actionIcon} />
+            <Text style={[styles.actionLabel, { color: themeColors.text }]}>重命名</Text>
+          </TouchableOpacity>
 
-        {/* Safe area spacer */}
-        <View style={styles.bottomSpacer} />
-      </Animated.View>
+          <View style={[styles.separator, { backgroundColor: separatorColor }]} />
+
+          {/* ── 置顶 ── */}
+          <TouchableOpacity
+            style={styles.actionRow}
+            activeOpacity={0.7}
+            onPress={() => { onTogglePin(session); handleClose(); }}
+          >
+            <Ionicons
+              name={session.isPinned ? 'pin' : 'pin-outline'}
+              size={20}
+              color={themeColors.text}
+              style={styles.actionIcon}
+            />
+            <Text style={[styles.actionLabel, { color: themeColors.text }]}>
+              {session.isPinned ? '取消置顶' : '置顶'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* 底部安全区 */}
+          <View style={styles.bottomSafe} />
+        </Animated.View>
+      </GestureDetector>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
@@ -115,38 +195,47 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
+  },
+  handleWrap: {
+    alignItems: 'center',
     paddingTop: 8,
+    paddingBottom: 2,
   },
-  titleRow: {
+  handle: {
+    width: 34,
+    height: 4,
+    borderRadius: 2,
+  },
+  sessionTitle: {
+    fontSize: 13,
     paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  sheetTitle: {
-    fontSize: 14,
-    opacity: 0.5,
+    paddingTop: 8,
+    paddingBottom: 10,
   },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 13,
   },
   actionIcon: {
     marginRight: 14,
-    width: 24,
+    width: 22,
     textAlign: 'center',
   },
   actionLabel: {
-    fontSize: 17,
+    fontSize: 16,
   },
   separator: {
     height: StyleSheet.hairlineWidth,
     marginHorizontal: 20,
   },
-  bottomSpacer: {
-    height: 34,
+  bottomSafe: {
+    height: 44,
+  },
+  rootView: {
+    flex: 1,
   },
 });

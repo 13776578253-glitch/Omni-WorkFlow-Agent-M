@@ -7,9 +7,8 @@ import { Colors } from '@/constants/theme';
 
 import History_ActionSheet from '@/components/history/History_ActionSheet';
 import History_List from '@/components/history/History_List';
-import History_RenameModal from '@/components/history/History_RenameModal';
 
-// 历史页  / 删除会话/加载会话/重命名/置顶状态  
+// 历史页  / 删除会话/加载会话/重命名/置顶状态
 import { deleteSession, loadSessions, renameSession, togglePin, type HistorySession } from '@/services/history/History_Storage';
 
 interface HistoryScreenProps {
@@ -25,9 +24,9 @@ export default function HistoryScreen({ searchQuery = '' }: HistoryScreenProps) 
   const [sessions, setSessions] = useState<HistorySession[]>([]);
   const [selectedSession, setSelectedSession] = useState<HistorySession | null>(null);
 
-  // 显示状态 / 待修改
+  // 显示状态
   const [showActionSheet, setShowActionSheet] = useState(false);
-  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     loadSessions().then(setSessions);
@@ -48,33 +47,38 @@ export default function HistoryScreen({ searchQuery = '' }: HistoryScreenProps) 
         (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0) || b.createdAt - a.createdAt
     );
 
-  // 会话操作 / 长按显示 /  待修改
+  // 会话操作 / 长按显示
   const handleLongPress = (session: HistorySession) => {
     setSelectedSession(session);
     setShowActionSheet(true);
   };
 
-  // 会话跳转 / 待修改 
+  // 会话跳转 / 待修改
   const handlePress = (_session: HistorySession) => {
     // TODO: 实现跳转逻辑，传递 session.id 或其他标识
   };
 
-  // 操作回调 / 删除/重命名/置顶  / 待修改
+  // 操作回调 / 删除
   const handleDelete = async (session: HistorySession) => {
     const updated = await deleteSession(session.id);
     setSessions(updated);
   };
 
-  // 重命名回调 / 待修改
+  // 重命名：直接在列表内联编辑
   const handleRename = (session: HistorySession) => {
-    setSelectedSession(session);
-    setShowRenameModal(true);
+    setEditingSessionId(session.id);
   };
 
-  // 重命名确认回调 / 待修改
+  // 重命名确认（回车提交）
   const handleRenameConfirm = async (session: HistorySession, newTitle: string) => {
+    setEditingSessionId(null);
     const updated = await renameSession(session.id, newTitle);
     setSessions(updated);
+  };
+
+  // 重命名取消（失焦取消）
+  const handleRenameCancel = () => {
+    setEditingSessionId(null);
   };
 
   // 置顶/取消置顶
@@ -90,6 +94,9 @@ export default function HistoryScreen({ searchQuery = '' }: HistoryScreenProps) 
         sessions={filtered}
         onPress={handlePress}
         onLongPress={handleLongPress}
+        editingSessionId={editingSessionId}
+        onRenameConfirm={handleRenameConfirm}
+        onRenameCancel={handleRenameCancel}
       />
 
       {/* 操作表单 */}
@@ -100,14 +107,6 @@ export default function HistoryScreen({ searchQuery = '' }: HistoryScreenProps) 
         onDelete={handleDelete}
         onRename={handleRename}
         onTogglePin={handleTogglePin}
-      />
-
-      {/* 重命名框 */}
-      <History_RenameModal
-        session={selectedSession}
-        visible={showRenameModal}
-        onClose={() => setShowRenameModal(false)}
-        onConfirm={handleRenameConfirm}
       />
     </View>
   );

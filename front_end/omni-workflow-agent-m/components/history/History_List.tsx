@@ -11,6 +11,9 @@ interface HistoryListProps {
   sessions: HistorySession[];
   onPress: (session: HistorySession) => void;
   onLongPress: (session: HistorySession) => void;
+  editingSessionId?: string | null;
+  onRenameConfirm?: (session: HistorySession, newTitle: string) => void;
+  onRenameCancel?: () => void;
 }
 
 type ListEntry =
@@ -39,7 +42,14 @@ function buildListData(sessions: HistorySession[]): ListEntry[] {
 }
 
 // 会话列表
-export default function History_List({ sessions, onPress, onLongPress }: HistoryListProps) {
+export default function History_List({
+  sessions,
+  onPress,
+  onLongPress,
+  editingSessionId,
+  onRenameConfirm,
+  onRenameCancel,
+}: HistoryListProps) {
   const { effectiveColorScheme } = useThemeContext();
   const themeColors = Colors[effectiveColorScheme];
 
@@ -63,6 +73,9 @@ export default function History_List({ sessions, onPress, onLongPress }: History
             session={item.session}
             onPress={onPress}
             onLongPress={onLongPress}
+            isEditing={item.session.id === editingSessionId}
+            onRenameConfirm={(newTitle) => onRenameConfirm?.(item.session, newTitle)}
+            onRenameCancel={onRenameCancel}
           />
         );
       }}
