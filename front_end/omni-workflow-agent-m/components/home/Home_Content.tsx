@@ -9,8 +9,8 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 const { width, height, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // 测试图片 / 待修改
-const LIGHT_BG = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop';
-const DARK_BG = 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2564&auto=format&fit=crop'; 
+const LIGHT_BG = '';
+const DARK_BG = ''; 
 
 interface HomeContentProps {
   translateY: SharedValue<number>;

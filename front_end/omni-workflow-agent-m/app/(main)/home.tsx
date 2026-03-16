@@ -11,7 +11,6 @@ import { HomePortal } from '@/components/home/Home_Portal';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// 旧逻辑 / 保留 
 const MECHANICAL_SPRING = {
   damping: 10,                     // 阻尼
   stiffness: 180,                  // 刚度
@@ -26,6 +25,7 @@ interface HomeScreenProps {
   onDrawerStateChange?: (isActive: boolean) => void;
 }
 
+// 旧逻辑样式 / 存在冗余逻辑 / 保留
 export default function HomeScreen({ onDrawerStateChange }: HomeScreenProps) {
   const bgColor = useThemeColor({}, 'background');
   // const cardColor = useThemeColor({}, 'card'); // 无用声明
