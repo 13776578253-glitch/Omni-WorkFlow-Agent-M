@@ -74,10 +74,15 @@ export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress,
   const { effectiveColorScheme } = useThemeContext();
   const isDark = effectiveColorScheme === 'dark';
   const themeColors = Colors[effectiveColorScheme];
+  
+  const isHomeActive = activeTabIndex === 0;
+  // 透明度 插值
+  const navOverlay = isDark ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.12)';
+  const navBackgroundColor = isHomeActive ? navOverlay : themeColors.background;
 
   const navWidth = width * 0.7;                                                 // Tab 区域 总宽度
   const progress = useDerivedValue(() => position.value + scrollOffset.value);  // Tab 动画 进度值
-  const isHomeActive = activeTabIndex === 0;
+  // const isHomeActive = activeTabIndex === 0;
   const isHistoryActive = activeTabIndex === 2;
 
   // Tab容器 动画样式 / 导航栏 UI变化
@@ -124,9 +129,10 @@ export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress,
       style={[styles.wrapper, { transform: [{ translateY: translateYCompensation }] }]}
     >
       <BlurView
-        intensity={80}  
+        // 透明度 插值
+        intensity={65}  
         tint={isDark ? 'dark' : 'light'}
-        style={[styles.container, { backgroundColor: themeColors.background }]}
+        style={[styles.container, { backgroundColor: navBackgroundColor }]}
       >
         <View style={styles.safeContent}>
           {isHistoryActive ? (
