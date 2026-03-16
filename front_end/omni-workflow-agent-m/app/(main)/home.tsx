@@ -11,6 +11,7 @@ import { HomePortal } from '@/components/home/Home_Portal';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+// 旧逻辑 / 保留 
 const MECHANICAL_SPRING = {
   damping: 10,                     // 阻尼
   stiffness: 180,                  // 刚度
