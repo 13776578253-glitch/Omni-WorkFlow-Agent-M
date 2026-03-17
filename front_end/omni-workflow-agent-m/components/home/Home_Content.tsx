@@ -3,14 +3,13 @@ import { Dimensions, StyleSheet, View } from 'react-native';
 import Animated, { SharedValue } from 'react-native-reanimated';
 
 import { useHomeBackgroundStyle, useHomeMaskStyle } from '@/components/home/Home_Content_bin/Home_Content_Animations';
-import { HomeVoiceFloatBall } from '@/components/home/Home_Content_bin/Home_Voice_FloatBall';
 import { useThemeContext } from '@/constants/Theme-Context';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 const { width, height, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const LIGHT_BG =
-  'https://dummyimage.com/1920x1080/eaf0f6/eaf0f6.png';
+  '';
 const DARK_BG =
   'https://dummyimage.com/1920x1080/cfd8e3/cfd8e3.png';
 
@@ -22,7 +21,7 @@ export function HomeContent({ translateY }: HomeContentProps) {
   const cardBg = useThemeColor({}, 'background');
   const { effectiveColorScheme } = useThemeContext();
   const isDark = effectiveColorScheme === 'dark';
-  const handleColor = isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.18)';
+  // const handleColor = isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.18)';
 
   const backgroundStyle = useHomeBackgroundStyle(translateY);
   const maskStyle = useHomeMaskStyle(translateY);
@@ -44,7 +43,6 @@ export function HomeContent({ translateY }: HomeContentProps) {
         <View style={[styles.bottomFiller, { backgroundColor: cardBg }]} />
       </Animated.View>
 
-      <HomeVoiceFloatBall />
     </View>
   );
 }
@@ -70,20 +68,20 @@ const styles = StyleSheet.create({
   },
   maskPanel: {
     position: 'absolute',
-    bottom: 30,
+    top: 0, // 改为靠顶
     width,
-    height: height * 0.04,
-    borderTopLeftRadius: 36,
-    borderTopRightRadius: 36,
+    height: height * 0.9, // 遮盖大部分首页界面
+    borderBottomLeftRadius: 36, // 圆角改为朝下
+    borderBottomRightRadius: 36,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -8 },
+    shadowOffset: { width: 0, height: 8 }, // 阴影方向朝下
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 20,
   },
   bottomFiller: {
     position: 'absolute',
-    top: 30,
+    bottom: height * 0.1, // 填充物位置调整
     left: 0,
     right: 0,
     height: SCREEN_HEIGHT,
