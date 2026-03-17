@@ -3,14 +3,13 @@ import { Dimensions, StyleSheet, View } from 'react-native';
 import Animated, { SharedValue } from 'react-native-reanimated';
 
 import { useHomeBackgroundStyle, useHomeMaskStyle } from '@/components/home/Home_Content_bin/Home_Content_Animations';
-import { HomeVoiceFloatBall } from '@/components/home/Home_Content_bin/Home_Voice_FloatBall';
 import { useThemeContext } from '@/constants/Theme-Context';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 const { width, height, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const LIGHT_BG =
-  'https://dummyimage.com/1920x1080/eaf0f6/eaf0f6.png';
+  '';
 const DARK_BG =
   'https://dummyimage.com/1920x1080/cfd8e3/cfd8e3.png';
 
@@ -44,7 +43,6 @@ export function HomeContent({ translateY }: HomeContentProps) {
         <View style={[styles.bottomFiller, { backgroundColor: cardBg }]} />
       </Animated.View>
 
-      <HomeVoiceFloatBall />
     </View>
   );
 }
