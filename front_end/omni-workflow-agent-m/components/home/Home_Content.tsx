@@ -60,7 +60,7 @@ export function HomeContent({ translateY }: HomeContentProps) {
               <Text style={styles.highlightText}>{userName}</Text>
               ，欢迎回来_
             </Text>
-            {/* <Text style={[styles.heroSubtitle, { color: subtitleColor }]}>↑ 向上滑动查看详情</Text> */}
+            <Text style={[styles.heroSubtitle, { color: subtitleColor }]}> ↓ 长按悬钮告诉 AI 需要做什么</Text>
             <HomeContentMessage />
           </View>
 
