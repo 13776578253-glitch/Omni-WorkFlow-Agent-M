@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { Dimensions, StyleSheet, Text, View } from 'react-native';
 import Animated, { SharedValue } from 'react-native-reanimated';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -11,27 +11,23 @@ interface HomeContentProps {
 }
 
 export function HomeContent({ translateY }: HomeContentProps) {
-  // 获取主题背景色
+  // Keep prop for upcoming gesture-linked animation work.
+  void translateY;
+
   const cardBg = useThemeColor({}, 'background');
-  
-  // 获取动画样式
-  // const maskStyle = useHomeMaskStyle(translateY);
+  const titleColor = useThemeColor({}, 'text');
 
   return (
     <View style={styles.container}>
-      {/* 外层 */}
-      <Animated.View style={[
-        styles.shadowContainer, 
-        // maskStyle, 
-        { backgroundColor: cardBg } 
-        
-      ]}> 
-        
-        {/* 内层 */}
+      <Animated.View style={[styles.shadowContainer, { backgroundColor: cardBg }]}>
         <View style={styles.innerContent}>
-          {/* 待添加内容 */}
+          <View style={styles.heroWrap}>
+            <View style={styles.heroDot} />
+            <Text style={[styles.heroTitle, { color: titleColor }]}>用户，欢迎回来_</Text>
+            {/* test */}
+            <Text style={styles.heroSubtitle}>↑ 向上滑动查看详情</Text>
+          </View>
         </View>
-        
       </Animated.View>
     </View>
   );
@@ -50,12 +46,9 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    bottom: height * 0.109,   // sb 
-    // height: height * 0.89,
-
+    bottom: height * 0.109,
     borderBottomLeftRadius: 36,
     borderBottomRightRadius: 36,
-
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
@@ -68,11 +61,36 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    // 往下拉 2 个像素，确保物理渲染时内层颜色绝对能盖住外层边缘 // 没用
-    marginBottom: -2, 
+    marginBottom: -2,
     borderBottomLeftRadius: 36,
     borderBottomRightRadius: 36,
     overflow: 'hidden',
     backgroundColor: 'transparent',
-  }
+  },
+  heroWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: height * 0.25,
+  },
+  heroDot: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    marginBottom: 20,
+  },
+  heroTitle: {
+    fontSize: 26,
+    lineHeight: 34,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  heroSubtitle: {
+    marginTop: 8,
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#7A7A82',
+    fontWeight: '500',
+  },
 });
