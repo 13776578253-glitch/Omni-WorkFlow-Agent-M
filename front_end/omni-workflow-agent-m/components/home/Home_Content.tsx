@@ -1,10 +1,13 @@
 ﻿import React from 'react';
-import { Dimensions, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { SharedValue } from 'react-native-reanimated';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 const { width, height } = Dimensions.get('window');
+const RING_COLOR = '#7C7C84';
+const RING_COLOR_PRESSED = '#6C6C74';
+const BUTTON_CENTER_OFFSET = 290;
 
 interface HomeContentProps {
   translateY: SharedValue<number>;
@@ -23,9 +26,18 @@ export function HomeContent({ translateY }: HomeContentProps) {
         <View style={styles.innerContent}>
           <View style={styles.heroWrap}>
             <View style={styles.heroDot} />
-            <Text style={[styles.heroTitle, { color: titleColor }]}>用户，欢迎回来_</Text>
-            {/* test */}
+            <Text style={[styles.heroTitle, { color: titleColor }]}>用户，欢迎回来</Text>
             <Text style={styles.heroSubtitle}>↑ 向上滑动查看详情</Text>
+          </View>
+
+          <View style={[styles.ringAnchor, { transform: [{ translateY: BUTTON_CENTER_OFFSET }] }]}>
+            <Pressable
+              accessibilityRole="button"
+              android_ripple={{ color: 'rgba(124,124,132,0.18)', radius: 30 }}
+              onPress={() => {}}
+              style={({ pressed }) => [styles.ringButtonOuter, pressed && styles.ringButtonOuterPressed]}>
+              <View style={[styles.ringButtonInner, { backgroundColor: cardBg }]} />
+            </Pressable>
           </View>
         </View>
       </Animated.View>
@@ -92,5 +104,28 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: '#7A7A82',
     fontWeight: '500',
+  },
+  ringAnchor: {
+    position: 'absolute',
+    left: '50%',
+    marginLeft: -26,
+    top: '50%',
+  },
+  ringButtonOuter: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: RING_COLOR,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ringButtonOuterPressed: {
+    backgroundColor: RING_COLOR_PRESSED,
+    transform: [{ scale: 0.96 }],
+  },
+  ringButtonInner: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
 });
