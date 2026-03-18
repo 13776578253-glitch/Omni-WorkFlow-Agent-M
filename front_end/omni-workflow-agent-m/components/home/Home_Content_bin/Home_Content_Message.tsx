@@ -10,16 +10,21 @@ interface CapabilityItem {
   title: string;
   subtitle: string;
   iconName: keyof typeof MaterialIcons.glyphMap;
+  iconColor?: string;
 }
 
 const CAPABILITY_ITEMS: CapabilityItem[] = [
-  { id: 'mobile', title: '移动应用', subtitle: '构建原生的 iOS 和 Android 应用程序', iconName: 'smartphone' },
-  { id: 'design', title: 'AI 设计', subtitle: '自动化整个设计流程', iconName: 'brush' },
+//   { id: 'mobile', title: '移动应用', subtitle: '构建原生的 iOS 和 Android 应用程序', iconName: 'smartphone' },
+  { id: 'interpret', title: '同声传译', subtitle: '零延迟多语种实时互译', iconName: 'interpreter-mode' },
+//   { id: 'design', title: 'AI 设计', subtitle: '自动化整个设计流程', iconName: 'brush' },
   { id: 'slides', title: 'AI 幻灯片', subtitle: '使用 Nano Banana Pro 创建幻灯片', iconName: 'slideshow' },
-  { id: 'browser', title: '浏览器操作员', subtitle: '将一个标签借给 Manus', iconName: 'public' },
-  { id: 'research', title: 'Wide Research', subtitle: '大规模并行研究', iconName: 'search' },
+  { id: 'doc_processor', title: '文档处理', subtitle: '长篇文献深度解析与重排', iconName: 'auto-stories' },
+  { id: 'charting', title: '图表绘制', subtitle: '数据洞察自动视觉化呈现', iconName: 'insights' },
+//   { id: 'browser', title: '浏览器操作员', subtitle: '将一个标签借给 Manus', iconName: 'public' },
+//   { id: 'research', title: 'Wide Research', subtitle: '大规模并行研究', iconName: 'search' },
 //   { id: 'mail', title: '邮件助理', subtitle: '将任何邮件转化为行动', iconName: 'email' },
 //   { id: 'skills', title: '代理技能', subtitle: '自动化您的专业知识', iconName: 'extension' },
+{ id: 'customize', title: '工作流定制', subtitle: '自动化整个工作流程', iconName: 'add' ,iconColor: '#007bff'},
 ];
 
 export function HomeContentMessage() {
@@ -50,7 +55,7 @@ export function HomeContentMessage() {
             <MaterialIcons
               name={item.iconName}
               size={22}
-              color={isDark ? '#D2D7E3' : '#4B4B4B'}
+              color={item.iconColor || (isDark ? '#D2D7E3' : '#4B4B4B')}
             />
           </View>
           <View style={styles.textWrap}>
@@ -70,11 +75,13 @@ export function HomeContentMessage() {
 }
 
 const styles = StyleSheet.create({
+  // 整体容器样式 / 与主界面相互牵制
   container: {
     width: '88%',
-    maxHeight: 320,
-    marginTop: 14,
+    maxHeight: 240,
+    marginTop: 45,
     alignSelf: 'center',
+    marginLeft: 20,
   },
   content: {
     paddingBottom: 8,
@@ -82,15 +89,16 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   rowPressed: {
     opacity: 0.72,
   },
+  // 图标样式
   iconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 11,
+    width: 35,
+    height: 35,
+    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -99,14 +107,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: 20,
-    lineHeight: 24,
+    fontSize: 16,
+    lineHeight: 20,
     fontWeight: '600',
   },
   subtitle: {
     marginTop: 3,
     fontSize: 13,
-    lineHeight: 18,
+    lineHeight: 16,
     fontWeight: '500',
   },
 });

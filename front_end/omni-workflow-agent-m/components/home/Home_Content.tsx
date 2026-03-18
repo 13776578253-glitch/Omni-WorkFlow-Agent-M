@@ -11,6 +11,8 @@ const { width, height } = Dimensions.get('window');
 const BUTTON_CENTER_OFFSET = 319;    // 录音按钮 高度
 const WEEKDAY_LABEL = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
+const userName = "cpp";
+
 interface HomeContentProps {
   translateY: SharedValue<number>;
 }
@@ -53,8 +55,12 @@ export function HomeContent({ translateY }: HomeContentProps) {
         <View style={styles.innerContent}>
           <View style={styles.heroWrap}>
             <View style={[styles.heroDot, { backgroundColor: heroDotBg }]} />
-            <Text style={[styles.heroTitle, { color: titleColor }]}>用户，欢迎回来</Text>
-            <Text style={[styles.heroSubtitle, { color: subtitleColor }]}>↑ 向上滑动查看详情</Text>
+            {/* <Text style={[styles.heroTitle, { color: titleColor }]}>用户，欢迎回来_</Text> */}
+            <Text style={[styles.heroTitle, { color: titleColor }]}>
+              <Text style={styles.highlightText}>{userName}</Text>
+              ，欢迎回来_
+            </Text>
+            {/* <Text style={[styles.heroSubtitle, { color: subtitleColor }]}>↑ 向上滑动查看详情</Text> */}
             <HomeContentMessage />
           </View>
 
@@ -136,7 +142,7 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 26,
     lineHeight: 34,
-    fontWeight: '700',
+    fontWeight: '500',
     letterSpacing: -0.2,
   },
   heroSubtitle: {
@@ -219,5 +225,9 @@ const styles = StyleSheet.create({
     top: 98,
     height: StyleSheet.hairlineWidth,
     opacity: 0.4,
+  },
+  highlightText: {
+    color: '#007bff', // 这里设置你想要的蓝色
+    fontWeight: '800' 
   },
 });
