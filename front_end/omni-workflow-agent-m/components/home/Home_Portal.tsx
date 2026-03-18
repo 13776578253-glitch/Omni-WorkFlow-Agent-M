@@ -1,6 +1,6 @@
-import React from 'react';
-import { StyleSheet, View, ScrollView } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
+import React from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 export function HomePortal() {
   return (
@@ -10,7 +10,7 @@ export function HomePortal() {
       showsVerticalScrollIndicator={false}
     >
       <ThemedText type="subtitle" style={styles.sectionTitle}>
-        功能中心
+        
       </ThemedText>
       
       {/* 快捷功能模块占位 */}

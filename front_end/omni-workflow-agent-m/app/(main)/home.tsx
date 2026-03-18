@@ -1,15 +1,19 @@
 ﻿// app/(main)/user.tsx
+import { BlurView } from 'expo-blur';
 import React from 'react';
 import { Dimensions, StyleSheet } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { Extrapolation, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
+import { useThemeContext } from '@/constants/Theme-Context';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 import { HomeContent } from '@/components/home/Home_Content';
+import { useBlurOpacityStyle } from '@/components/home/Home_Content_bin/Home_Content_Animations';
 import { HomePortal } from '@/components/home/Home_Portal';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 
 const MECHANICAL_SPRING = {
   damping: 10,                     // 阻尼
@@ -28,6 +32,8 @@ interface HomeScreenProps {
 // 旧逻辑样式 / 存在冗余逻辑 / 保留
 export default function HomeScreen({ onDrawerStateChange }: HomeScreenProps) {
   const bgColor = useThemeColor({}, 'background');
+  const { effectiveColorScheme } = useThemeContext();
+  const isDark = effectiveColorScheme === 'dark';
   // const cardColor = useThemeColor({}, 'card'); // 无用声明
 
   const translateY = useSharedValue(0);
@@ -161,10 +167,14 @@ export default function HomeScreen({ onDrawerStateChange }: HomeScreenProps) {
       Extrapolation.CLAMP
     )
   }],
+  
+  opacity: interpolate(translateY.value, [0, -100], [0, 1], Extrapolation.CLAMP)
   }));
 
+  const blurOpacityStyle = useBlurOpacityStyle(translateY);
+
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: bgColor }}>
       <GestureDetector gesture={gesture}>
         <Animated.View style={[styles.container, { backgroundColor: bgColor }]}>
           {/* 底层：功能区 */}
@@ -173,6 +183,12 @@ export default function HomeScreen({ onDrawerStateChange }: HomeScreenProps) {
             {/* <View style={styles.handleBar} /> */}  
             {/* 底部 模块 */}
             <HomePortal />
+            <AnimatedBlurView
+              intensity={30}
+              tint={isDark ? "dark" : "light"}
+              style={[StyleSheet.absoluteFill, blurOpacityStyle, { zIndex: 10 }]}
+              pointerEvents="none"
+            />
           </Animated.View>
 
           {/* 顶层：首页入口 */}
@@ -200,9 +216,10 @@ const styles = StyleSheet.create({
   },
   homeLayer: {
     backgroundColor: 'transparent', 
+    overflow: 'hidden', // 确保内部内容（如 maskPanel）不会因为过高而超出 homeLayer 的范围导致奇怪的截断或白边
   },
   portalLayer: {
-    backgroundColor: '#F5F5F7',
+    backgroundColor: '#111',
     justifyContent: 'flex-start',
     paddingTop: 100,
   },
