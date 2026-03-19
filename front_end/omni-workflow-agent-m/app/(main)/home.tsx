@@ -10,7 +10,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 
 import { HomeContent } from '@/components/home/Home_Content';
 import { useBlurOpacityStyle } from '@/components/home/Home_Content_bin/Home_Content_Animations';
-import { HomePortal } from '@/components/home/Home_Portal';
+import HomePortal from '@/components/home/Home_Portal';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);

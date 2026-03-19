@@ -2,6 +2,11 @@ import React, { useMemo, useState } from 'react';
 import { NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import PagerView from 'react-native-pager-view';
 
+import {
+  hasAnyPortalData,
+  hasTodoData,
+  hasWorkflowData,
+} from '@/components/home/Home_Portal_bin/Home_Portal_data';
 import { useThemeContext } from '@/constants/Theme-Context';
 
 import { Lunar } from 'lunar-javascript';
@@ -43,7 +48,7 @@ function formatIso(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-// 日期计算工具函数 / 完备逻辑
+// 日期计算工具函数
 function addMonths(baseDate: Date, offset: number): Date {
   return new Date(baseDate.getFullYear(), baseDate.getMonth() + offset, 1);
 }
@@ -73,7 +78,6 @@ function getLunarDisplay(date: Date): string {
   }
 }
 
-// 获取农历详情信息，包含两行文本：第一行显示月日，第二行显示年干支、月干支、日干支
 function getLunarDetail(date: Date) {
   try {
     const lunar = Lunar.fromDate(date);
@@ -81,6 +85,7 @@ function getLunarDetail(date: Date) {
       dayLine: `${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}`,
       detailLine: `${lunar.getYearInGanZhi()}年 ${lunar.getMonthInGanZhi()}月 ${lunar.getDayInGanZhi()}日`,
     };
+
   } catch (_error) {
     return {
       dayLine: '测试农历日期',
@@ -89,7 +94,7 @@ function getLunarDetail(date: Date) {
   }
 }
 
-// 构建指定年月的日历格数据，包含前后补齐的日期以满足6行7列的布局
+
 function buildMonthCells(targetYear: number, targetMonth: number): CalendarCell[] {
   const firstDate = new Date(targetYear, targetMonth, 1);
   const leadingDays = getMondayFirstWeekday(firstDate);
@@ -114,7 +119,6 @@ function buildMonthCells(targetYear: number, targetMonth: number): CalendarCell[
   });
 }
 
-// 构建包含前后12个月的月份数据列表，用于分页显示
 function buildMonthRange(anchorDate: Date): MonthMeta[] {
   return Array.from({ length: PAGE_COUNT }, (_, index) => {
     const date = addMonths(anchorDate, index - MONTH_RANGE);
@@ -129,12 +133,12 @@ function buildMonthRange(anchorDate: Date): MonthMeta[] {
 }
 
 function getDisplayWeekday(date: Date): string {
-  const week = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-  return week[date.getDay()];
+  const week = ['周日', '周一', '周二', '周三', '周四', '周五', '周六' ];
+    return week[date.getDay()];
 }
 
-// TODO: 目前页面内的日期选择和内容展示逻辑较为初级，后续会根据需求增加交互细节和数据结构完善度
-export function HomePortal() {
+export default function Home_Portal() {
+
   const { effectiveColorScheme } = useThemeContext();
   const isDark = effectiveColorScheme === 'dark';
   const today = useMemo(() => new Date(), []);
@@ -142,13 +146,14 @@ export function HomePortal() {
     () => new Date(today.getFullYear(), today.getMonth(), today.getDate()),
     [today]
   );
-  
+
   const [activeMonthIndex, setActiveMonthIndex] = useState(MONTH_RANGE);
   const [selectedDate, setSelectedDate] = useState<Date>(initialDate);
+  const [hasUserSelectedDate, setHasUserSelectedDate] = useState(false);
 
   const months = useMemo(() => buildMonthRange(initialDate), [initialDate]);
 
-  // 构建月份到日历格数据的映射
+  // 月份数据预计算，避免滑动时卡顿 / key 为 'year-month' 格式，方便直接访问
   const monthCellMap = useMemo(() => {
     const map = new Map<string, CalendarCell[]>();
     months.forEach((monthItem) => {
@@ -156,17 +161,6 @@ export function HomePortal() {
     });
     return map;
   }, [months]);
-
-  // 测试用的日期内容数据，格式为 ISO 字符串集合，实际使用中会根据业务需求调整为更复杂的数据结构
-  const testContentDates = useMemo(() => {
-    return new Set<string>([
-      formatIso(initialDate),
-      formatIso(addDays(initialDate, 2)),
-      formatIso(addDays(initialDate, 5)),
-      formatIso(addDays(initialDate, -3)),
-      formatIso(addMonths(initialDate, 1)),
-    ]);
-  }, [initialDate]);
 
   const activeMonth = months[activeMonthIndex];
   const selectedIso = formatIso(selectedDate);
@@ -207,7 +201,7 @@ export function HomePortal() {
         bodyText: '#7A818E',
       };
 
-  // 页面内的交互逻辑：分页切换月份、选择日期、展示对应内容等，后续会根据需求增加更多交互细节    
+  // 月份切换回调，更新 activeMonthIndex 和 selectedDate（保持日期不变，自动适配当月天数）
   const onPageSelected = (event: NativeSyntheticEvent<{ position: number }>) => {
     const nextIndex = event.nativeEvent.position;
     setActiveMonthIndex(nextIndex);
@@ -223,11 +217,12 @@ export function HomePortal() {
 
   const onPressCurrentMonthDate = (cell: CalendarCell) => {
     if (!cell.isCurrentMonth) return;
+    setHasUserSelectedDate(true);
     setSelectedDate(new Date(cell.year, cell.month, cell.day));
   };
 
   return (
-    // 整体页面结构：顶部日历组件 + 选中日期详情 + 倒计时消息列表，后续会根据需求调整布局和内容展示方式
+    // 整体使用 ScrollView 包裹，允许内容超出屏幕高度时滚动查看
     <ScrollView
       style={[styles.container, { backgroundColor: palette.pageBg }]}
       contentContainerStyle={styles.content}
@@ -266,16 +261,20 @@ export function HomePortal() {
                 <View style={styles.grid}>
                   {monthCells.map((cell) => {
                     const isSelected = selectedIso === cell.iso;
-                    const hasContent = cell.isCurrentMonth && testContentDates.has(cell.iso);
-                    const textColor = isSelected
+                    const isToday = cell.isCurrentMonth && cell.iso === formatIso(today);
+                    const showSelectedOutline = hasUserSelectedDate && isSelected && !isToday;
+                    const hasTodo = cell.isCurrentMonth && hasTodoData(cell.month + 1, cell.day);
+                    const hasWorkflow = cell.isCurrentMonth && hasWorkflowData(cell.month + 1, cell.day);
+                    const hasAnyData = cell.isCurrentMonth && hasAnyPortalData(cell.month + 1, cell.day);
+                    const textColor = isToday
                       ? palette.primaryText
                       : !cell.isCurrentMonth
                         ? palette.mutedDay
-                        : hasContent
+                        : hasAnyData
                           ? palette.primary
                           : palette.dayText;
 
-                    const lunarColor = isSelected
+                    const lunarColor = isToday
                       ? palette.primaryText
                       : !cell.isCurrentMonth
                         ? palette.mutedDay
@@ -286,12 +285,27 @@ export function HomePortal() {
                         <Pressable
                           onPress={() => onPressCurrentMonthDate(cell)}
                           disabled={!cell.isCurrentMonth}
-                          style={[styles.datePressable, isSelected && { backgroundColor: palette.primary }]}
+                          style={[
+                            styles.datePressable,
+                            isToday && { backgroundColor: palette.primary },
+                            showSelectedOutline && styles.datePressableOutlined,
+                            showSelectedOutline && { borderColor: palette.primary },
+                          ]}
                         >
                           <Text style={[styles.dayNumber, { color: textColor }]}>{cell.day}</Text>
                           <Text style={[styles.lunarLabel, { color: lunarColor }]}>{cell.lunarText || '测试'}</Text>
-                          {hasContent && !isSelected && (
-                            <View style={[styles.contentDot, { backgroundColor: palette.primary }]} />
+                          {(hasTodo || hasWorkflow) && (
+                            <View style={styles.contentDotsRow}>
+                              {hasTodo && <View style={styles.contentDotTodo} />}
+                              {hasWorkflow && (
+                                <View
+                                  style={[
+                                    styles.contentDotWorkflow,
+                                    { backgroundColor: palette.primary },
+                                  ]}
+                                />
+                              )}
+                            </View>
                           )}
                         </Pressable>
                       </View>
@@ -390,18 +404,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 4,
   },
-  // 每个星期的单元格，宽度为父容器的1/7，内容居中显示，垂直内边距为1
+  // 
   weekdayCell: {
     width: '14.2857%',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 0.4,  // 垂直间距
+    paddingVertical: 0.4,  // 
   },
   weekdayText: {
     fontSize: 17,
     fontWeight: '500',
   },
-  // 日历整体高度
+  // 
   pager: {
     height: 285,
   },
@@ -418,33 +432,48 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 2,
   },
-  // 日期按钮 本身尺寸 
+  // 
   datePressable: {
     width: 44,
-    minHeight: 54,  // 保持日期单元格的最小高度
+    minHeight: 54,  // 
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 3, // 内部垂直间距
+    paddingVertical: 3, // 
   },
-  // 日期数字 和农历文本的样式
+  datePressableOutlined: {
+    borderWidth: 1.5,
+  },
+  // 
   dayNumber: {
     fontSize: 24,
-    fontWeight: '500',    // 粗细
-    lineHeight: 24,       // 内部行高
+    fontWeight: '500',    // 
+    lineHeight: 24,       // 
     textAlign: 'center',
   },
-  // 农历文本样式
+  // 
   lunarLabel: {
     fontSize: 11,
     lineHeight: 13,
     marginTop: 0,
   },
-  contentDot: {
+  contentDotsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+    gap: 4,
+  },
+  contentDotTodo: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    marginTop: 2,
+    backgroundColor: '#FF5A5F',
+  },
+  contentDotWorkflow: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
   },
   handleTrack: {
     alignItems: 'center',
