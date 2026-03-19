@@ -62,6 +62,7 @@ export function HomeContent({ translateY }: HomeContentProps) {
                 <Text style={styles.usernameChipText}>{userName}</Text>
               </View>
               <Text style={[styles.heroTitleSuffix, { color: titleColor }]}>欢迎回来_</Text>
+              <Text style={[styles.heroSubtitle, { color: subtitleColor }]}>↓尝试使用下方的快捷功能</Text>
             </View>
             
             <HomeContentMessage />
@@ -209,7 +210,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: '50%',
     marginLeft: -26,
-    top: '50%',
+    top: '48.8%',
     alignItems: 'center',
   },
   ringButtonOuter: {
