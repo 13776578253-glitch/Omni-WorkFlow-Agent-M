@@ -86,7 +86,7 @@ export default function UserScreen() {
             icon="document-text" 
             title="遵循协议" 
             // value="MIT" 
-            onPress={() => Alert.alert('提示', '目前无法查看，敬请期待')} 
+            onPress={() => Linking.openURL('https://mit-license.org/')} 
           />
         </SettingSection>
 
