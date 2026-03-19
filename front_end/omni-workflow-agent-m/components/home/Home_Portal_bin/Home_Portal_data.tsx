@@ -12,6 +12,7 @@ export type PortalCalendarData = {
   [month: number]: PortalMonthData;
 };
 
+// 模拟数据 / 测试
 const PORTAL_CALENDAR_DATA: PortalCalendarData = {
   3: {
     16: {
