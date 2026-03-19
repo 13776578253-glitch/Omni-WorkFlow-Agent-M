@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     maxHeight: 240,
     marginTop: 45,
     alignSelf: 'center',
-    marginLeft: 20,
+    marginLeft: 120,
   },
   content: {
     paddingBottom: 8,
