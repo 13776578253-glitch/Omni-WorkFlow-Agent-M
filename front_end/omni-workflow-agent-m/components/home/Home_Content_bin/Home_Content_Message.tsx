@@ -26,12 +26,12 @@ export function HomeContentMessage() {
   const isDark = effectiveColorScheme === 'dark';
   const themeColors = Colors[effectiveColorScheme];
 
-  const rowCardBg = isDark ? '#232327' : '#ECECEC';
-  const iconSlotBg = isDark ? '#2C2C31' : '#E2E2E2';
-  const iconWrapBg = isDark ? '#34343A' : '#F0F0F0';
-  const titleColor = isDark ? '#F3F4F7' : themeColors.text;
-  const subtitleColor = isDark ? '#B2B6C1' : '#8A8A8E';
-  const defaultIconColor = isDark ? '#E0E4EE' : '#4B4B4B';
+  const rowCardBg = isDark ? '#24262C' : '#E9E9EA';
+  const iconSlotBg = isDark ? '#2F323A' : '#DEDEDF';
+  const iconWrapBg = isDark ? '#3A3E47' : '#F1F1F2';
+  const titleColor = isDark ? '#F1F3F8' : '#3E3E41';
+  const subtitleColor = isDark ? '#AEB3BF' : '#8E8E92';
+  const defaultIconColor = isDark ? '#E4E8F1' : '#474748';
 
   return (
     <ScrollView
@@ -72,38 +72,38 @@ export function HomeContentMessage() {
 
 const styles = StyleSheet.create({
   container: {
-    width: '87%',
-    maxHeight: 380,
-    marginTop: 18,
+    width: '88%',
+    maxHeight: 385,
+    marginTop: 14,
     alignSelf: 'center',
   },
   content: {
-    paddingBottom: 20,
+    paddingBottom: 10,
   },
   rowCard: {
-    minHeight: 72,
+    minHeight: 68,
     borderRadius: 15,
-    paddingHorizontal: 11,
-    paddingVertical: 9,
-    marginBottom: 9,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
   },
   rowPressed: {
-    opacity: 0.72,
+    opacity: 0.84,
   },
   iconSlot: {
-    width: 52,
-    height: 52,
-    borderRadius: 13,
+    width: 50,
+    height: 50,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
   iconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 9,
+    width: 34,
+    height: 34,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -111,14 +111,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: 18,
+    fontSize: 17,
     lineHeight: 20,
     fontWeight: '600',
   },
   subtitle: {
-    marginTop: 4,
-    fontSize: 11.5,
-    lineHeight: 17,
+    marginTop: 2,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: '500',
   },
 });
