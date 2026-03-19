@@ -26,8 +26,9 @@ export function HomeContentMessage() {
   const isDark = effectiveColorScheme === 'dark';
   const themeColors = Colors[effectiveColorScheme];
 
-  const rowCardBg = isDark ? '#24262C' : '#E9E9EA';
-  const iconWrapBg = isDark ? '#3A3E47' : '#F1F1F2';
+  const rowCardBg = isDark ? '#24262C' : '#FFFFFF';
+  const iconFrameBg = isDark ? '#E6EAF1' : '#FFFFFF';
+  const iconFillBg = isDark ? '#353A44' : '#F0F0F0';
   const titleColor = isDark ? '#F1F3F8' : '#3E3E41';
   const subtitleColor = isDark ? '#AEB3BF' : '#8E8E92';
   const defaultIconColor = isDark ? '#E4E8F1' : '#474748';
@@ -45,12 +46,14 @@ export function HomeContentMessage() {
           android_ripple={{ color: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}
           onPress={() => {}}
           style={({ pressed }) => [styles.rowCard, { backgroundColor: rowCardBg }, pressed && styles.rowPressed]}>
-          <View style={[styles.iconWrap, { backgroundColor: iconWrapBg }]}>
-            <MaterialIcons
-              name={item.iconName}
-              size={24}
-              color={item.iconColor || defaultIconColor}
-            />
+          <View style={[styles.iconFrame, { backgroundColor: iconFrameBg }]}>
+            <View style={[styles.iconFill, { backgroundColor: iconFillBg }]}>
+              <MaterialIcons
+                name={item.iconName}
+                size={24}
+                color={item.iconColor || defaultIconColor}
+              />
+            </View>
           </View>
 
           <View style={styles.textWrap}>
@@ -85,17 +88,29 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
   },
   rowPressed: {
     opacity: 0.84,
   },
-  iconWrap: {
+  iconFrame: {
     width: 42,
     height: 42,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
+  },
+  iconFill: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   textWrap: {
     flex: 1,

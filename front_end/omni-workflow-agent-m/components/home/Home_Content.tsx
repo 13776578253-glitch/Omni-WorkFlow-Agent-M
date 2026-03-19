@@ -63,8 +63,9 @@ export function HomeContent({ translateY }: HomeContentProps) {
               </View>
               <Text style={[styles.heroTitleSuffix, { color: titleColor }]}>欢迎回来_</Text>
             </View>
-            <Text style={[styles.heroSubtitle, { color: subtitleColor }]}> ↓ 长按悬钮告诉 AI 需要做什么</Text>
+            
             <HomeContentMessage />
+            <Text style={[styles.heroSubtitle, { color: subtitleColor }]}>               ↓ 长按悬钮告诉 AI 需要做什么</Text>
           </View>
 
           <View style={[styles.ringAnchor, { transform: [{ translateY: BUTTON_CENTER_OFFSET }] }]}>
@@ -176,6 +177,11 @@ const styles = StyleSheet.create({
     backgroundColor: USERNAME_CHIP_BLUE,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 1,
   },
   usernameChipText: {
     color: '#FFFFFF',
