@@ -14,23 +14,24 @@ interface CapabilityItem {
 }
 
 const CAPABILITY_ITEMS: CapabilityItem[] = [
-//   { id: 'mobile', title: '移动应用', subtitle: '构建原生的 iOS 和 Android 应用程序', iconName: 'smartphone' },
   { id: 'interpret', title: '同声传译', subtitle: '零延迟多语种实时互译', iconName: 'interpreter-mode' },
-//   { id: 'design', title: 'AI 设计', subtitle: '自动化整个设计流程', iconName: 'brush' },
   { id: 'slides', title: 'AI 幻灯片', subtitle: '使用 Nano Banana Pro 创建幻灯片', iconName: 'slideshow' },
   { id: 'doc_processor', title: '文档处理', subtitle: '长篇文献深度解析与重排', iconName: 'auto-stories' },
   { id: 'charting', title: '图表绘制', subtitle: '数据洞察自动视觉化呈现', iconName: 'insights' },
-//   { id: 'browser', title: '浏览器操作员', subtitle: '将一个标签借给 Manus', iconName: 'public' },
-//   { id: 'research', title: 'Wide Research', subtitle: '大规模并行研究', iconName: 'search' },
-//   { id: 'mail', title: '邮件助理', subtitle: '将任何邮件转化为行动', iconName: 'email' },
-//   { id: 'skills', title: '代理技能', subtitle: '自动化您的专业知识', iconName: 'extension' },
-{ id: 'customize', title: '工作流定制', subtitle: '自动化整个工作流程', iconName: 'add' ,iconColor: '#007bff'},
+  { id: 'customize', title: '工作流定制', subtitle: '自动化整个工作流程', iconName: 'add', iconColor: '#007bff' },
 ];
 
 export function HomeContentMessage() {
   const { effectiveColorScheme } = useThemeContext();
   const isDark = effectiveColorScheme === 'dark';
   const themeColors = Colors[effectiveColorScheme];
+
+  const rowCardBg = isDark ? '#232327' : '#ECECEC';
+  const iconSlotBg = isDark ? '#2C2C31' : '#E2E2E2';
+  const iconWrapBg = isDark ? '#34343A' : '#F0F0F0';
+  const titleColor = isDark ? '#F3F4F7' : themeColors.text;
+  const subtitleColor = isDark ? '#B2B6C1' : '#8A8A8E';
+  const defaultIconColor = isDark ? '#E0E4EE' : '#4B4B4B';
 
   return (
     <ScrollView
@@ -44,27 +45,22 @@ export function HomeContentMessage() {
           accessibilityRole="button"
           android_ripple={{ color: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}
           onPress={() => {}}
-          style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
-          <View
-            style={[
-              styles.iconWrap,
-              {
-                backgroundColor: isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.04)',
-              },
-            ]}>
-            <MaterialIcons
-              name={item.iconName}
-              size={22}
-              color={item.iconColor || (isDark ? '#D2D7E3' : '#4B4B4B')}
-            />
+          style={({ pressed }) => [styles.rowCard, { backgroundColor: rowCardBg }, pressed && styles.rowPressed]}>
+          <View style={[styles.iconSlot, { backgroundColor: iconSlotBg }]}>
+            <View style={[styles.iconWrap, { backgroundColor: iconWrapBg }]}>
+              <MaterialIcons
+                name={item.iconName}
+                size={21}
+                color={item.iconColor || defaultIconColor}
+              />
+            </View>
           </View>
+
           <View style={styles.textWrap}>
-            <Text style={[styles.title, { color: themeColors.text }]} numberOfLines={1}>
+            <Text style={[styles.title, { color: titleColor }]} numberOfLines={1}>
               {item.title}
             </Text>
-            <Text
-              style={[styles.subtitle, { color: isDark ? '#A7AFC0' : '#8A8A8E' }]}
-              numberOfLines={2}>
+            <Text style={[styles.subtitle, { color: subtitleColor }]} numberOfLines={1}>
               {item.subtitle}
             </Text>
           </View>
@@ -75,46 +71,54 @@ export function HomeContentMessage() {
 }
 
 const styles = StyleSheet.create({
-  // 整体容器样式 / 与主界面相互牵制
   container: {
-    width: '88%',
-    maxHeight: 240,
-    marginTop: 45,
+    width: '87%',
+    maxHeight: 380,
+    marginTop: 18,
     alignSelf: 'center',
-    marginLeft: 60,
   },
   content: {
-    paddingBottom: 8,
+    paddingBottom: 20,
   },
-  row: {
+  rowCard: {
+    minHeight: 72,
+    borderRadius: 15,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+    marginBottom: 9,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 9,
   },
   rowPressed: {
     opacity: 0.72,
   },
-  // 图标样式
-  iconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 9,
+  iconSlot: {
+    width: 52,
+    height: 52,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+  },
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   textWrap: {
     flex: 1,
   },
   title: {
     fontSize: 18,
-    lineHeight: 21,
+    lineHeight: 20,
     fontWeight: '600',
   },
   subtitle: {
-    marginTop: 3,
-    fontSize: 14,
-    lineHeight: 16,
+    marginTop: 4,
+    fontSize: 11.5,
+    lineHeight: 17,
     fontWeight: '500',
   },
 });

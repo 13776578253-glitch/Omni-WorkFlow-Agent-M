@@ -8,7 +8,7 @@ import { Colors } from '@/constants/theme';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 const { width, height } = Dimensions.get('window');
-const BUTTON_CENTER_OFFSET = 319;    // 录音按钮 高度
+const BUTTON_CENTER_OFFSET = 344;    // 录音按钮高度（下移，避免遮挡内容）
 const WEEKDAY_LABEL = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 const USERNAME_CHIP_BLUE = '#007bff';
 
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    bottom: height * 0.05,     // 遮罩高度
+    bottom: height * 0.033,     // 增大遮罩可用高度，展示更多内容
     borderBottomLeftRadius: 36,
     borderBottomRightRadius: 36,
     shadowOffset: { width: 0, height: 5 },
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingBottom: height * 0.0001,     // 欢迎标语 + 能力列表
+    paddingBottom: height * 0.01,     // 给能力列表更多垂直空间
   },
   heroDot: {
     width: 92,
@@ -161,7 +161,9 @@ const styles = StyleSheet.create({
   heroTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    width: '88%',
+    alignSelf: 'center',
     flexWrap: 'wrap',
     columnGap: 8,
     rowGap: 6,
@@ -193,6 +195,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     fontWeight: '500',
+    width: '88%',
+    alignSelf: 'center',
+    textAlign: 'left',
   },
   ringAnchor: {
     position: 'absolute',
@@ -239,7 +244,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: height * 0.05,
+    height: height * 0.032,  
     paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
