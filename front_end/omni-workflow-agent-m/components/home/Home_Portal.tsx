@@ -7,7 +7,9 @@ import { useThemeContext } from '@/constants/Theme-Context';
 import { Lunar } from 'lunar-javascript';
 
 const WEEKDAY_LABELS = ['一', '二', '三', '四', '五', '六', '日'];
+// 可滑动月份范围，前后各12个月
 const MONTH_RANGE = 12;
+// 页面总数 = 当前月 + 前后各12个月
 const PAGE_COUNT = MONTH_RANGE * 2 + 1;
 
 type MonthMeta = {
@@ -33,6 +35,7 @@ type PortalCardItem = {
   badge: string;
 };
 
+// 日期格式化为 ISO 字符串，格式为 YYYY-MM-DD
 function formatIso(date: Date): string {
   const year = date.getFullYear();
   const month = `${date.getMonth() + 1}`.padStart(2, '0');
@@ -40,6 +43,7 @@ function formatIso(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+// 日期计算工具函数 / 完备逻辑
 function addMonths(baseDate: Date, offset: number): Date {
   return new Date(baseDate.getFullYear(), baseDate.getMonth() + offset, 1);
 }
@@ -69,6 +73,7 @@ function getLunarDisplay(date: Date): string {
   }
 }
 
+// 获取农历详情信息，包含两行文本：第一行显示月日，第二行显示年干支、月干支、日干支
 function getLunarDetail(date: Date) {
   try {
     const lunar = Lunar.fromDate(date);
@@ -84,6 +89,7 @@ function getLunarDetail(date: Date) {
   }
 }
 
+// 构建指定年月的日历格数据，包含前后补齐的日期以满足6行7列的布局
 function buildMonthCells(targetYear: number, targetMonth: number): CalendarCell[] {
   const firstDate = new Date(targetYear, targetMonth, 1);
   const leadingDays = getMondayFirstWeekday(firstDate);
@@ -108,6 +114,7 @@ function buildMonthCells(targetYear: number, targetMonth: number): CalendarCell[
   });
 }
 
+// 构建包含前后12个月的月份数据列表，用于分页显示
 function buildMonthRange(anchorDate: Date): MonthMeta[] {
   return Array.from({ length: PAGE_COUNT }, (_, index) => {
     const date = addMonths(anchorDate, index - MONTH_RANGE);
@@ -126,6 +133,7 @@ function getDisplayWeekday(date: Date): string {
   return week[date.getDay()];
 }
 
+// TODO: 目前页面内的日期选择和内容展示逻辑较为初级，后续会根据需求增加交互细节和数据结构完善度
 export function HomePortal() {
   const { effectiveColorScheme } = useThemeContext();
   const isDark = effectiveColorScheme === 'dark';
@@ -134,12 +142,13 @@ export function HomePortal() {
     () => new Date(today.getFullYear(), today.getMonth(), today.getDate()),
     [today]
   );
-
+  
   const [activeMonthIndex, setActiveMonthIndex] = useState(MONTH_RANGE);
   const [selectedDate, setSelectedDate] = useState<Date>(initialDate);
 
   const months = useMemo(() => buildMonthRange(initialDate), [initialDate]);
 
+  // 构建月份到日历格数据的映射
   const monthCellMap = useMemo(() => {
     const map = new Map<string, CalendarCell[]>();
     months.forEach((monthItem) => {
@@ -148,6 +157,7 @@ export function HomePortal() {
     return map;
   }, [months]);
 
+  // 测试用的日期内容数据，格式为 ISO 字符串集合，实际使用中会根据业务需求调整为更复杂的数据结构
   const testContentDates = useMemo(() => {
     return new Set<string>([
       formatIso(initialDate),
@@ -197,6 +207,7 @@ export function HomePortal() {
         bodyText: '#7A818E',
       };
 
+  // 页面内的交互逻辑：分页切换月份、选择日期、展示对应内容等，后续会根据需求增加更多交互细节    
   const onPageSelected = (event: NativeSyntheticEvent<{ position: number }>) => {
     const nextIndex = event.nativeEvent.position;
     setActiveMonthIndex(nextIndex);
@@ -216,6 +227,7 @@ export function HomePortal() {
   };
 
   return (
+    // 整体页面结构：顶部日历组件 + 选中日期详情 + 倒计时消息列表，后续会根据需求调整布局和内容展示方式
     <ScrollView
       style={[styles.container, { backgroundColor: palette.pageBg }]}
       contentContainerStyle={styles.content}
@@ -378,18 +390,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 4,
   },
+  // 每个星期的单元格，宽度为父容器的1/7，内容居中显示，垂直内边距为1
   weekdayCell: {
     width: '14.2857%',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 1,
+    paddingVertical: 0.4,  // 垂直间距
   },
   weekdayText: {
     fontSize: 17,
     fontWeight: '500',
   },
+  // 日历整体高度
   pager: {
-    height: 344,
+    height: 285,
   },
   monthPage: {
     flex: 1,
@@ -404,20 +418,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 2,
   },
+  // 日期按钮 本身尺寸 
   datePressable: {
-    width: 46,
-    minHeight: 62,
+    width: 44,
+    minHeight: 54,  // 保持日期单元格的最小高度
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
+    paddingVertical: 3, // 内部垂直间距
   },
+  // 日期数字 和农历文本的样式
   dayNumber: {
-    fontSize: 30,
-    fontWeight: '500',
-    lineHeight: 24,
+    fontSize: 24,
+    fontWeight: '500',    // 粗细
+    lineHeight: 24,       // 内部行高
     textAlign: 'center',
   },
+  // 农历文本样式
   lunarLabel: {
     fontSize: 11,
     lineHeight: 13,
