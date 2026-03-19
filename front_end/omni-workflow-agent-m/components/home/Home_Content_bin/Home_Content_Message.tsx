@@ -27,7 +27,6 @@ export function HomeContentMessage() {
   const themeColors = Colors[effectiveColorScheme];
 
   const rowCardBg = isDark ? '#24262C' : '#E9E9EA';
-  const iconSlotBg = isDark ? '#2F323A' : '#DEDEDF';
   const iconWrapBg = isDark ? '#3A3E47' : '#F1F1F2';
   const titleColor = isDark ? '#F1F3F8' : '#3E3E41';
   const subtitleColor = isDark ? '#AEB3BF' : '#8E8E92';
@@ -46,14 +45,12 @@ export function HomeContentMessage() {
           android_ripple={{ color: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}
           onPress={() => {}}
           style={({ pressed }) => [styles.rowCard, { backgroundColor: rowCardBg }, pressed && styles.rowPressed]}>
-          <View style={[styles.iconSlot, { backgroundColor: iconSlotBg }]}>
-            <View style={[styles.iconWrap, { backgroundColor: iconWrapBg }]}>
-              <MaterialIcons
-                name={item.iconName}
-                size={21}
-                color={item.iconColor || defaultIconColor}
-              />
-            </View>
+          <View style={[styles.iconWrap, { backgroundColor: iconWrapBg }]}>
+            <MaterialIcons
+              name={item.iconName}
+              size={24}
+              color={item.iconColor || defaultIconColor}
+            />
           </View>
 
           <View style={styles.textWrap}>
@@ -92,20 +89,13 @@ const styles = StyleSheet.create({
   rowPressed: {
     opacity: 0.84,
   },
-  iconSlot: {
-    width: 50,
-    height: 50,
-    borderRadius: 12,
+  iconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
-  },
-  iconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   textWrap: {
     flex: 1,

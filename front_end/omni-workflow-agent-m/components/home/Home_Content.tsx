@@ -61,7 +61,7 @@ export function HomeContent({ translateY }: HomeContentProps) {
               <View style={styles.usernameChip}>
                 <Text style={styles.usernameChipText}>{userName}</Text>
               </View>
-              <Text style={[styles.heroTitleSuffix, { color: titleColor }]}>，欢迎回来_</Text>
+              <Text style={[styles.heroTitleSuffix, { color: titleColor }]}>欢迎回来_</Text>
             </View>
             <Text style={[styles.heroSubtitle, { color: subtitleColor }]}> ↓ 长按悬钮告诉 AI 需要做什么</Text>
             <HomeContentMessage />
