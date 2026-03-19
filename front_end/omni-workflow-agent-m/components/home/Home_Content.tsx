@@ -10,8 +10,9 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 const { width, height } = Dimensions.get('window');
 const BUTTON_CENTER_OFFSET = 319;    // 录音按钮 高度
 const WEEKDAY_LABEL = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+const USERNAME_CHIP_BLUE = '#007bff';
 
-const userName = "cpp";
+const userName = "绝望的cpp";
 
 interface HomeContentProps {
   translateY: SharedValue<number>;
@@ -54,12 +55,14 @@ export function HomeContent({ translateY }: HomeContentProps) {
         ]}>
         <View style={styles.innerContent}>
           <View style={styles.heroWrap}>
-            <View style={[styles.heroDot, { backgroundColor: heroDotBg }]} />
+            {/* <View style={[styles.heroDot, { backgroundColor: heroDotBg }]} /> */}
             {/* <Text style={[styles.heroTitle, { color: titleColor }]}>用户，欢迎回来_</Text> */}
-            <Text style={[styles.heroTitle, { color: titleColor }]}>
-              <Text style={styles.highlightText}>{userName}</Text>
-              ，欢迎回来_
-            </Text>
+            <View style={styles.heroTitleRow}>
+              <View style={styles.usernameChip}>
+                <Text style={styles.usernameChipText}>{userName}</Text>
+              </View>
+              <Text style={[styles.heroTitleSuffix, { color: titleColor }]}>，欢迎回来_</Text>
+            </View>
             <Text style={[styles.heroSubtitle, { color: subtitleColor }]}> ↓ 长按悬钮告诉 AI 需要做什么</Text>
             <HomeContentMessage />
           </View>
@@ -89,7 +92,17 @@ export function HomeContent({ translateY }: HomeContentProps) {
       </View>
 
       <View style={styles.topRightStatus} pointerEvents="none">
-        <Text style={[styles.statusMeta, { color: statusTextColor }]}>{weekdayText} · {weatherText}</Text>
+        <View
+          style={[
+            styles.statusCard,
+            {
+              backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : cardBg,
+              shadowColor: isDark ? '#000' : '#7C7C84',
+              shadowOpacity: isDark ? 0.18 : 0.1,
+            },
+          ]}>
+          <Text style={[styles.statusMeta, { color: statusTextColor }]}>{weekdayText} · {weatherText}</Text>
+        </View>
       </View>
 
       <View style={[styles.themeLine, { backgroundColor: appColors.border }]} pointerEvents="none" />
@@ -140,6 +153,36 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   heroTitle: {
+    fontSize: 26,
+    lineHeight: 34,
+    fontWeight: '500',
+    letterSpacing: -0.2,
+  },
+  heroTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    columnGap: 8,
+    rowGap: 6,
+  },
+  usernameChip: {
+    minHeight: 40,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: USERNAME_CHIP_BLUE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  usernameChipText: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    lineHeight: 29,
+    fontWeight: '800',
+    transform: [{ translateY: -1.2 }],   // 文字偏移
+  },
+  heroTitleSuffix: {
     fontSize: 26,
     lineHeight: 34,
     fontWeight: '500',
@@ -211,11 +254,20 @@ const styles = StyleSheet.create({
     top: 120,
     right: 18,
     alignItems: 'flex-end',
+    maxWidth: '62%',
+  },
+  statusCard: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 4,
   },
   statusMeta: {
-    marginTop: 1,
-    fontSize: 18,
-    lineHeight: 16,
+    marginTop: 0,
+    fontSize: 16,
+    lineHeight: 18,
     fontWeight: '500',
   },
   themeLine: {
@@ -225,9 +277,5 @@ const styles = StyleSheet.create({
     top: 98,
     height: StyleSheet.hairlineWidth,
     opacity: 0.4,
-  },
-  highlightText: {
-    color: '#007bff', // 这里设置你想要的蓝色
-    fontWeight: '800' 
   },
 });

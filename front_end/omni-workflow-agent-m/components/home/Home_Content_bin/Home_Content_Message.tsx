@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     maxHeight: 240,
     marginTop: 45,
     alignSelf: 'center',
-    marginLeft: 120,
+    marginLeft: 60,
   },
   content: {
     paddingBottom: 8,
@@ -89,15 +89,15 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 9,
   },
   rowPressed: {
     opacity: 0.72,
   },
   // 图标样式
   iconWrap: {
-    width: 35,
-    height: 35,
+    width: 40,
+    height: 40,
     borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
@@ -107,13 +107,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: 18,
+    lineHeight: 21,
     fontWeight: '600',
   },
   subtitle: {
     marginTop: 3,
-    fontSize: 13,
+    fontSize: 14,
     lineHeight: 16,
     fontWeight: '500',
   },
