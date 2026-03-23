@@ -43,3 +43,7 @@ app-example
 /android
 
 .expo/
+
+ClAUDE.md
+
+.gitignore

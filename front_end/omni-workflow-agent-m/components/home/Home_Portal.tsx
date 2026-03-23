@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
     width: '14.2857%',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 2,
+    paddingVertical: 1,    // 测试调整，增加日期格子之间的垂直间距
   },
   // 
   datePressable: {

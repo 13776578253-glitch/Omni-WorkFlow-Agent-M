@@ -12,7 +12,7 @@ export type PortalCalendarData = {
   [month: number]: PortalMonthData;
 };
 
-// 模拟数据 / 测试
+// 模拟数据 / 测试 / 结构设计：按月-日分层，方便查询和扩展
 const PORTAL_CALENDAR_DATA: PortalCalendarData = {
   3: {
     16: {
@@ -36,6 +36,11 @@ const PORTAL_CALENDAR_DATA: PortalCalendarData = {
       keys: ['summary-0322'],
       todoKeys: ['todo-0322-a'],
       workflowKeys: ['workflow-0322-a'],
+    },
+    24: {
+      keys: ['summary-0324'],
+      todoKeys: ['todo-0324-a'],
+      workflowKeys: ['workflow-0324-a'],
     },
   },
 };
