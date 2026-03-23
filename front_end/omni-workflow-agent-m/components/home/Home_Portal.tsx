@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import { NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import PagerView from 'react-native-pager-view';
 
@@ -340,7 +340,7 @@ export default function Home_Portal() {
           {getDisplayWeekday(selectedDate)}
         </Text>
         <Text style={[styles.detailBody, { color: palette.bodyText }]}>
-          {selectedDetailBody ?? '测试文本：这是选中日期的详情内容，用于占位展示排版和层次结构。'}
+          {selectedDetailBody ?? '今日暂无数据，保持关注哦！'}
         </Text>
       </View>
 
