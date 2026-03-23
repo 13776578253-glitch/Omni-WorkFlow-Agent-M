@@ -3,9 +3,12 @@ import { NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, Text, View } f
 import PagerView from 'react-native-pager-view';
 
 import {
+  getPortalCountdownCards,
+  getPortalDetailBody,
   hasAnyPortalData,
   hasTodoData,
   hasWorkflowData,
+  type PortalCountdownCard,
 } from '@/components/home/Home_Portal_bin/Home_Portal_data';
 import { useThemeContext } from '@/constants/Theme-Context';
 
@@ -33,12 +36,7 @@ type CalendarCell = {
   lunarText: string;
 };
 
-type PortalCardItem = {
-  id: string;
-  title: string;
-  subtitle: string;
-  badge: string;
-};
+type PortalCardItem = PortalCountdownCard;
 
 // 日期格式化为 ISO 字符串，格式为 YYYY-MM-DD
 function formatIso(date: Date): string {
@@ -166,11 +164,16 @@ export default function Home_Portal() {
   const selectedIso = formatIso(selectedDate);
   const selectedLunar = getLunarDetail(selectedDate);
 
-  const countdownCards: PortalCardItem[] = [
-    { id: 'card_1', title: '测试消息模板 A', subtitle: '测试内容：这是第一条倒计时消息', badge: '1天' },
-    { id: 'card_2', title: '测试消息模板 B', subtitle: '测试内容：这是第二条倒计时消息', badge: '3天' },
+  const selectedMonth = selectedDate.getMonth() + 1;
+  const selectedDay = selectedDate.getDate();
+  const selectedDetailBody = getPortalDetailBody(selectedMonth, selectedDay);
+
+  const fallbackCountdownCards: PortalCardItem[] = [
+    { id: 'card_fallback_1', title: '测试消息模板 A', subtitle: '测试内容：这是第一条倒计时消息', badge: '1天' },
+    { id: 'card_fallback_2', title: '测试消息模板 B', subtitle: '测试内容：这是第二条倒计时消息', badge: '3天' },
   ];
 
+  const countdownCards = getPortalCountdownCards(selectedMonth, selectedDay) ?? fallbackCountdownCards;
   const palette = isDark
     ? {
         pageBg: '#0D0F14',
@@ -337,7 +340,7 @@ export default function Home_Portal() {
           {getDisplayWeekday(selectedDate)}
         </Text>
         <Text style={[styles.detailBody, { color: palette.bodyText }]}>
-          测试文本：这是选中日期的详情内容，用于占位展示排版和层次结构。
+          {selectedDetailBody ?? '测试文本：这是选中日期的详情内容，用于占位展示排版和层次结构。'}
         </Text>
       </View>
 
@@ -542,3 +545,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+
