@@ -1,0 +1,224 @@
+2026-03-04 16:26:32,581 | INFO | db_connect | 回滚Exception:<class 'Exception'>
+2026-03-04 16:26:54,450 | INFO | user_operation | 已查询phone_number为13914060518的用户信息
+2026-03-04 16:34:45,335 | INFO | user_operation | 已查询phone_number为13914060518的用户信息
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2026-03-04 16:38:41,723 | INFO | user_operation | 已查询phone_number为13914060518的用户信息
+2026-03-04 16:38:41,726 | WARNING | passlib.handlers.bcrypt | (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2026-03-04 16:39:10,197 | INFO | user_operation | 已查询phone_number为13914060518的用户信息
+2026-03-04 16:39:10,200 | WARNING | passlib.handlers.bcrypt | (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2026-03-04 16:39:24,207 | INFO | user_operation | 已查询phone_number为1111111111的用户信息
+2026-03-04 16:39:24,210 | WARNING | passlib.handlers.bcrypt | (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2026-03-04 16:39:41,486 | INFO | user_operation | 已查询phone_number为13914060518的用户信息
+2026-03-04 17:00:58,140 | INFO | user_operation | 已查询phone_number为13914060518的用户信息
+2026-03-04 17:00:58,345 | INFO | user_operation | 已创建用户
+2026-03-04 17:00:58,358 | INFO | auth_functions | 注册成功
+2026-03-04 17:02:03,441 | INFO | user_operation | 已查询phone_number为13914060518的用户信息
+2026-03-04 17:02:03,649 | INFO | auth_functions | 登录成功13914060518
+2026-03-07 07:29:32,750 | INFO | init_operation | 已初始化表格
+2026-03-07 07:32:27,628 | INFO | init_operation | 已初始化表格
+2026-03-07 09:52:28,925 | INFO | init_operation | 已初始化表格
+2026-03-07 09:53:01,565 | INFO | init_operation | 已初始化表格
+2026-03-07 10:11:30,709 | INFO | user_operation | 已查询phone_number为13914060518的用户信息
+2026-03-07 10:11:30,710 | INFO | auth_functions | 登录成功13914060518
+2026-03-07 10:12:09,634 | INFO | user_operation | 已查询phone_number为13914060518的用户信息
+2026-03-07 10:12:30,104 | INFO | user_operation | 已查询phone_number为13914060518的用户信息
+2026-03-07 10:12:35,222 | INFO | user_operation | 已查询phone_number为13914060518的用户信息
+2026-03-07 10:12:52,482 | INFO | db_connect | 回滚Exception:<class 'Exception'>
+2026-03-07 10:20:00,109 | INFO | init_operation | 已初始化表格
+2026-03-07 10:33:24,194 | INFO | init_operation | 已初始化表格
+2026-03-07 11:46:19,170 | INFO | init_operation | 已初始化表格
+2026-03-07 11:46:53,768 | INFO | init_operation | 已初始化表格
+2026-03-07 12:42:00,760 | INFO | user_operation | 已查询phone_number为13914060518的用户信息
+2026-03-07 12:42:01,011 | INFO | db_connect | 回滚Exception:<class 'Exception'>
+2026-03-07 12:53:06,892 | INFO | user_operation | 已查询phone_number为13914060518的用户信息
+2026-03-07 12:53:06,892 | ERROR | auth_functions | 用户已存在
+2026-03-07 12:55:26,118 | INFO | init_operation | 已初始化表格
+2026-03-07 12:55:31,782 | INFO | user_operation | 已查询phone_number为13914060518的用户信息
+2026-03-07 12:55:32,031 | INFO | user_preference_operation | 已创建用户个性化信息
+2026-03-07 12:55:32,032 | INFO | user_operation | 已创建用户
+2026-03-07 12:55:32,032 | INFO | auth_functions | 注册成功
+2026-03-07 13:00:55,296 | INFO | user_operation | 已查询phone_number为13914060518的用户信息
+2026-03-07 13:00:55,297 | INFO | auth_functions | 登录成功13914060518
+2026-03-07 13:02:02,329 | INFO | user_operation | 已查询phone_number为13914060518的用户信息
+2026-03-07 13:02:02,546 | INFO | auth_functions | 登录成功13914060518
+2026-03-07 13:03:43,939 | INFO | db_connect | 回滚Exception:<class 'Exception'>
+2026-03-07 13:04:21,451 | INFO | init_operation | 已初始化表格
+2026-03-07 13:04:24,114 | INFO | user_operation | 已查询phone_number为13914060518的用户信息
+2026-03-07 13:04:24,364 | INFO | user_preference_operation | 已创建用户个性化信息
+2026-03-07 13:04:24,365 | INFO | user_operation | 已创建用户
+2026-03-07 13:04:24,365 | INFO | auth_functions | 注册成功
+2026-03-07 13:04:41,615 | INFO | db_connect | 回滚Exception:<class 'Exception'>
+2026-03-07 13:05:03,830 | INFO | user_operation | 已查询id为1的用户信息
+2026-03-07 13:05:03,844 | INFO | user_preference_operation | 已查询user_id为1的用户个性化信息
+2026-03-07 13:05:03,845 | INFO | auth_functions | 查询1个性化配置成功
+2026-03-07 13:05:39,166 | INFO | user_operation | 已查询id为1的用户信息
+2026-03-07 13:05:39,176 | INFO | user_preference_operation | 已查询user_id为1的用户个性化信息
+2026-03-07 13:05:39,177 | INFO | auth_functions | 查询1个性化配置成功
+2026-03-07 13:06:11,684 | INFO | user_operation | 已查询id为1的用户信息
+2026-03-07 13:06:11,694 | INFO | user_preference_operation | 已查询user_id为1的用户个性化信息
+2026-03-07 13:06:11,695 | INFO | auth_functions | 查询1个性化配置成功
+2026-03-07 13:07:24,966 | INFO | user_operation | 已查询id为1的用户信息
+2026-03-07 13:07:24,986 | INFO | user_preference_operation | 已查询user_id为1的用户个性化信息
+2026-03-07 13:07:24,987 | INFO | auth_functions | 查询1个性化配置成功
+2026-03-07 13:07:37,985 | INFO | user_operation | 已查询id为1的用户信息
+2026-03-07 13:07:37,996 | INFO | user_preference_operation | 已查询user_id为1的用户个性化信息
+2026-03-07 13:07:37,997 | INFO | auth_functions | 查询1个性化配置成功
+2026-03-07 13:08:10,725 | INFO | user_operation | 已查询id为1的用户信息
+2026-03-07 13:08:10,736 | INFO | user_preference_operation | 已查询user_id为1的用户个性化信息
+2026-03-07 13:08:10,737 | INFO | auth_functions | 查询1个性化配置成功
+2026-03-07 13:08:47,814 | INFO | user_operation | 已查询id为1的用户信息
+2026-03-07 13:08:47,825 | INFO | user_preference_operation | 已查询user_id为1的用户个性化信息
+2026-03-07 13:08:47,825 | INFO | auth_functions | 查询1个性化配置成功
+2026-03-08 06:03:32,620 | INFO | user_operation | 已查询phone_number为13914060518的用户信息
+2026-03-08 06:03:32,627 | INFO | auth_functions | 登录成功13914060518
+2026-03-08 06:07:39,793 | INFO | user_operation | 已查询phone_number为13914060518的用户信息
+2026-03-08 06:07:40,035 | INFO | auth_functions | 登录成功13914060518
+2026-03-08 06:07:44,507 | INFO | user_operation | 已查询phone_number为13914060518的用户信息
+2026-03-08 06:12:04,496 | INFO | user_operation | 已查询phone_number为13914060518的用户信息
+2026-03-08 06:12:04,705 | INFO | auth_functions | 登录成功13914060518
+2026-03-08 07:20:50,704 | INFO | auth_functions | 注册接口请求开始
+2026-03-08 07:20:50,752 | INFO | user_operation | 已查询phone_number为1的用户信息
+2026-03-08 07:20:50,987 | INFO | user_preference_operation | 已创建用户个性化信息
+2026-03-08 07:20:50,987 | INFO | user_operation | 已创建用户
+2026-03-08 07:20:50,989 | INFO | auth_functions | 用户2注册成功
+2026-03-08 07:20:50,989 | INFO | auth_functions | 注册接口请求成功
+2026-03-08 08:23:28,710 | INFO | init_operation | 已初始化表格
+2026-03-08 08:23:45,581 | INFO | auth_functions | 注册接口请求开始
+2026-03-08 08:23:45,612 | INFO | db_connect | 回滚Exception:<class 'Exception'>
+2026-03-08 08:25:35,690 | INFO | auth_functions | 注册接口请求开始
+2026-03-08 08:25:35,717 | INFO | db_connect | 回滚Exception:<class 'Exception'>
+2026-03-08 08:27:06,848 | INFO | auth_functions | 注册接口请求开始
+2026-03-08 08:27:06,876 | INFO | db_connect | 回滚Exception:<class 'Exception'>
+2026-03-08 08:28:14,479 | INFO | auth_functions | 注册接口请求开始
+2026-03-08 08:28:14,516 | INFO | db_connect | 回滚Exception:<class 'Exception'>
+2026-03-08 08:29:41,252 | INFO | auth_functions | 注册接口请求开始
+2026-03-08 08:29:41,296 | INFO | user_operation | 已查询phone_number为1的用户信息
+2026-03-08 08:29:41,530 | INFO | user_preference_operation | 已创建用户个性化信息
+2026-03-08 08:29:41,531 | INFO | user_operation | 已创建用户
+2026-03-08 08:29:41,532 | INFO | auth_functions | 用户1注册成功
+2026-03-08 08:29:41,532 | INFO | auth_functions | 注册接口请求成功
+2026-03-08 08:30:51,020 | INFO | auth_functions | 注册接口请求开始
+2026-03-08 08:30:51,057 | INFO | user_operation | 已查询phone_number为1的用户信息
+2026-03-08 08:30:51,058 | ERROR | auth_functions | 用户已存在
+2026-03-08 08:31:40,021 | INFO | auth_functions | 手机号登录接口请求开始
+2026-03-08 08:31:40,023 | INFO | user_operation | 已查询phone_number为1的用户信息
+2026-03-08 08:31:40,024 | INFO | auth_functions | 用户1登录成功1
+2026-03-08 08:31:40,024 | INFO | auth_functions | 手机号登录请求成功
+2026-03-08 08:31:56,830 | INFO | auth_functions | 手机号登录接口请求开始
+2026-03-08 08:31:56,832 | INFO | user_operation | 已查询phone_number为1的用户信息
+2026-03-08 08:31:56,833 | INFO | auth_functions | 用户1登录成功1
+2026-03-08 08:31:56,833 | INFO | auth_functions | 手机号登录请求成功
+2026-03-08 08:32:01,646 | INFO | auth_functions | 密码登录接口请求开始
+2026-03-08 08:32:01,648 | INFO | user_operation | 已查询phone_number为1的用户信息
+2026-03-08 08:33:17,077 | INFO | auth_functions | 密码登录接口请求开始
+2026-03-08 08:33:17,114 | INFO | user_operation | 已查询phone_number为1的用户信息
+2026-03-08 08:33:17,308 | INFO | auth_functions | 用户1登录成功1
+2026-03-08 08:33:17,310 | INFO | auth_functions | 密码登录接口请求成功
+2026-03-08 08:33:47,545 | INFO | auth_functions | 重置密码接口请求开始
+2026-03-08 08:33:47,547 | INFO | user_operation | 已查询phone_number为1的用户信息
+2026-03-08 08:34:23,221 | INFO | auth_functions | 重置密码接口请求开始
+2026-03-08 08:34:23,255 | INFO | user_operation | 已查询phone_number为1的用户信息
+2026-03-08 08:34:23,452 | ERROR | auth_functions | 密码重复
+2026-03-08 08:35:17,137 | INFO | auth_functions | 重置密码接口请求开始
+2026-03-08 08:35:17,182 | INFO | user_operation | 已查询phone_number为1的用户信息
+2026-03-08 08:35:17,383 | ERROR | auth_functions | 密码重复
+2026-03-08 08:35:18,011 | INFO | auth_functions | 重置密码接口请求开始
+2026-03-08 08:35:18,013 | INFO | user_operation | 已查询phone_number为1的用户信息
+2026-03-08 08:35:18,195 | ERROR | auth_functions | 密码重复
+2026-03-08 08:36:55,272 | INFO | auth_functions | 重置密码接口请求开始
+2026-03-08 08:36:55,312 | INFO | user_operation | 已查询phone_number为1的用户信息
+2026-03-08 08:36:55,505 | ERROR | auth_functions | 密码重复
+2026-03-08 08:36:58,024 | INFO | auth_functions | 重置密码接口请求开始
+2026-03-08 08:36:58,026 | INFO | user_operation | 已查询phone_number为1的用户信息
+2026-03-08 08:38:51,691 | INFO | auth_functions | 重置密码接口请求开始
+2026-03-08 08:38:51,731 | INFO | user_operation | 已查询phone_number为1的用户信息
+2026-03-08 08:38:52,122 | INFO | user_operation | 已修改用户信息
+2026-03-08 08:38:52,133 | INFO | auth_functions | 用户1-1重置密码成功
+2026-03-08 08:39:05,062 | INFO | auth_functions | 重置密码接口请求开始
+2026-03-08 08:39:05,065 | INFO | user_operation | 已查询phone_number为1的用户信息
+2026-03-08 08:39:05,412 | INFO | user_operation | 已修改用户信息
+2026-03-08 08:39:05,424 | INFO | auth_functions | 用户1-1重置密码成功
+2026-03-08 08:40:24,097 | INFO | auth_functions | 重置密码接口请求开始
+2026-03-08 08:40:24,134 | INFO | user_operation | 已查询phone_number为1的用户信息
+2026-03-08 08:40:24,336 | ERROR | auth_functions | 密码重复
+2026-03-08 08:40:29,572 | INFO | auth_functions | 重置密码接口请求开始
+2026-03-08 08:40:29,574 | INFO | user_operation | 已查询phone_number为1的用户信息
+2026-03-08 08:40:29,947 | INFO | user_operation | 已修改用户信息
+2026-03-08 08:40:29,960 | INFO | auth_functions | 用户1-1重置密码成功
+2026-03-08 08:40:29,961 | INFO | auth_functions | 重置密码接口请求成功
+2026-03-08 08:41:06,317 | INFO | auth_functions | 重置密码接口请求开始
+2026-03-08 08:41:06,362 | INFO | user_operation | 已查询phone_number为1的用户信息
+2026-03-08 08:41:06,558 | ERROR | auth_functions | 密码重复
+2026-03-08 08:41:09,103 | INFO | auth_functions | 重置密码接口请求开始
+2026-03-08 08:41:09,105 | INFO | user_operation | 已查询phone_number为1的用户信息
+2026-03-08 08:41:09,516 | INFO | user_operation | 已修改用户信息
+2026-03-08 08:41:09,523 | INFO | auth_functions | 用户1-1重置密码成功
+2026-03-08 08:41:09,524 | INFO | auth_functions | 重置密码接口请求成功
+2026-03-08 08:42:11,146 | INFO | auth_functions | 获取用户个性化配置接口请求开始
+2026-03-08 08:42:11,190 | INFO | user_operation | 已查询id为1的用户信息
+2026-03-08 08:42:11,204 | INFO | user_preference_operation | 已查询user_id为1的用户个性化信息
+2026-03-08 08:42:11,205 | INFO | auth_functions | 查询1个性化配置成功
+2026-03-08 08:42:11,205 | INFO | auth_functions | 获取用户个性化配置接口请求成功
+2026-03-08 08:43:24,491 | INFO | auth_functions | 发送验证码接口请求开始
+2026-03-08 08:43:24,526 | INFO | user_operation | 已查询phone_number为1的用户信息
+2026-03-08 08:43:24,526 | INFO | auth_functions | 已生成验证码
+2026-03-08 08:43:24,527 | INFO | auth_functions | 发送验证码接口请求成功
+2026-03-08 08:43:26,679 | INFO | auth_functions | 发送验证码接口请求开始
+2026-03-08 08:43:26,681 | INFO | user_operation | 已查询phone_number为1的用户信息
+2026-03-08 08:43:26,682 | INFO | auth_functions | 已生成验证码
+2026-03-08 08:43:26,682 | INFO | auth_functions | 发送验证码接口请求成功
+2026-03-12 11:54:41,088 | INFO | user_operation | 已查询id为1的用户信息
+2026-03-12 11:54:41,106 | INFO | user_preference_operation | 已查询user_id为1的用户个性化信息
+2026-03-12 11:54:41,107 | INFO | auth_functions | 查询1个性化配置成功
+2026-03-12 12:07:06,162 | INFO | auth_functions | 发送验证码接口请求开始
+2026-03-12 12:07:06,213 | INFO | user_operation | 已查询phone_number为1的用户信息
+2026-03-12 12:07:06,214 | INFO | auth_functions | 已生成验证码
+2026-03-12 12:07:06,221 | INFO | auth_functions | 发送验证码接口请求成功
+2026-03-12 12:07:07,262 | INFO | auth_functions | 发送验证码接口请求开始
+2026-03-12 12:07:07,264 | INFO | user_operation | 已查询phone_number为1的用户信息
+2026-03-12 12:07:07,265 | INFO | auth_functions | 已生成验证码
+2026-03-12 12:07:07,265 | INFO | auth_functions | 发送验证码接口请求成功
+2026-03-17 06:15:48,098 | INFO | user_operation | 已查询id为1的用户信息
+2026-03-17 06:15:48,123 | INFO | user_preference_operation | 已查询user_id为1的用户个性化信息
+2026-03-17 06:15:48,124 | INFO | auth_functions | 查询1个性化配置成功
+2026-03-22 13:45:44,757 | INFO | llm_functions | 成功拉取模型ollama-gemma3
+2026-03-22 13:46:42,525 | INFO | llm_functions | 成功拉取模型ollama-gemma3
+2026-03-23 12:12:28,464 | ERROR | llm_functions | 模型content格式错误
+2026-03-23 12:13:03,065 | INFO | llm_functions | 成功拉取模型ollama-gemma3
+2026-03-23 12:13:16,171 | ERROR | llm_functions | 模型content格式错误
+2026-03-23 12:15:57,217 | INFO | llm_functions | 成功拉取模型ollama-gemma3
+2026-03-23 12:16:12,713 | ERROR | llm_functions | 模型content格式错误
+2026-03-23 12:22:08,823 | INFO | llm_functions | 成功拉取模型ollama-gemma3
+2026-03-23 12:22:27,156 | INFO | llm_functions | 匹配match失败
+2026-03-23 12:30:11,941 | INFO | llm_functions | 成功拉取模型ollama-gemma3
+2026-03-24 05:59:21,043 | INFO | llm_functions | 成功拉取模型ollama-gemma3
+2026-03-24 05:59:41,544 | INFO | file_functions | 已转为ppt文档
+2026-03-24 06:01:19,273 | INFO | llm_functions | 成功拉取模型deepseek-r1
+2026-03-24 06:01:19,549 | INFO | httpx | HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-24 06:05:21,693 | INFO | llm_functions | 成功拉取模型deepseek-r1
+2026-03-24 06:05:21,844 | INFO | httpx | HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-24 06:05:45,733 | ERROR | file_functions | 生成json格式有误
+2026-03-24 06:07:26,956 | INFO | llm_functions | 成功拉取模型deepseek-r1
+2026-03-24 06:07:27,222 | INFO | httpx | HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-24 06:07:58,630 | ERROR | file_functions | 生成json格式有误
+2026-03-24 06:09:07,198 | INFO | llm_functions | 成功拉取模型ollama-gemma3
+2026-03-24 06:09:29,761 | INFO | file_functions | 已转为ppt文档
+2026-03-24 06:09:44,732 | INFO | llm_functions | 成功拉取模型deepseek-r1
+2026-03-24 06:09:44,894 | INFO | httpx | HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-24 06:10:15,644 | INFO | llm_functions | 未匹配到内容
+2026-03-24 06:10:16,551 | INFO | file_functions | 已转为ppt文档
