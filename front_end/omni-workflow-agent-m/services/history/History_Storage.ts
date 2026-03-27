@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as historyApi from '@/api/history-api';
 
-const STORAGE_KEY = '@omni_history_sessions_v1'; // 存储键 / 测试
+const STORAGE_KEY = '@omni_history_sessions_v1';
+const AUTH_STORAGE_KEY = '@omni_workflow_user_auth_v1';
 
 export interface HistorySession {
   id: string;           // id / 测试 / UUID
@@ -74,14 +76,51 @@ async function writeRaw(sessions: HistorySession[]): Promise<void> {
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
 }
 
+// 获取当前登录用户ID
+async function getUserId(): Promise<string | null> {
+  try {
+    const authRaw = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
+    if (authRaw) {
+      const authState = JSON.parse(authRaw);
+      if (authState.isLoggedIn && authState.userId) {
+        return authState.userId;
+      }
+    }
+  } catch {
+    // 静默失败
+  }
+  return null;
+}
+
 // 公共 API
 // 加载会话 / 保存会话 / 添加会话 / 删除会话 / 重命名会话 / 切换置顶状态
 export async function loadSessions(): Promise<HistorySession[]> {
   const stored = await readRaw();
-  if (stored !== null) return stored;
-  // 初始化 写入mock数据
-  await writeRaw(MOCK_SESSIONS);
-  return MOCK_SESSIONS;
+  const localSessions = stored !== null ? stored : MOCK_SESSIONS;
+
+  // 如果已登录，尝试从服务器加载
+  const userId = await getUserId();
+  if (userId) {
+    try {
+      const serverSessions = await historyApi.getSessions(userId);
+      // 合并本地和服务器数据（服务器优先）
+      const mergedMap = new Map<string, HistorySession>();
+      localSessions.forEach(s => mergedMap.set(s.id, s));
+      serverSessions.forEach(s => mergedMap.set(s.id, s));
+      const merged = Array.from(mergedMap.values());
+      await writeRaw(merged);
+      return merged;
+    } catch {
+      // 静默失败，使用本地数据
+    }
+  }
+
+  // 初始化或使用本地数据
+  if (stored === null) {
+    await writeRaw(MOCK_SESSIONS);
+    return MOCK_SESSIONS;
+  }
+  return localSessions;
 }
 
 export async function saveSessions(sessions: HistorySession[]): Promise<void> {
@@ -92,6 +131,17 @@ export async function addSession(session: HistorySession): Promise<HistorySessio
   const sessions = await loadSessions();
   const updated = [session, ...sessions];
   await writeRaw(updated);
+
+  // 如果已登录，同步到服务器
+  const userId = await getUserId();
+  if (userId) {
+    try {
+      await historyApi.createSession(userId, session.title, session.previewText);
+    } catch {
+      // 静默失败
+    }
+  }
+
   return updated;
 }
 
@@ -99,6 +149,17 @@ export async function deleteSession(id: string): Promise<HistorySession[]> {
   const sessions = await loadSessions();
   const updated = sessions.filter((s) => s.id !== id);
   await writeRaw(updated);
+
+  // 如果已登录，同步到服务器
+  const userId = await getUserId();
+  if (userId) {
+    try {
+      await historyApi.deleteSession(userId, id);
+    } catch {
+      // 静默失败
+    }
+  }
+
   return updated;
 }
 
@@ -106,6 +167,17 @@ export async function renameSession(id: string, newTitle: string): Promise<Histo
   const sessions = await loadSessions();
   const updated = sessions.map((s) => (s.id === id ? { ...s, title: newTitle } : s));
   await writeRaw(updated);
+
+  // 如果已登录，同步到服务器
+  const userId = await getUserId();
+  if (userId) {
+    try {
+      await historyApi.renameSession(userId, id, newTitle);
+    } catch {
+      // 静默失败
+    }
+  }
+
   return updated;
 }
 
@@ -113,5 +185,19 @@ export async function togglePin(id: string): Promise<HistorySession[]> {
   const sessions = await loadSessions();
   const updated = sessions.map((s) => (s.id === id ? { ...s, isPinned: !s.isPinned } : s));
   await writeRaw(updated);
+
+  // 如果已登录，同步到服务器
+  const userId = await getUserId();
+  if (userId) {
+    try {
+      const session = updated.find(s => s.id === id);
+      if (session) {
+        await historyApi.togglePinSession(userId, id, session.isPinned);
+      }
+    } catch {
+      // 静默失败
+    }
+  }
+
   return updated;
 }

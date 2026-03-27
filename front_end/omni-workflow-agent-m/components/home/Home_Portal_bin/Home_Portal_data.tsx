@@ -1,4 +1,10 @@
-﻿export type PortalCountdownCard = {
+﻿import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as portalApi from '@/api/home-component-api';
+
+const STORAGE_KEY = '@omni_portal_calendar_v1';
+const AUTH_STORAGE_KEY = '@omni_workflow_user_auth_v1';
+
+export type PortalCountdownCard = {
   id: string;
   title: string;
   subtitle: string;
@@ -135,6 +141,110 @@ const PORTAL_CALENDAR_DATA: PortalCalendarData = {
     },
   },
 };
+
+// 获取当前登录用户ID
+async function getUserId(): Promise<string | null> {
+  try {
+    const authRaw = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
+    if (authRaw) {
+      const authState = JSON.parse(authRaw);
+      if (authState.isLoggedIn && authState.userId) {
+        return authState.userId;
+      }
+    }
+  } catch {
+    // 静默失败
+  }
+  return null;
+}
+
+// 从本地存储读取日历数据
+async function loadFromStorage(): Promise<PortalCalendarData | null> {
+  try {
+    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+// 保存日历数据到本地存储
+async function saveToStorage(data: PortalCalendarData): Promise<void> {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // 静默失败
+  }
+}
+
+// 合并本地和服务器数据
+function mergeCalendarData(local: PortalCalendarData, server: PortalMonthData, month: number): PortalCalendarData {
+  return {
+    ...local,
+    [month]: { ...local[month], ...server },
+  };
+}
+
+// 加载指定月份的数据（本地优先 + 后台同步）
+export async function loadMonthData(year: number, month: number): Promise<void> {
+  const userId = await getUserId();
+  if (!userId) return;
+
+  try {
+    const serverData = await portalApi.getMonthCalendar(userId, year, month);
+    const localData = (await loadFromStorage()) || PORTAL_CALENDAR_DATA;
+    const merged = mergeCalendarData(localData, serverData, month);
+    await saveToStorage(merged);
+  } catch {
+    // 静默失败
+  }
+}
+
+// 更新单日数据（本地优先 + 后台同步）
+export async function updatePortalDayData(
+  year: number,
+  month: number,
+  day: number,
+  dayData: PortalDayData
+): Promise<void> {
+  const localData = (await loadFromStorage()) || PORTAL_CALENDAR_DATA;
+  const updated = {
+    ...localData,
+    [month]: {
+      ...localData[month],
+      [day]: dayData,
+    },
+  };
+  await saveToStorage(updated);
+
+  const userId = await getUserId();
+  if (userId) {
+    try {
+      await portalApi.updateDayData(userId, year, month, day, dayData);
+    } catch {
+      // 静默失败
+    }
+  }
+}
+
+// 删除单日数据（本地优先 + 后台同步）
+export async function deletePortalDayData(year: number, month: number, day: number): Promise<void> {
+  const localData = (await loadFromStorage()) || PORTAL_CALENDAR_DATA;
+  if (localData[month]) {
+    const { [day]: _, ...rest } = localData[month];
+    const updated = { ...localData, [month]: rest };
+    await saveToStorage(updated);
+  }
+
+  const userId = await getUserId();
+  if (userId) {
+    try {
+      await portalApi.deleteDayData(userId, year, month, day);
+    } catch {
+      // 静默失败
+    }
+  }
+}
 
 export function getPortalDayData(month: number, day: number): PortalDayData | undefined {
   return PORTAL_CALENDAR_DATA[month]?.[day];

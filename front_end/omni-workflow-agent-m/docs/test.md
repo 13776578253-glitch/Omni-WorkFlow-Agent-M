@@ -8,7 +8,7 @@
 | 登录表单 | [login.tsx](d:/code/Omni-WorkFlow-Agent-M/front_end/omni-workflow-agent-m/components/user/auth/login.tsx) | 支持 phone+code / nickname+code 两种登录方式；提交 payload：`{ variant, phone, nickname, code }` |
 | 注册表单 | [register.tsx](d:/code/Omni-WorkFlow-Agent-M/front_end/omni-workflow-agent-m/components/user/auth/register.tsx) | 提交 payload：`{ nickname, password, phone, code }` |
 | 忘记密码 | [forgot.tsx](d:/code/Omni-WorkFlow-Agent-M/front_end/omni-workflow-agent-m/components/user/auth/forgot.tsx) | 两步式 UI（校验验证码→重置密码）；最终提交 payload：`{ phone, code, newPassword }` |
-| 个性化设置 | [personal.tsx](d:/code/Omni-WorkFlow-Agent-M/front_end/omni-workflow-agent-m/app/user/personal.tsx) | 数据模型来自 `UserDataState`；包含 presetMode/presetPrompts 等字段；仅本地 AsyncStorage 保存，未接后端 |
+| 个性化设置 | [personal.tsx](d:/code/Omni-WorkFlow-Agent-M/front_end/omni-workflow-agent-m/app/user/personal.tsx) | 数据模型来自 `UserDataState`；包含 presetMode/presetPrompts 等字段；支持本地 AsyncStorage 和后端 API 双向同步 |
 | 空文件 | language.tsx / module.tsx / islogin.tsx | 目前无业务逻辑实现 |
 
 ## 接口文档（建议稿）
@@ -107,4 +107,21 @@
   | 字段 | 类型 | 说明 |
   |------|------|------|
   | requestId | string | 验证码请求ID |
+
+#### 8. 上传用户个性化配置
+- 接口地址：`POST /user/preferences`
+- 用途：保存用户个性化设置到服务器
+- 请求参数：
+  | 字段 | 类型 | 说明 |
+  |------|------|------|
+  | id | string | 用户id |
+  | presetMode | string | 取值：`custom`/`concise`/`formal` |
+  | presetPrompts | object | `{ custom, concise, formal }` |
+  | quickActionNames | object | `{ solt1, solt2, solt3, solt4 }` |
+  | quickActionPrompts | object | `{ solt1, solt2, solt3, solt4 }` |
+  | memoryContent | string | 记忆内容 |
+- 响应参数：
+  | 字段 | 类型 | 说明 |
+  |------|------|------|
+  | message | json | `{ code: "0", message: "ok" }` |
 

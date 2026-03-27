@@ -215,13 +215,16 @@ export default function UserDataScreen() {
       // 1. 保存到本地
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 
-      // 2. 如果已登录，同步到服务器（静默失败）
+      // 2. 如果已登录，同步到服务器
       const authRaw = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
       if (authRaw) {
         const authState = JSON.parse(authRaw);
         if (authState.isLoggedIn && authState.userId) {
-          // TODO: 实现 saveUserPreferences API
-          // await personalApi.saveUserPreferences(authState.userId, state);
+          try {
+            await personalApi.saveUserPreferences(authState.userId, state);
+          } catch {
+            // 静默失败，不影响用户体验
+          }
         }
       }
 

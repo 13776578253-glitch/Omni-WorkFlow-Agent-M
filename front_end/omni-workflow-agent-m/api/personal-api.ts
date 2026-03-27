@@ -59,3 +59,30 @@ export async function getUserPreferences(userId: string): Promise<UserPreference
 
   return result.data!;
 }
+
+/**
+ * Save user preferences
+ */
+export async function saveUserPreferences(userId: string, preferences: UserPreferences): Promise<void> {
+  const response = await fetch(`${API_BASE}/user/preferences`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id: userId,
+      ...preferences,
+    }),
+  });
+
+  const text = await response.text();
+
+  let result: ApiResponse;
+  try {
+    result = JSON.parse(text);
+  } catch (error) {
+    throw new Error(`服务器响应格式错误: ${text.substring(0, 100)}`);
+  }
+
+  if (result.code !== '0') {
+    throw new Error(result.message || 'Failed to save preferences');
+  }
+}
