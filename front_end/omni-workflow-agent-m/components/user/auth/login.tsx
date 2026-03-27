@@ -19,7 +19,7 @@ interface AuthLoginProps {
   countdown: number;
   initialPhone?: string;
   initialNickname?: string;
-  onSendCode: () => void;
+  onSendCode: (phone: string) => void;
   onSubmit: (payload: LoginSubmitPayload) => void;
   onSwitchToRegister: () => void;
 }

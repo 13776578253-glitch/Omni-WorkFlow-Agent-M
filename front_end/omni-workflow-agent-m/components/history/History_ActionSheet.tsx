@@ -160,7 +160,7 @@ export default function History_ActionSheet({
             onPress={() => { onTogglePin(session); handleClose(); }}
           >
             <Ionicons
-              name={session.isPinned ? 'pin' : 'pin-outline'}
+              name={session.isPinned ? 'arrow-down' : 'arrow-up'}
               size={20}
               color={themeColors.text}
               style={styles.actionIcon}

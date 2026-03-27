@@ -17,7 +17,7 @@ interface ForgotSubmitPayload {
 interface AuthForgotProps {
   countdown: number;
   initialPhone?: string;
-  onSendCode: () => void;
+  onSendCode: (phone: string) => void;
   onSubmit: (payload: ForgotSubmitPayload) => void;
 }
 
@@ -49,7 +49,7 @@ export function AuthForgot({ countdown, initialPhone = '', onSendCode, onSubmit 
       Alert.alert('提示', '请输入手机号。');
       return;
     }
-    if (countdown <= 0) onSendCode();
+    if (countdown <= 0) onSendCode(phone.trim());
     setStep('code');
   };
 
@@ -139,7 +139,7 @@ export function AuthForgot({ countdown, initialPhone = '', onSendCode, onSubmit 
             />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={countdown <= 0 ? onSendCode : undefined}
+            onPress={countdown <= 0 ? () => onSendCode(phone.trim()) : undefined}
             activeOpacity={0.75}
             style={styles.resendWrap}
           >

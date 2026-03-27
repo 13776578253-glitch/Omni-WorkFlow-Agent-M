@@ -11,6 +11,7 @@ import { AuthRegister } from '@/components/user/auth/register';
 import { AuthValidation } from '@/components/user/auth/validation';
 import { KeyboardAwareScroll } from '@/components/user/personal/Keyboard_Aware_Scroll';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import * as authApi from '@/api/auth-api';
 
 const STORAGE_KEY = '@omni_workflow_user_data_v1';
 const AUTH_STORAGE_KEY = '@omni_workflow_user_auth_v1';
@@ -92,10 +93,15 @@ export default function AuthScreen() {
     await AsyncStorage.setItem(AUTH_LINK_KEY, STORAGE_KEY);
   }, []);
 
-  const handleSendCode = useCallback(() => {
+  const handleSendCode = useCallback(async (phone: string) => {
     if (countdown > 0) return;
-    setCountdown(60);
-    Alert.alert('验证码', '验证码已发送（模拟）。');
+    try {
+      const result = await authApi.sendCode(phone);
+      setCountdown(60);
+      Alert.alert('验证码已发送', `验证码：${result.requestId}\n\n请查收手机 ${phone} 的短信`);
+    } catch (error) {
+      Alert.alert('发送失败', error instanceof Error ? error.message : '请稍后重试。');
+    }
   }, [countdown]);
 
   const switchToLogin = useCallback(() => {
@@ -117,67 +123,82 @@ export default function AuthScreen() {
   );
 
   const handleValidationComplete = useCallback(
-    async (payload: { phone: string; nickname: string }) => {
-      const nextState: AuthState = {
-        isLoggedIn: true,
-        nickname: payload.nickname,
-        phone: payload.phone,
-        updatedAt: Date.now(),
-      };
-      await saveAuthState(nextState);
-      setAuthState(nextState);
-      setCachedNickname(nextState.nickname);
-      setCachedPhone(nextState.phone);
-      setPendingValidation(null);
-      setAuthMode('login');
+    async (payload: { phone: string; nickname: string; password?: string }) => {
+      try {
+        const result = pendingValidation?.method === 'code'
+          ? await authApi.loginWithCode(payload.phone)
+          : await authApi.loginWithPassword(payload.phone, payload.password || '');
+
+        const nextState: AuthState = {
+          isLoggedIn: true,
+          nickname: result.user.name,
+          phone: payload.phone,
+          updatedAt: Date.now(),
+        };
+        await saveAuthState(nextState);
+        setAuthState(nextState);
+        setCachedNickname(nextState.nickname);
+        setCachedPhone(nextState.phone);
+        setPendingValidation(null);
+        setAuthMode('login');
+      } catch (error) {
+        Alert.alert('登录失败', error instanceof Error ? error.message : '请稍后重试。');
+      }
     },
-    [saveAuthState]
+    [saveAuthState, pendingValidation]
   );
 
   const handleRegisterSubmit = useCallback(
     async (payload: { nickname: string; password: string; phone: string; code: string }) => {
-      const nextState: AuthState = {
-        isLoggedIn: false,
-        nickname: payload.nickname,
-        phone: payload.phone,
-        updatedAt: Date.now(),
-      };
       try {
+        await authApi.register(payload.nickname, payload.password, payload.phone, payload.code);
+        const nextState: AuthState = {
+          isLoggedIn: false,
+          nickname: payload.nickname,
+          phone: payload.phone,
+          updatedAt: Date.now(),
+        };
         await saveAuthState(nextState);
         setCachedNickname(nextState.nickname);
         setCachedPhone(nextState.phone);
         Alert.alert('注册成功', '请使用验证码登录。');
         switchToLogin();
-      } catch {
-        Alert.alert('注册失败', '请稍后重试。');
+      } catch (error) {
+        Alert.alert('注册失败', error instanceof Error ? error.message : '请稍后重试。');
       }
     },
     [saveAuthState, switchToLogin]
   );
 
   const handleLogout = useCallback(async () => {
-    const nextState: AuthState = {
-      isLoggedIn: false,
-      nickname: '',
-      phone: '',
-      updatedAt: Date.now(),
-    };
     try {
+      await authApi.logout();
+      const nextState: AuthState = {
+        isLoggedIn: false,
+        nickname: '',
+        phone: '',
+        updatedAt: Date.now(),
+      };
       await saveAuthState(nextState);
       setAuthState(nextState);
       setCachedNickname('');
       setCachedPhone('');
       switchToLogin();
       Alert.alert('已退出', '账号已退出登录。');
-    } catch {
-      Alert.alert('操作失败', '请稍后重试。');
+    } catch (error) {
+      Alert.alert('操作失败', error instanceof Error ? error.message : '请稍后重试。');
     }
   }, [saveAuthState, switchToLogin]);
 
   const handleForgotSubmit = useCallback(
-    async (_payload: { phone: string; code: string; newPassword: string }) => {
-      Alert.alert('修改成功', '请重新登录。');
-      switchToLogin();
+    async (payload: { phone: string; code: string; newPassword: string }) => {
+      try {
+        await authApi.resetPassword(payload.phone, payload.code, payload.newPassword);
+        Alert.alert('修改成功', '请重新登录。');
+        switchToLogin();
+      } catch (error) {
+        Alert.alert('修改失败', error instanceof Error ? error.message : '请稍后重试。');
+      }
     },
     [switchToLogin]
   );

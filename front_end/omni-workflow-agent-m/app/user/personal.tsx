@@ -9,6 +9,7 @@ import { KeyboardAwareScroll } from '@/components/user/personal/Keyboard_Aware_S
 import { QuickActionFoldCard } from '@/components/user/personal/Quick_Action_FoldCard';
 import { SettingItem } from '@/components/user/Setting_Item';
 import { SettingSection } from '@/components/user/Setting_section';
+import * as personalApi from '@/api/personal-api';
 // import { QUICK_ACTIONS } from '@/components/workflow/Workflow_QuickActions';
 
 
@@ -18,6 +19,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 
 // 测试 / 后端对接
 const STORAGE_KEY = '@omni_workflow_user_data_v1';
+const AUTH_STORAGE_KEY = '@omni_workflow_user_auth_v1';
 
 // 字数限制
 const MAX_PROMPT_LENGTH = 200;
@@ -88,6 +90,7 @@ export default function UserDataScreen() {
   useEffect(() => {
     const loadState = async () => {
       try {
+        // 1. 先从本地加载（快速显示）
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw) as Partial<UserDataState>;
@@ -98,6 +101,23 @@ export default function UserDataScreen() {
             quickActionNames: { ...prev.quickActionNames, ...(parsed.quickActionNames ?? {}) },
             quickActionPrompts: { ...prev.quickActionPrompts, ...(parsed.quickActionPrompts ?? {}) },
           }));
+        }
+
+        // 2. 如果已登录，从服务器加载
+        const authRaw = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
+        if (authRaw) {
+          const authState = JSON.parse(authRaw);
+          if (authState.isLoggedIn && authState.userId) {
+            try {
+              const serverData = await personalApi.getUserPreferences(authState.userId);
+              setState((prev) => ({
+                ...prev,
+                ...serverData,
+              }));
+            } catch {
+              // 静默失败，使用本地数据
+            }
+          }
         }
       } catch {
         Alert.alert('提示', '个性化数据读取失败，已使用默认配置。');
@@ -192,8 +212,19 @@ export default function UserDataScreen() {
     }
 
     try {
-      // 测试
+      // 1. 保存到本地
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+
+      // 2. 如果已登录，同步到服务器（静默失败）
+      const authRaw = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
+      if (authRaw) {
+        const authState = JSON.parse(authRaw);
+        if (authState.isLoggedIn && authState.userId) {
+          // TODO: 实现 saveUserPreferences API
+          // await personalApi.saveUserPreferences(authState.userId, state);
+        }
+      }
+
       Alert.alert('已保存', '个性化设置已更新。');
     } catch {
       Alert.alert('保存失败', '请稍后重试。');

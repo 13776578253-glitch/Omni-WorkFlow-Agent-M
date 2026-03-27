@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-import { Ionicons } from '@expo/vector-icons';
 
 import { useThemeContext } from '@/constants/Theme-Context';
 import { Colors } from '@/constants/theme';
@@ -111,9 +110,9 @@ export default function History_Item({
           </Text>
         </View>
 
-        {session.isPinned && (
-          <Ionicons name="pin" size={14} color={themeColors.icon} style={styles.pinIcon} />
-        )}
+        {/* {session.isPinned && (
+          <Ionicons name="arrow-up" size={14} color={themeColors.icon} style={styles.pinIcon} />
+        )} */}
       </View>
     );
   }
@@ -136,9 +135,9 @@ export default function History_Item({
         </Text>
       </View>
 
-      {session.isPinned && (
-        <Ionicons name="pin" size={14} color={themeColors.icon} style={styles.pinIcon} />
-      )}
+      {/* {session.isPinned && (
+        <Ionicons name="arrow-up" size={14} color={themeColors.icon} style={styles.pinIcon} />
+      )} */}
     </TouchableOpacity>
   );
 }
@@ -171,6 +170,6 @@ const styles = StyleSheet.create({
   },
   pinIcon: {
     marginLeft: 10,
-    transform: [{ rotate: '45deg' }],
+    // transform: [{ rotate: '45deg' }],
   },
 });

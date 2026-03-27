@@ -169,8 +169,8 @@ export default function Home_Portal() {
   const selectedDetailBody = getPortalDetailBody(selectedMonth, selectedDay);
 
   const fallbackCountdownCards: PortalCardItem[] = [
-    { id: 'card_fallback_1', title: '测试消息模板 A', subtitle: '测试内容：这是第一条倒计时消息', badge: '1天' },
-    { id: 'card_fallback_2', title: '测试消息模板 B', subtitle: '测试内容：这是第二条倒计时消息', badge: '3天' },
+    { id: 'card_fallback_1', title: '暂无消息', subtitle: '这一天非常平静，无事发生', badge: '' },
+    // { id: 'card_fallback_2', title: '测试消息模板 B', subtitle: '测试内容：这是第二条倒计时消息', badge: '3天' },
   ];
 
   const countdownCards = getPortalCountdownCards(selectedMonth, selectedDay) ?? fallbackCountdownCards;

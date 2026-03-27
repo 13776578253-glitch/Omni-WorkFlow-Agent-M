@@ -13,7 +13,7 @@ interface RegisterSubmitPayload {
 
 interface AuthRegisterProps {
   countdown: number;
-  onSendCode: () => void;
+  onSendCode: (phone: string) => void;
   onSubmit: (payload: RegisterSubmitPayload) => void;
 }
 
@@ -33,6 +33,12 @@ export function AuthRegister({ countdown, onSendCode, onSubmit }: AuthRegisterPr
   const [code, setCode] = useState('');
 
   const canSendCode = countdown <= 0 && phone.trim().length > 0;
+
+  const handleSendCode = () => {
+    if (canSendCode) {
+      onSendCode(phone.trim());
+    }
+  };
 
   const handleRegister = () => {
     if (!nickname.trim() || !password.trim() || !phone.trim() || !code.trim()) {
@@ -88,7 +94,7 @@ export function AuthRegister({ countdown, onSendCode, onSubmit }: AuthRegisterPr
         />
         <TouchableOpacity
           disabled={!canSendCode}
-          onPress={onSendCode}
+          onPress={handleSendCode}
           style={[styles.codeButton, { backgroundColor: inputBgColor, borderColor: inputBorderColor }]}
           activeOpacity={0.8}
         >
