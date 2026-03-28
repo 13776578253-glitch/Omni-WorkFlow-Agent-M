@@ -3,21 +3,25 @@ import { FlatList, NativeScrollEvent, NativeSyntheticEvent, StyleSheet, View } f
 
 import { useThemeColor } from '@/hooks/use-theme-color';
 
-import { DEFAULT_INITIAL_MESSAGES, WorkflowMessage } from './Workflow_Context_Data';
+import type { WorkflowBlock } from '@/constants/workflow_type';
+import { DEFAULT_INITIAL_MESSAGES } from './Workflow_Context_Data';
 import { WorkflowMessageItem } from './Workflow_Message_Item';
 
 interface WorkflowContextListProps {
-  messages?: WorkflowMessage[];                             // 消息列表
+  messages?: WorkflowBlock[];                               // 消息列表
   contentPaddingTop?: number;                               // 内容顶部内边距
   onScrollOffsetChange?: (offsetY: number) => void;         // 滚动偏移量
-  onMessageUpdate?: (id: string, newText: string) => void;  // 消息更新回调
+  onBlockSave?: (id: string, newContent: string) => void;   // 块保存回调
+  firstQuestionLocked?: boolean;                            // 首问锁定状态
 }
 
+// 工作流上下文消息列表组件
 export function WorkflowContextList({
   messages = DEFAULT_INITIAL_MESSAGES,
   contentPaddingTop,
   onScrollOffsetChange,
-  onMessageUpdate,
+  onBlockSave,
+  firstQuestionLocked = false,
 }: WorkflowContextListProps) {
   const bgColor = useThemeColor({}, 'background');
 
@@ -26,8 +30,8 @@ export function WorkflowContextList({
     onScrollOffsetChange?.(event.nativeEvent.contentOffset.y);
   };
 
-  const handleUpdateMessage = (id: string, newText: string) => {
-    onMessageUpdate?.(id, newText);
+  const handleUpdateMessage = (id: string, newContent: string) => {
+    onBlockSave?.(id, newContent);
   };
 
   return (
@@ -42,14 +46,16 @@ export function WorkflowContextList({
       scrollEnabled                            // 滚动
       nestedScrollEnabled                      // 嵌套滚动
       showsVerticalScrollIndicator             // 显示垂直滚动指示器
-      keyboardShouldPersistTaps="handled"      
-      keyboardDismissMode="on-drag"            
-      onScroll={handleScroll}                  
-      scrollEventThrottle={16}                 
-      renderItem={({ item }) => (
-        <WorkflowMessageItem 
-          message={item} 
-          onUpdate={handleUpdateMessage} 
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      onScroll={handleScroll}
+      scrollEventThrottle={16}
+      renderItem={({ item, index }) => (
+        <WorkflowMessageItem
+          message={item}
+          onUpdate={handleUpdateMessage}
+          isFirstBlock={index === 0}
+          isLocked={firstQuestionLocked}
         />
       )}
       // 分隔线组件

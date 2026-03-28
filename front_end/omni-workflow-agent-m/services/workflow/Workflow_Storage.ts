@@ -1,30 +1,39 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { WorkflowMessage } from '@/components/workflow/Workflow_Context_bin/Workflow_Context_Data';
+import type { WorkflowBlock } from '@/constants/workflow_type';
 
 const STORAGE_KEY = '@omni_workflow_chat_history_v1';
 
 export const WorkflowStorage = {
   /**
-   * Save the current list of messages to local storage
+   * Save the current list of blocks to local storage
    */
-  saveMessages: async (messages: WorkflowMessage[]): Promise<void> => {
+  saveMessages: async (blocks: WorkflowBlock[]): Promise<void> => {
     try {
-      const jsonValue = JSON.stringify(messages);
+      const jsonValue = JSON.stringify(blocks);
       await AsyncStorage.setItem(STORAGE_KEY, jsonValue);
     } catch (e) {
-      console.error('Failed to save messages', e);
+      console.error('Failed to save blocks', e);
     }
   },
 
   /**
-   * Load messages from local storage
+   * Load blocks from local storage with migration support
    */
-  loadMessages: async (): Promise<WorkflowMessage[] | null> => {
+  loadMessages: async (): Promise<WorkflowBlock[] | null> => {
     try {
       const jsonValue = await AsyncStorage.getItem(STORAGE_KEY);
-      return jsonValue != null ? JSON.parse(jsonValue) : null;
+      if (!jsonValue) return null;
+
+      const data = JSON.parse(jsonValue);
+
+      // 数据迁移：将旧格式 text 转换为新格式 content
+      return data.map((item: any) => ({
+        ...item,
+        content: item.content || item.text || '',
+        createdAt: item.createdAt || Date.now(),
+      }));
     } catch (e) {
-      console.error('Failed to load messages', e);
+      console.error('Failed to load blocks', e);
       return null;
     }
   },

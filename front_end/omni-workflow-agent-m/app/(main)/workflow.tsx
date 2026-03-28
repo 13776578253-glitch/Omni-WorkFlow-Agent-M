@@ -7,7 +7,8 @@ import { Keyboard, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { QuickActionNames, QuickActionPrompts, UserDataState } from '@/constants/type';
-import type { WorkflowMode, WorkflowPressRecordingSession } from '@/constants/workflow_type';
+// tyye 类型待处理
+import type { WorkflowBlock, WorkflowMode, WorkflowPressRecordingSession } from '@/constants/workflow_type';
 import { useThemeColor } from '@/hooks/use-theme-color';
                                                                                                    
 import { WorkflowRecordingOverlay } from '@/components/ui/workflow-recording-overlay';
@@ -16,10 +17,8 @@ import { WorkflowInputBar } from '@/components/workflow/Workflow_InputBar';
 import { WorkflowQuickActions, type QuickActionKey } from '@/components/workflow/Workflow_QuickActions';
 import { TOP_AREA_EXPANDED_HEIGHT, WorkflowTopArea } from '@/components/workflow/Workflow_Top_Area';
 
-import {
-  MARKDOWN_MOCK_DATA,
-  WorkflowMessage
-} from '@/components/workflow/Workflow_Context_bin/Workflow_Context_Data';
+// 待处理 
+import { MARKDOWN_MOCK_DATA } from '@/components/workflow/Workflow_Context_bin/Workflow_Context_Data';
 import { WorkflowStorage } from '@/services/workflow/Workflow_Storage';
 import { createWorkflowUploadService } from '@/services/workflow/Workflow_Upload';
 
@@ -59,8 +58,12 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   const [mode, setMode] = useState<WorkflowMode>('welcome');
   const [topAreaHeight, setTopAreaHeight] = useState(TOP_AREA_EXPANDED_HEIGHT);
   const [isAutoCompactLocked, setIsAutoCompactLocked] = useState(false);
-  // 消息列表 / 测试
-  const [messages, setMessages] = useState<WorkflowMessage[]>([]);
+
+  // 测试
+  // 块列表
+  const [blocks, setBlocks] = useState<WorkflowBlock[]>([]);
+  // 首问锁定状态
+  const [firstQuestionLocked, setFirstQuestionLocked] = useState(false);
 
   const [quickActionNames, setQuickActionNames] = useState<QuickActionNames>(DEFAULT_QUICK_ACTION_NAMES);
   const [quickActionPrompts, setQuickActionPrompts] = useState<QuickActionPrompts>(DEFAULT_QUICK_ACTION_PROMPTS);
@@ -85,28 +88,29 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   const insets = useSafeAreaInsets();
   const bgColor = useThemeColor({}, 'background');
 
-  // Load initial messages
+  // 初始化 加载历史消息 / 测试逻辑
   useEffect(() => {
     const init = async () => {
       const stored = await WorkflowStorage.loadMessages();
       if (stored && stored.length > 0) {
-        setMessages(stored);
-        setMode('document'); // Assume document mode if history exists
+        setBlocks(stored);
+        setMode('document'); // 有历史消息则直接进入文档模式 / 测试逻辑
       } else {
-        // Optional: setMessages(DEFAULT_INITIAL_MESSAGES);
+        // 首次进入或无历史消息 / 可选：加载默认消息
+        // Optional: setBlocks(DEFAULT_INITIAL_MESSAGES);
       }
     };
     init();
   }, []);
 
-  // Save messages whenever they change
+  // 保存消息变更 / 测试逻辑 / 待优化：节流、去重、增量保存等
   useEffect(() => {
-    if (messages.length > 0) {
-      WorkflowStorage.saveMessages(messages);
+    if (blocks.length > 0) {
+      WorkflowStorage.saveMessages(blocks);
     }
-  }, [messages]);
+  }, [blocks]);
 
-  // Load Quick Actions
+  // 加载用户数据（如快捷操作名称和提示） / 测试逻辑
   const loadQuickActionNames = useCallback(async () => {
     try {
       const raw = await AsyncStorage.getItem(USER_DATA_STORAGE_KEY);
@@ -192,7 +196,7 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
     }),
   [waveTick]);
 
-  // Message Submission
+  // 消息提交 事件 / 复杂逻辑  
   const handleSubmit = useCallback(() => {
     const trimmed = inputText.trim();
     if (!trimmed) return;
@@ -201,43 +205,77 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
     if (mode === 'welcome') setMode(nextMode);
 
     // 1. Add User Message
-    const userMsg: WorkflowMessage = {
+    const userMsg: WorkflowBlock = {
       id: `user-${Date.now()}`,
       role: 'user',
-      text: trimmed,
+      content: trimmed,
+      createdAt: Date.now(),
     };
 
     // 2. Add AI Mock Message (Cycled)
     // Derive index from current AI message count for strict ordering across reloads
-    const aiMessageCount = messages.filter(m => m.role === 'ai').length;
+    const aiMessageCount = blocks.filter(m => m.role === 'ai').length;
     const mockData = MARKDOWN_MOCK_DATA[aiMessageCount % MARKDOWN_MOCK_DATA.length];
-    
-    const aiMsg: WorkflowMessage = {
+
+    const aiMsg: WorkflowBlock = {
       ...mockData,
       id: `ai-${Date.now()}`, // Unique ID
     };
 
-    setMessages(prev => [...prev, userMsg, aiMsg]);
+    setBlocks(prev => [...prev, userMsg, aiMsg]);
     setInputText('');
-  }, [inputText, mode, messages]);
+  }, [inputText, mode, blocks]);
 
-  const handleMessageUpdate = useCallback((id: string, newText: string) => {
-    setMessages(prev => prev.map(msg => 
-      msg.id === id ? { ...msg, text: newText } : msg
-    ));
-  }, []);
+  const handleMessageUpdate = useCallback((id: string, newContent: string) => {
+    const blockIndex = blocks.findIndex(b => b.id === id);
+    if (blockIndex === -1) return;
 
-  // Quick Action
+    const block = blocks[blockIndex];
+
+    // 规则1: 编辑首块 / user 块
+    if (blockIndex === 0 && block.role === 'user') {
+      const updatedBlock = { ...block, content: newContent };
+      setBlocks([updatedBlock]);
+      // TODO: 触发重新生成
+      return;
+    }
+
+    // 规则2: 编辑 AI 块
+    if (block.role === 'ai') {
+      const updatedBlock = { ...block, content: newContent, editedByUser: true };
+      const newBlocks = [...blocks];
+      newBlocks[blockIndex] = updatedBlock;
+      setBlocks(newBlocks);
+
+      // 检查是否需要锁定首问
+      if (block.sourceBlockId === blocks[0]?.id) {
+        setFirstQuestionLocked(true);
+      }
+
+      // TODO: 触发追加生成
+      return;
+    }
+
+    // 规则3: 编辑非首块 / user 块
+    if (block.role === 'user') {
+      const updatedBlock = { ...block, content: newContent };
+      const newBlocks = [...blocks];
+      newBlocks[blockIndex] = updatedBlock;
+      setBlocks(newBlocks);
+    }
+  }, [blocks]);
+
+  // 快捷操作 事件
   const handleQuickAction = useCallback((key: QuickActionKey) => {
     if (activeQuickActionKey === key) {
       setActiveQuickActionKey(null);
       return;
     }
     setActiveQuickActionKey(key);
-    // Logic for quick action can be expanded here
+    // TODO: 根据 key 执行对应操作，如填充输入框、触发特定生成等
   }, [activeQuickActionKey]);
 
-  // Recording Logic (Simplified for refactor focus)
+  // 录音相关 事件 
   const finalizePressRecord = useCallback(async (action: 'send' | 'cancel') => {
     setIsSlideCancelPreview(false);
     setIsPressRecording(false);
@@ -251,9 +289,10 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
     const pipelineResult = await uploadServiceRef.current.runPressToTalkPipeline(stopped);
     const transcriptText = pipelineResult.transcriptText.trim() || 'Mock transcript content.';
     
-    // Simulate input submission with transcript
+    // TODO: 直接提交或让用户确认 / 这里直接填充输入框，用户可修改后再提交
     setInputText(transcriptText);
-    // Ideally, call handleSubmit directly or let user confirm
+    // 自动触发提交（可选） / 这里不自动提交，给用户修改空间
+    // handleSubmit();
   }, []);
 
   const handleRecordPressIn = useCallback(async () => {
@@ -304,10 +343,11 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
         {/* 内容区 */}
         <WorkflowContentArea
           mode={mode}
-          messages={messages}
+          messages={blocks}
           contentPaddingTop={mode === 'recording' ? topAreaHeight + TOP_AREA_OFFSET : undefined}
           onScrollOffsetChange={handleContentScroll}
-          onMessageUpdate={handleMessageUpdate}
+          onBlockSave={handleMessageUpdate}
+          firstQuestionLocked={firstQuestionLocked}
         />
         <View style={styles.topAreaDock}>
           <WorkflowTopArea

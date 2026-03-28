@@ -44,11 +44,11 @@ export function WorkflowMarkdownEditor({ initialContent, onSave, onCancel }: Wor
       {/* 编辑栏 / 取消和保存按钮 */}
       <View style={styles.toolbar}>
         <TouchableOpacity onPress={onCancel} style={styles.button}>
-          <Text style={[styles.buttonText, { color: textColor }]}>Cancel</Text>
+          <Text style={[styles.buttonText, { color: textColor }]}>取消</Text>
         </TouchableOpacity>
         
         <TouchableOpacity onPress={handleSave} style={[styles.button, styles.saveButton, { backgroundColor: tintColor }]}>
-          <Text style={[styles.buttonText, { color: '#fff' }]}>Save</Text>
+          <Text style={[styles.buttonText, { color: '#fff' }]}>保存</Text>
         </TouchableOpacity>
       </View>
     </View>
