@@ -127,5 +127,12 @@ export interface WorkflowRecordingUploadPayload {
 export interface WorkflowRecordingPipelineResult {
   session: WorkflowPressRecordingSession;             // 录音 完整会话信息
   transcriptText: string;                             // 文字
-  // transcriptSegments: WorkflowTranscriptSegment[]; 
+  // transcriptSegments: WorkflowTranscriptSegment[];
+}
+
+// AI 状态文本辅助函数
+export function getAIStatusText(status?: 'pending' | 'done' | 'error'): string {
+  if (status === 'pending') return '正在思考...';
+  if (status === 'error') return '生成失败';
+  return '';
 }
