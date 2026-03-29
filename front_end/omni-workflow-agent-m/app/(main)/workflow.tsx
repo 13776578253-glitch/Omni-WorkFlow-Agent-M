@@ -426,7 +426,7 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
         {/* 滚动到底部按钮 */}
         {showScrollToBottom && (
           <TouchableOpacity
-            // todo: 进一步适配不同输入栏高度和安全区域变化 / 随输入栏动态偏移
+            // todo: 进一步适配不同输入栏高度和安全区域变化 / 上传文件后滚动按钮隐藏
             style={[styles.scrollToBottomButton, { bottom: inputBarMarginBottom + 122 }]}
             onPress={handleScrollToBottom}
             activeOpacity={0.8}
