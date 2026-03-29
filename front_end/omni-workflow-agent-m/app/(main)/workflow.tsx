@@ -79,6 +79,7 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   // 键盘与滚动状态
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [scrollOffset, setScrollOffset] = useState(0);
+  // 内容高度 / 用于滚动适配 / 待处理
   const [contentHeight, setContentHeight] = useState(0);
 
   // 上传服务实例 / 测试
@@ -357,7 +358,7 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   }, []);
 
   // 判断是否显示回到底部按钮
-  const showScrollToBottom = isKeyboardVisible && scrollOffset > 100;
+  const showScrollToBottom = isKeyboardVisible && scrollOffset > 50;
 
   return (
     <View style={{ flex: 1, backgroundColor: bgColor }}>
@@ -425,7 +426,7 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
         {/* 滚动到底部按钮 */}
         {showScrollToBottom && (
           <TouchableOpacity
-            // 高度适配输入栏位置 + 一定间距
+            // todo: 进一步适配不同输入栏高度和安全区域变化 / 随输入栏动态偏移
             style={[styles.scrollToBottomButton, { bottom: inputBarMarginBottom + 122 }]}
             onPress={handleScrollToBottom}
             activeOpacity={0.8}
