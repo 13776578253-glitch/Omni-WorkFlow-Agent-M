@@ -19,6 +19,7 @@ interface WorkflowInputBarProps {
   isPressRecording?: boolean;                              // 录音 状态
   recordSlideCancelThreshold?: number;                     // 滑动取消 阈值
   containerStyle?: ViewStyle;
+  onKeyboardVisibleChange?: (visible: boolean) => void;    // 键盘显隐回调
 }
 
 export function WorkflowInputBar({
@@ -32,6 +33,7 @@ export function WorkflowInputBar({
   isPressRecording = false,
   recordSlideCancelThreshold = 56,
   containerStyle,
+  onKeyboardVisibleChange,
 }: WorkflowInputBarProps) {
   const cardColor = useThemeColor({}, 'card');
   const textColor = useThemeColor({}, 'text');
@@ -64,22 +66,24 @@ export function WorkflowInputBar({
   useEffect(() => {
     const showSub = Keyboard.addListener('keyboardDidShow', () => {
       setIsKeyboardVisible(true);
+      onKeyboardVisibleChange?.(true);
     });
 
     const hideSub = Keyboard.addListener('keyboardDidHide', () => {
       setIsKeyboardVisible(false);
+      onKeyboardVisibleChange?.(false);
       inputRef.current?.blur();
     });
 
     return () => {
       if (longPressTimerRef.current) {
-        clearTimeout(longPressTimerRef.current);  
+        clearTimeout(longPressTimerRef.current);
         longPressTimerRef.current = null;
       }
       showSub.remove();
       hideSub.remove();
     };
-  }, []);
+  }, [onKeyboardVisibleChange]);
 
   // 监听 触摸事件 坐标
   const readTouchPoint = (event: GestureResponderEvent) => {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { View } from 'react-native';
 
 import { WorkflowWelcomeArea } from '@/components/workflow/workflow_Welcome_Area';
@@ -8,11 +8,15 @@ import type { WorkflowBlock, WorkflowMode } from '@/constants/workflow_type';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 import { DEFAULT_INITIAL_MESSAGES } from '@/components/workflow/Workflow_Context_bin/Workflow_Context_Data';
-import { WorkflowContextList } from '@/components/workflow/Workflow_Context_bin/Workflow_Context_List';
+import { WorkflowContextList, type WorkflowContextListRef } from '@/components/workflow/Workflow_Context_bin/Workflow_Context_List';
 
 // 重导出 类型和数据  / 保证向后兼容
 export { DEFAULT_INITIAL_MESSAGES };
 export type { WorkflowBlock };
+
+export interface WorkflowContentAreaRef {
+  scrollToEnd: () => void;
+}
 
 interface WorkflowContentAreaProps {
   mode: WorkflowMode;                                     // 模式
@@ -23,14 +27,10 @@ interface WorkflowContentAreaProps {
   firstQuestionLocked?: boolean;                          // 首问锁定状态
 }
 
-export function WorkflowContentArea({
-  mode,
-  messages,
-  contentPaddingTop,
-  onScrollOffsetChange,
-  onBlockSave,
-  firstQuestionLocked,
-}: WorkflowContentAreaProps) {
+export const WorkflowContentArea = forwardRef<WorkflowContentAreaRef, WorkflowContentAreaProps>((
+  { mode, messages, contentPaddingTop, onScrollOffsetChange, onBlockSave, firstQuestionLocked },
+  ref
+) => {
   const bgColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
 
@@ -42,6 +42,7 @@ export function WorkflowContentArea({
   return (
     <View style={{ flex: 1, backgroundColor: bgColor }}>
       <WorkflowContextList
+        ref={ref}
         messages={messages}
         // 内容顶部内边距 / 适配欢迎页占位高度
         contentPaddingTop={contentPaddingTop}
@@ -53,4 +54,4 @@ export function WorkflowContentArea({
       />
     </View>
   );
-}
+});

@@ -1,18 +1,19 @@
 ﻿// app/(main)/workflow.tsx
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, Platform, StyleSheet, View } from 'react-native';
+import { Keyboard, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { QuickActionNames, QuickActionPrompts, UserDataState } from '@/constants/type';
 // tyye 类型待处理
 import type { WorkflowBlock, WorkflowMode, WorkflowPressRecordingSession } from '@/constants/workflow_type';
 import { useThemeColor } from '@/hooks/use-theme-color';
-                                                                                                   
+
 import { WorkflowRecordingOverlay } from '@/components/ui/workflow-recording-overlay';
-import { WorkflowContentArea } from '@/components/workflow/Workflow_ContentArea';
+import { WorkflowContentArea, type WorkflowContentAreaRef } from '@/components/workflow/Workflow_ContentArea';
 import { WorkflowInputBar } from '@/components/workflow/Workflow_InputBar';
 import { WorkflowQuickActions, type QuickActionKey } from '@/components/workflow/Workflow_QuickActions';
 import { TOP_AREA_EXPANDED_HEIGHT, WorkflowTopArea } from '@/components/workflow/Workflow_Top_Area';
@@ -69,11 +70,16 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   const [quickActionPrompts, setQuickActionPrompts] = useState<QuickActionPrompts>(DEFAULT_QUICK_ACTION_PROMPTS);
   // 快捷按钮状态 / UI 样式
   const [activeQuickActionKey, setActiveQuickActionKey] = useState<QuickActionKey | null>(null);
-  
+
   const [isPressRecording, setIsPressRecording] = useState(false);
   const [isSlideCancelPreview, setIsSlideCancelPreview] = useState(false);
   // 波形动画 计时
   const [waveTick, setWaveTick] = useState(0);
+
+  // 键盘与滚动状态
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [scrollOffset, setScrollOffset] = useState(0);
+  const [contentHeight, setContentHeight] = useState(0);
 
   // 上传服务实例 / 测试
   const uploadServiceRef = useRef(createWorkflowUploadService());
@@ -83,6 +89,8 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   const startRecordingPendingRef = useRef(false);
   //待执行 释放操作 / 中间态
   const pendingReleaseActionRef = useRef<'send' | 'cancel' | null>(null);
+  // 内容区域引用
+  const contentAreaRef = useRef<WorkflowContentAreaRef>(null);
 
   // 安全区域 信息
   const insets = useSafeAreaInsets();
@@ -172,6 +180,7 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   }, [insets.bottom, keyboardHeight]);
 
   const handleContentScroll = useCallback((offsetY: number) => {
+    setScrollOffset(offsetY);
     if (mode !== 'recording') return;
     if (offsetY > 100) {
       if (!isAutoCompactLocked) setIsAutoCompactLocked(true);
@@ -337,11 +346,25 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
     await finalizePressRecord('cancel');
   }, [finalizePressRecord]);
 
+  // 键盘显隐回调
+  const handleKeyboardVisibleChange = useCallback((visible: boolean) => {
+    setIsKeyboardVisible(visible);
+  }, []);
+
+  // 滚动到底部
+  const handleScrollToBottom = useCallback(() => {
+    contentAreaRef.current?.scrollToEnd();
+  }, []);
+
+  // 判断是否显示回到底部按钮
+  const showScrollToBottom = isKeyboardVisible && scrollOffset > 100;
+
   return (
     <View style={{ flex: 1, backgroundColor: bgColor }}>
       <View style={{ flex: 1 }}>
         {/* 内容区 */}
         <WorkflowContentArea
+          ref={contentAreaRef}
           mode={mode}
           messages={blocks}
           contentPaddingTop={mode === 'recording' ? topAreaHeight + TOP_AREA_OFFSET : undefined}
@@ -361,15 +384,17 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
         <View style={[styles.bottomDock, { backgroundColor: bgColor }]}>
           {/* 非录音状态 区域 */}
           <View style={isPressRecording ? styles.bottomDockHiddenContent : undefined}>
-            {/* 快捷操作区  */}
-            <View style={styles.quickActionsGap}>
-              <WorkflowQuickActions
-                onAction={handleQuickAction}
-                quickActionNames={quickActionNames}
-                quickActionPrompts={quickActionPrompts}
-                activeKey={activeQuickActionKey}
-              />
-            </View>
+            {/* 快捷操作区 / 呼出键盘后隐藏*/}
+            {!isKeyboardVisible && (
+              <View style={styles.quickActionsGap}>
+                <WorkflowQuickActions
+                  onAction={handleQuickAction}
+                  quickActionNames={quickActionNames}
+                  quickActionPrompts={quickActionPrompts}
+                  activeKey={activeQuickActionKey}
+                />
+              </View>
+            )}
 
             {/* 输入栏区 */}
             <WorkflowInputBar
@@ -381,7 +406,8 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
               onCancelRecord={handleRecordCancel}
               onSlideCancelStateChange={setIsSlideCancelPreview}
               isPressRecording={isPressRecording}
-              containerStyle={{ marginTop: 4, marginBottom: inputBarMarginBottom }}
+              onKeyboardVisibleChange={handleKeyboardVisibleChange}
+              containerStyle={{ marginTop: isKeyboardVisible ? 12 : 4, marginBottom: inputBarMarginBottom }}
             />
           </View>
 
@@ -393,8 +419,20 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
               dots={recordingDots}
             />
           ) : null}
-          
+
         </View>
+
+        {/* 滚动到底部按钮 */}
+        {showScrollToBottom && (
+          <TouchableOpacity
+            // 高度适配输入栏位置 + 一定间距
+            style={[styles.scrollToBottomButton, { bottom: inputBarMarginBottom + 122 }]}
+            onPress={handleScrollToBottom}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="arrow-down" size={24} color="#000000" />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -418,5 +456,20 @@ const styles = StyleSheet.create({
   quickActionsGap: {
     marginTop: 12,
     marginBottom: 4,
+  },
+  scrollToBottomButton: {
+    position: 'absolute',
+    right: 178, // 适配输入栏宽度和边距
+    width: 43,
+    height: 43,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
 });

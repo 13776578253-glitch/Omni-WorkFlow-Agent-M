@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, StyleSheet, View } from 'react-native';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -15,15 +15,23 @@ interface WorkflowContextListProps {
   firstQuestionLocked?: boolean;                            // 首问锁定状态
 }
 
+export interface WorkflowContextListRef {
+  scrollToEnd: () => void;
+}
+
 // 工作流上下文消息列表组件
-export function WorkflowContextList({
-  messages = DEFAULT_INITIAL_MESSAGES,
-  contentPaddingTop,
-  onScrollOffsetChange,
-  onBlockSave,
-  firstQuestionLocked = false,
-}: WorkflowContextListProps) {
+export const WorkflowContextList = forwardRef<WorkflowContextListRef, WorkflowContextListProps>((
+  { messages = DEFAULT_INITIAL_MESSAGES, contentPaddingTop, onScrollOffsetChange, onBlockSave, firstQuestionLocked = false },
+  ref
+) => {
   const bgColor = useThemeColor({}, 'background');
+  const flatListRef = useRef<FlatList>(null);
+
+  useImperativeHandle(ref, () => ({
+    scrollToEnd: () => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    },
+  }));
 
   // 处理滚动事件
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -36,6 +44,7 @@ export function WorkflowContextList({
 
   return (
     <FlatList
+      ref={flatListRef}
       data={messages}
       keyExtractor={(item) => item.id}
       style={{ flex: 1, backgroundColor: bgColor }}
@@ -62,7 +71,7 @@ export function WorkflowContextList({
       ItemSeparatorComponent={() => <View style={styles.separator} />}
     />
   );
-}
+});
 
 const styles = StyleSheet.create({
   content: {
