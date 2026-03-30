@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Dimensions, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { SharedValue, interpolate, interpolateColor, useAnimatedStyle, useDerivedValue } from 'react-native-reanimated';
 
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
@@ -21,13 +21,14 @@ interface Tab {
 // 定义 TopNavBar 类型
 interface TopNavBarProps {
   tabs: Tab[];
-  scrollOffset: SharedValue<number>;     // PagerView 滑动偏移量
+  scrollOffset: SharedValue<number>;        // PagerView 滑动偏移量
   position: SharedValue<number>;
   onTabPress: (index: number) => void;
   activeTabIndex?: number;
-  translateYCompensation?: number;       // 导航栏位移补偿
-  containerRef?: React.Ref<any>;         // 容器引用
-  onSearchSubmit?: (query: string) => void;  // 搜索提交回调
+  translateYCompensation?: number;          // 导航栏位移补偿
+  containerRef?: React.Ref<any>;            // 容器引用
+  onSearchSubmit?: (query: string) => void; // 搜索提交回调
+  onNewWorkflowPress?: () => void;          // 新建 workflow 回调
 }
 
 // 定义 AnimatedTabItem 子组件 类型
@@ -66,6 +67,7 @@ export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress,
   translateYCompensation = 0, // 位移补偿
   containerRef,
   onSearchSubmit,
+  onNewWorkflowPress,         // 新增 workflow 按钮回调
 }: TopNavBarProps) => {
   // const LOG_TAG = '[KB-Compensate-TopNav]';
   const router = useRouter();
@@ -82,8 +84,11 @@ export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress,
 
   const navWidth = width * 0.7;                                                 // Tab 区域 总宽度
   const progress = useDerivedValue(() => position.value + scrollOffset.value);  // Tab 动画 进度值
+  
+  // onTabPress 回调通知父组件切换 Tab
   // const isHomeActive = activeTabIndex === 0;
   const isHistoryActive = activeTabIndex === 2;
+  const isWorkflowActive = activeTabIndex === 1;  
 
   // Tab容器 动画样式 / 导航栏 UI变化
   const tabsContainerStyle = useAnimatedStyle(() => {
@@ -133,7 +138,7 @@ export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress,
         intensity={65}  
         tint={isDark ? 'dark' : 'light'}
         style={[styles.container, { backgroundColor: navBackgroundColor }]}
-      >
+      > 
         <View style={styles.safeContent}>
           {isHistoryActive ? (
             <TouchableOpacity
@@ -148,10 +153,18 @@ export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress,
                 fallback={<Ionicons name="chevron-back" size={22} color={themeColors.text} />}
               />
             </TouchableOpacity>
+          ) : isWorkflowActive ? (
+            // 新建 workflow 按钮 / 仅在 Workflow Tab 激活时显示
+            <TouchableOpacity
+              style={[styles.iconButton, styles.leftIconButton]}
+              onPress={onNewWorkflowPress}
+              activeOpacity={0.7}
+            >
+            {/* 按钮 */}
+            <MaterialCommunityIcons name="square-edit-outline" size={24} color={themeColors.text} />
+            </TouchableOpacity>
           ) : (
-            <View style={[styles.iconButton, styles.leftIconButton]}>
-              <SymbolView name="magnifyingglass" size={20} tintColor={themeColors.text} />
-            </View>
+            <View style={[styles.iconButton, styles.leftIconButton]} />
           )}
 
           <View style={styles.navWrapper}>
@@ -169,7 +182,8 @@ export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress,
               ))}
               <Animated.View style={[styles.indicator, indicatorStyle]} />
             </Animated.View>
-
+            
+            {/* 搜索框 */}
             <Animated.View style={[StyleSheet.absoluteFill, styles.searchContainer, searchBarStyle]}>
               <View
                 style={[
@@ -195,7 +209,8 @@ export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress,
               </View>
             </Animated.View>
           </View>
-
+          
+          {/* 用户菜单 */}
           <TouchableOpacity
             style={[styles.iconButton, styles.rightIconButton]}
             onPress={() => router.push('/user' as any)}

@@ -15,6 +15,7 @@ interface WorkflowTopAreaProps {
   mode: WorkflowMode;
   onHeightChange?: (height: number) => void;
   forcedCompact?: boolean;
+  // onEditPress?: () => void;
 }
 
 // 常量定义
