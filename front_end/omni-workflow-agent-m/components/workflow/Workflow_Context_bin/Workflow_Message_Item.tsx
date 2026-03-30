@@ -6,6 +6,7 @@ import { Image } from 'expo-image';
 
 import { WorkflowMarkdownEditor } from '@/components/workflow/Workflow_Context_bin/Workflow_Markdown_Editor';
 import { WorkflowMarkdownRenderer } from '@/components/workflow/Workflow_Context_bin/Workflow_Markdown_Renderer';
+import { WorkflowStatusReminder } from './Workflow_Status_Reminder';
 
 import type { WorkflowBlock } from '@/constants/workflow_type';
 import { getAIStatusText, isAIBlock } from '@/constants/workflow_type';
@@ -111,6 +112,11 @@ export function WorkflowMessageItem({ message, onUpdate, isFirstBlock, isLocked 
         
         {/* 内容区域 */}
         <View style={[styles.contentWrapper, isUser ? { alignItems: 'flex-end' } : { width: '100%' }]}>
+          {/* 思维链 */}
+          {!isUser && 'thoughtChain' in message && message.thoughtChain && (
+            <WorkflowStatusReminder thoughtChain={message.thoughtChain} />
+          )}
+
           {isEditing ? (
             <WorkflowMarkdownEditor
               initialContent={message.content}

@@ -17,6 +17,7 @@ import { WorkflowContentArea, type WorkflowContentAreaRef } from '@/components/w
 import { WorkflowInputBar } from '@/components/workflow/Workflow_InputBar';
 import { WorkflowQuickActions, type QuickActionKey } from '@/components/workflow/Workflow_QuickActions';
 import { TOP_AREA_EXPANDED_HEIGHT, WorkflowTopArea } from '@/components/workflow/Workflow_Top_Area';
+import { selectThoughtChain } from '@/components/workflow/Workflow_Context_bin/Workflow_Status_Reminder_Data';
 
 // 待处理 
 import { MARKDOWN_MOCK_DATA } from '@/components/workflow/Workflow_Context_bin/Workflow_Context_Data';
@@ -230,10 +231,13 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
     const aiMessageCount = blocks.filter(m => m.role === 'ai').length;
     const mockData = MARKDOWN_MOCK_DATA[aiMessageCount % MARKDOWN_MOCK_DATA.length];
 
+    const thoughtChain = selectThoughtChain(trimmed);
+
     const aiMsg: WorkflowBlock = {
       ...mockData,
       id: `ai-${Date.now()}`,
-    };
+      thoughtChain,
+    } as WorkflowBlock;
 
     setBlocks(prev => [...prev, userMsg, aiMsg]);
     setInputText('');

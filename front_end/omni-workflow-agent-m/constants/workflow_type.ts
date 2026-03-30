@@ -62,6 +62,22 @@ export interface WorkflowUserBlock {
   // - source='manual_input' → shouldGenerateSummary=false（不生成）
 }
 
+// 思维链步骤
+export interface ThoughtStep {
+  id: string;
+  text: string;
+  status: 'pending' | 'active' | 'completed' | 'error';
+  icon?: string;
+  timestamp?: number;
+}
+
+// 思维链
+export interface ThoughtChain {
+  id: string;
+  steps: ThoughtStep[];
+  category: string;
+}
+
 // AI block：生成文本，可被用户编辑
 export interface WorkflowAIBlock {
   id: string;
@@ -71,6 +87,7 @@ export interface WorkflowAIBlock {
   sourceBlockId: string;                 // 源块 ID（可选） / 测试
   editedByUser?: boolean;                // 是否被用户编辑（可选） / 测试
   status?: 'pending' | 'done' | 'error'; // 状态 / 生成状态
+  thoughtChain?: ThoughtChain;           // 思维链（可选）
 }
 
 // 测试
