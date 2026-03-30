@@ -67,6 +67,7 @@ export interface ThoughtStep {
   id: string;
   text: string;
   status: 'pending' | 'active' | 'completed' | 'error';
+  type: 'command' | 'summary' | 'text';
   icon?: string;
   timestamp?: number;
 }
