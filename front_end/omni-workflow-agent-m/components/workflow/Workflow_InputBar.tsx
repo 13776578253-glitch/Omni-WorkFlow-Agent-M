@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, PanResponder, StyleSheet, TextInput, TouchableOpacity, View, type GestureResponderEvent, type ViewStyle } from 'react-native';
+import { Keyboard, PanResponder, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, type GestureResponderEvent, type ViewStyle } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 
 import { WorkflowFileUpload } from '@/components/workflow/Workflow_file upload';
+import type { WorkflowAttachment } from '@/constants/workflow_type';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { pickWorkflowCameraImage } from '@/services/workflow/Workflow_Camera';
 import { pickWorkflowUploadFile } from '@/services/workflow/Workflow_upload_file';
@@ -12,14 +14,16 @@ interface WorkflowInputBarProps {
   value: string;
   onChangeText: (text: string) => void;
   onSubmit?: () => void;
-  onPressInRecord?: () => void;                            // 长按开始 录音
-  onPressOutRecord?: () => void;                           // 松开停止 录音
-  onCancelRecord?: () => void;                             // 滑动取消 录音
+  onPressInRecord?: () => void;   // 新增录音相关回调
+  onPressOutRecord?: () => void;  
+  onCancelRecord?: () => void;    // 滑动取消录音回调
   onSlideCancelStateChange?: (isCancel: boolean) => void;
-  isPressRecording?: boolean;                              // 录音 状态
-  recordSlideCancelThreshold?: number;                     // 滑动取消 阈值
+  isPressRecording?: boolean;
+  recordSlideCancelThreshold?: number;
   containerStyle?: ViewStyle;
-  onKeyboardVisibleChange?: (visible: boolean) => void;    // 键盘显隐回调
+  onKeyboardVisibleChange?: (visible: boolean) => void;
+  attachments?: WorkflowAttachment[];
+  onAttachmentsChange?: (attachments: WorkflowAttachment[]) => void;
 }
 
 export function WorkflowInputBar({
@@ -34,6 +38,8 @@ export function WorkflowInputBar({
   recordSlideCancelThreshold = 56,
   containerStyle,
   onKeyboardVisibleChange,
+  attachments = [],
+  onAttachmentsChange,
 }: WorkflowInputBarProps) {
   const cardColor = useThemeColor({}, 'card');
   const textColor = useThemeColor({}, 'text');
@@ -210,6 +216,7 @@ export function WorkflowInputBar({
     longPressStartedRef.current = false;
   };
 
+  // PanResponder 用于 录音 按住说话 的手势处理 / 兼容按住 + 滑动取消 / 待复用逻辑 / 极小概率拆分
   const panResponder = useMemo(
     () =>
       PanResponder.create({
@@ -240,19 +247,138 @@ export function WorkflowInputBar({
     setShowLongRecordSheet(false);
   };
 
+  // 附件相关处理函数 / 测试
+  const handleRemoveAttachment = async (id: string) => {
+    const { WorkflowLocalFileStorage } = await import('@/services/workflow/Workflow_upload_local_file');
+    await WorkflowLocalFileStorage.deleteFile(id);
+    onAttachmentsChange?.(attachments.filter(a => a.id !== id));
+  };
+
+  const handleRetryUpload = (id: string) => {
+    const updated = attachments.map(a =>
+      a.id === id ? { ...a, uploadStatus: 'uploading' as const } : a
+    );
+    onAttachmentsChange?.(updated);
+  };
+
+  // 文件上传处理函数 / 待优化
   const handlePressCameraUpload = async () => {
-    await pickWorkflowCameraImage();
+    const result = await pickWorkflowCameraImage();
+    if (!result || !result.uri) return;
+
+    const { WorkflowLocalFileStorage } = await import('@/services/workflow/Workflow_upload_local_file');
+    const { generateThumbnail } = await import('@/services/workflow/Workflow_Image_Compress');
+
+    const fileName = result.fileName || 'image.jpg';
+    const mimeType = result.mimeType || 'image/jpeg';
+    const fileEntry = await WorkflowLocalFileStorage.saveFile(result.uri, fileName, mimeType);
+    const thumbnailUri = await generateThumbnail(result.uri);
+
+    const attachment: WorkflowAttachment = {
+      id: fileEntry.id,
+      type: 'image',
+      fileName: fileEntry.originalName,
+      fileSize: fileEntry.size,
+      mimeType: fileEntry.mimeType,
+      localPath: fileEntry.localPath,
+      thumbnailUri,
+      uploadStatus: 'pending',
+    };
+
+    onAttachmentsChange?.([...attachments, attachment]);
     handleCloseLongRecordSheet();
   };
 
+  // 图库上传处理函数 / 待优化
+  const handlePressGalleryUpload = async () => {
+    const { pickWorkflowGalleryImage } = await import('@/services/workflow/Workflow_Gallery');
+    const result = await pickWorkflowGalleryImage();
+    if (!result || !result.uri) return;
+
+    const { WorkflowLocalFileStorage } = await import('@/services/workflow/Workflow_upload_local_file');
+    const { generateThumbnail } = await import('@/services/workflow/Workflow_Image_Compress');
+
+    const fileName = result.fileName || 'image.jpg';
+    const mimeType = result.mimeType || 'image/jpeg';
+    const fileEntry = await WorkflowLocalFileStorage.saveFile(result.uri, fileName, mimeType);
+    const thumbnailUri = await generateThumbnail(result.uri);
+
+    const attachment: WorkflowAttachment = {
+      id: fileEntry.id,
+      type: 'image',
+      fileName: fileEntry.originalName,
+      fileSize: fileEntry.size,
+      mimeType: fileEntry.mimeType,
+      localPath: fileEntry.localPath,
+      thumbnailUri,
+      uploadStatus: 'pending',
+    };
+
+    onAttachmentsChange?.([...attachments, attachment]);
+    handleCloseLongRecordSheet();
+  };
+
+  // 文件上传处理函数 / 待优化
   const handlePressFileUpload = async () => {
-    await pickWorkflowUploadFile();
+    const result = await pickWorkflowUploadFile();
+    if (!result || !result.uri) return;
+
+    const { WorkflowLocalFileStorage } = await import('@/services/workflow/Workflow_upload_local_file');
+
+    const fileName = result.name || 'file';
+    const mimeType = result.mimeType || 'application/octet-stream';
+    const fileEntry = await WorkflowLocalFileStorage.saveFile(result.uri, fileName, mimeType);
+
+    const attachment: WorkflowAttachment = {
+      id: fileEntry.id,
+      type: 'file',
+      fileName: fileEntry.originalName,
+      fileSize: fileEntry.size,
+      mimeType: fileEntry.mimeType,
+      localPath: fileEntry.localPath,
+      uploadStatus: 'pending',
+    };
+
+    onAttachmentsChange?.([...attachments, attachment]);
     handleCloseLongRecordSheet();
   };
 
   return (
     <>
       <View style={[styles.inputContainer, { backgroundColor: cardColor }, containerStyle]}>
+        
+        {/* 附件预览区 */}
+        {attachments.length > 0 && (
+          <View style={styles.attachmentPreviewArea}>
+            
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.attachmentScroll}>
+              {attachments.map((att) => (
+                <View key={att.id} style={styles.attachmentItem}>
+                  {att.type === 'image' ? (
+                    <Image source={{ uri: att.thumbnailUri || att.localPath }} style={styles.attachmentThumbnail} />
+                  ) : (
+                    <View style={styles.fileThumbnail}>
+                      <Ionicons name="document-outline" size={32} color="#666" />
+                      <Text style={styles.fileName} numberOfLines={1}>{att.fileName}</Text>
+                    </View>
+                  )}
+                  {att.uploadStatus === 'error' && (
+                    <TouchableOpacity style={styles.retryOverlay} onPress={() => handleRetryUpload(att.id)}>
+                      <Ionicons name="alert-circle" size={24} color="#EF4444" />
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity style={styles.removeButton} onPress={() => handleRemoveAttachment(att.id)}>
+                    <Ionicons name="close" size={16} color="#FFF" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+            
+            {/* 附件分隔线 */}
+            <View style={styles.attachmentDivider} />
+          </View>
+        )}
+
         {/* 输入区 */}
         <View style={styles.inputTouchArea}>
           {/* 文本输入 */}
@@ -288,7 +414,7 @@ export function WorkflowInputBar({
             <TouchableOpacity style={styles.iconCircle} onPress={handleOpenLongRecordSheet}>
               <Ionicons name="add" size={24} color={textColor} />
             </TouchableOpacity>
-            {/* 长时录音 */}
+            {/* 长时录音 / 待处理 */}
             <TouchableOpacity style={styles.iconCircle} >
               <Ionicons name="mic-outline" size={24} color={textColor} />
             </TouchableOpacity>
@@ -322,6 +448,7 @@ export function WorkflowInputBar({
         visible={showLongRecordSheet}
         onClose={handleCloseLongRecordSheet}
         onPressCamera={handlePressCameraUpload}
+        onPressGallery={handlePressGalleryUpload}  // 新增图库上传回调
         onPressFile={handlePressFileUpload}
       />
     </>
@@ -397,6 +524,61 @@ const styles = StyleSheet.create({
   sendIconCircleActive: {
     backgroundColor: '#3B82F6',
     borderWidth: 0,
+  },
+  attachmentPreviewArea: {
+    marginBottom: 8,
+  },
+  attachmentDivider: {
+    height: 1,
+    backgroundColor: 'rgba(128,128,128,0.15)',
+    marginBottom: 8,
+  },
+  attachmentScroll: {
+    maxHeight: 100,
+  },
+  attachmentItem: {
+    width: 80,
+    height: 80,
+    marginRight: 8,
+    borderRadius: 8,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  attachmentThumbnail: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#F5F5F5',
+  },
+  fileThumbnail: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 4,
+  },
+  fileName: {
+    fontSize: 10,
+    color: '#666',
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  removeButton: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  retryOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(128,128,128,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

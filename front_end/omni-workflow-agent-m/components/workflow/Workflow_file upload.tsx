@@ -10,6 +10,7 @@ interface WorkflowFileUploadProps {
   visible: boolean;
   onClose: () => void;
   onPressCamera: () => void;
+  onPressGallery: () => void;  // 新增图库上传回调
   onPressFile: () => void;
 }
 
@@ -17,6 +18,7 @@ export function WorkflowFileUpload({
   visible,
   onClose,
   onPressCamera,
+  onPressGallery,
   onPressFile,
 }: WorkflowFileUploadProps) {
   const panelColor = useThemeColor({ light: '#FFFFFF', dark: '#1C1C1E' }, 'card');
@@ -37,8 +39,7 @@ export function WorkflowFileUpload({
             <Ionicons name="camera-outline" size={18} color={textColor} />
             <ThemedText style={[styles.menuText, { color: textColor }]}>拍照上传</ThemedText>
           </TouchableOpacity>
-          {/* 待处理功能 */}
-          <TouchableOpacity style={styles.menuItem} onPress={onPressCamera} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.menuItem} onPress={onPressGallery} activeOpacity={0.8}>
             <Ionicons name="image-outline" size={18} color={textColor} />
             <ThemedText style={[styles.menuText, { color: textColor }]}>图片上传</ThemedText>
           </TouchableOpacity>

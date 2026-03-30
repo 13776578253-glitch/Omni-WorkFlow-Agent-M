@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { QuickActionNames, QuickActionPrompts, UserDataState } from '@/constants/type';
 // tyye 类型待处理
-import type { WorkflowBlock, WorkflowMode, WorkflowPressRecordingSession } from '@/constants/workflow_type';
+import type { WorkflowAttachment, WorkflowBlock, WorkflowMode, WorkflowPressRecordingSession } from '@/constants/workflow_type';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 import { WorkflowRecordingOverlay } from '@/components/ui/workflow-recording-overlay';
@@ -81,6 +81,9 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   const [scrollOffset, setScrollOffset] = useState(0);
   // 内容高度 / 用于滚动适配 / 待处理
   const [contentHeight, setContentHeight] = useState(0);
+
+  // 附件状态
+  const [pendingAttachments, setPendingAttachments] = useState<WorkflowAttachment[]>([]);
 
   // 上传服务实例 / 测试
   const uploadServiceRef = useRef(createWorkflowUploadService());
@@ -206,10 +209,10 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
     }),
   [waveTick]);
 
-  // 消息提交 事件 / 复杂逻辑  
+  // 消息提交 事件 / 复杂逻辑
   const handleSubmit = useCallback(() => {
     const trimmed = inputText.trim();
-    if (!trimmed) return;
+    if (!trimmed && pendingAttachments.length === 0) return;
 
     const nextMode = detectModeFromInput(trimmed);
     if (mode === 'welcome') setMode(nextMode);
@@ -219,22 +222,23 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
       id: `user-${Date.now()}`,
       role: 'user',
       content: trimmed,
+      attachments: pendingAttachments.length > 0 ? pendingAttachments.map(a => ({ ...a, uploadStatus: 'success' as const })) : undefined,
       createdAt: Date.now(),
     };
 
     // 2. Add AI Mock Message (Cycled)
-    // Derive index from current AI message count for strict ordering across reloads
     const aiMessageCount = blocks.filter(m => m.role === 'ai').length;
     const mockData = MARKDOWN_MOCK_DATA[aiMessageCount % MARKDOWN_MOCK_DATA.length];
 
     const aiMsg: WorkflowBlock = {
       ...mockData,
-      id: `ai-${Date.now()}`, // Unique ID
+      id: `ai-${Date.now()}`,
     };
 
     setBlocks(prev => [...prev, userMsg, aiMsg]);
     setInputText('');
-  }, [inputText, mode, blocks]);
+    setPendingAttachments([]);
+  }, [inputText, mode, blocks, pendingAttachments]);
 
   const handleMessageUpdate = useCallback((id: string, newContent: string) => {
     const blockIndex = blocks.findIndex(b => b.id === id);
@@ -358,7 +362,7 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   }, []);
 
   // 判断是否显示回到底部按钮
-  const showScrollToBottom = isKeyboardVisible && scrollOffset > 50;
+  const showScrollToBottom = isKeyboardVisible && scrollOffset > 50 && pendingAttachments.length === 0;
 
   return (
     <View style={{ flex: 1, backgroundColor: bgColor }}>
@@ -402,6 +406,8 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
               value={inputText}
               onChangeText={setInputText}
               onSubmit={handleSubmit}
+              attachments={pendingAttachments}
+              onAttachmentsChange={setPendingAttachments}
               onPressInRecord={handleRecordPressIn}
               onPressOutRecord={handleRecordPressOut}
               onCancelRecord={handleRecordCancel}

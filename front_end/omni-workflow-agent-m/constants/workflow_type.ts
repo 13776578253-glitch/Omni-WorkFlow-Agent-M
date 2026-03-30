@@ -15,15 +15,29 @@ export interface WorkflowFileRef {
   url?: string;                          // 文件 URL / 后端返回的下载/预览链接
   path?: string;                         // 本地文件路径
   mimeType?: string;                     // 文件类型
-  fileName: string;         
+  fileName: string;
+}
+
+// 附件类型（用于输入栏和消息显示）
+export interface WorkflowAttachment {
+  id: string;
+  type: 'image' | 'file';
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  localPath: string;
+  thumbnailUri?: string;
+  uploadStatus: 'pending' | 'uploading' | 'success' | 'error';
+  uploadProgress?: number;
 }
 
 // user block：文本或文件
 export interface WorkflowUserBlock {
-  id: string;               
-  role: 'user';             
+  id: string;
+  role: 'user';
   content: string;                       // 内容  / 输入文本
   fileRef?: WorkflowFileRef;             // 文件引用（可选）
+  attachments?: WorkflowAttachment[];    // 附件列表（可选）
   createdAt: number;                     // 创建时间（时间戳）
   editedByUser?: boolean;                // 是否被用户编辑（可选）
 

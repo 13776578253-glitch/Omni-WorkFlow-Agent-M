@@ -1,6 +1,8 @@
-import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 
 import { WorkflowMarkdownEditor } from '@/components/workflow/Workflow_Context_bin/Workflow_Markdown_Editor';
 import { WorkflowMarkdownRenderer } from '@/components/workflow/Workflow_Context_bin/Workflow_Markdown_Renderer';
@@ -52,7 +54,7 @@ interface WorkflowMessageItemProps {
 export function WorkflowMessageItem({ message, onUpdate, isFirstBlock, isLocked }: WorkflowMessageItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const isUser = message.role === 'user';
-  // 待修改同步 
+  // 待修改同步
   const userName = 'cpp'; 
 
   // 容器标识器 颜色 / 待处理
@@ -119,6 +121,24 @@ export function WorkflowMessageItem({ message, onUpdate, isFirstBlock, isLocked 
             <TouchableOpacity onPress={handleEdit} activeOpacity={0.8} style={styles.rendererContainer}>
               <WorkflowMarkdownRenderer content={message.content} align={isUser ? 'right' : 'left'} />
             </TouchableOpacity>
+          )}
+
+          {/* 附件容器 */}
+          {isUser && 'attachments' in message && message.attachments && message.attachments.length > 0 && (
+            <View style={styles.attachmentsContainer}>
+              {message.attachments.map((att) => (
+                <View key={att.id} style={styles.messageAttachmentItem}>
+                  {att.type === 'image' ? (
+                    <Image source={{ uri: att.thumbnailUri || att.localPath }} style={styles.messageAttachmentThumbnail} contentFit="cover" />
+                  ) : (
+                    <View style={styles.messageFileThumbnail}>
+                      <Ionicons name="document-outline" size={32} color="#666" />
+                      <Text style={styles.messageFileName} numberOfLines={1}>{att.fileName}</Text>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
           )}
         </View>
         
@@ -197,5 +217,35 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     fontStyle: 'italic',
     marginLeft: 4,
+  },
+  attachmentsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  messageAttachmentItem: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#F5F5F5',
+  },
+  messageAttachmentThumbnail: {
+    width: '100%',
+    height: '100%',
+  },
+  messageFileThumbnail: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 4,
+  },
+  messageFileName: {
+    fontSize: 10,
+    color: '#666',
+    marginTop: 2,
+    textAlign: 'center',
   },
 });
