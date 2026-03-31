@@ -168,3 +168,16 @@ export function getAIStatusText(status?: 'pending' | 'done' | 'error'): string {
   if (status === 'error') return '生成失败';
   return '';
 }
+
+// History Session 扩展（包含完整 workflow 数据）
+export interface ExtendedHistorySession {
+  id: string;
+  title: string;
+  createdAt: number;
+  isPinned: boolean;
+  previewText?: string;
+  workflowData?: {
+    blocks: WorkflowBlock[];
+    lastModified: number;
+  };
+}

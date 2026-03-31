@@ -19,10 +19,12 @@ import { WorkflowQuickActions, type QuickActionKey } from '@/components/workflow
 import { TOP_AREA_EXPANDED_HEIGHT, WorkflowTopArea } from '@/components/workflow/Workflow_Top_Area';
 import { selectThoughtChain } from '@/components/workflow/Workflow_Context_bin/Workflow_Status_Reminder_Data';
 
-// 待处理 
+// 待处理
 import { MARKDOWN_MOCK_DATA } from '@/components/workflow/Workflow_Context_bin/Workflow_Context_Data';
 import { WorkflowStorage } from '@/services/workflow/Workflow_Storage';
 import { createWorkflowUploadService } from '@/services/workflow/Workflow_Upload';
+import { SessionManager } from '@/services/workflow/Session_Manager';
+import * as HistoryStorage from '@/services/history/History_Storage';
 
 interface WorkflowScreenProps {
   setPagerScrollEnabled: (enabled: boolean) => void;
@@ -101,25 +103,31 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   const insets = useSafeAreaInsets();
   const bgColor = useThemeColor({}, 'background');
 
-  // 初始化 加载历史消息 / 测试逻辑
-  useEffect(() => {
-    const init = async () => {
-      const stored = await WorkflowStorage.loadMessages();
-      if (stored && stored.length > 0) {
-        setBlocks(stored);
-        setMode('document'); // 有历史消息则直接进入文档模式 / 测试逻辑
-      } else {
-        // 首次进入或无历史消息 / 可选：加载默认消息
-        // Optional: setBlocks(DEFAULT_INITIAL_MESSAGES);
-      }
-    };
-    init();
-  }, []);
+  // 初始化已移除，改用 useFocusEffect 统一处理
 
   // 保存消息变更 / 测试逻辑 / 待优化：节流、去重、增量保存等
   useEffect(() => {
     if (blocks.length > 0) {
-      WorkflowStorage.saveMessages(blocks);
+      const saveBlocks = async () => {
+        // 确保有 session ID，如果没有则创建
+        let sessionId = await SessionManager.getCurrentSessionId();
+        if (!sessionId) {
+          sessionId = `session-${Date.now()}`;
+          await SessionManager.setCurrentSessionId(sessionId);
+          await HistoryStorage.addSession({
+            id: sessionId,
+            title: '未命名对话',
+            createdAt: Date.now(),
+            isPinned: false,
+          });
+        }
+
+        await WorkflowStorage.saveMessages(blocks, sessionId);
+
+        // 同步到 history
+        await HistoryStorage.saveWorkflowData(sessionId, blocks);
+      };
+      saveBlocks();
     }
   }, [blocks]);
 
@@ -145,6 +153,25 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   useFocusEffect(
     useCallback(() => {
       void loadQuickActionNames();
+
+      // 重新加载当前 session 的数据
+      const reloadSession = async () => {
+        const sessionId = await SessionManager.getCurrentSessionId();
+        if (sessionId) {
+          const stored = await WorkflowStorage.loadMessages(sessionId);
+          if (stored && stored.length > 0) {
+            setBlocks(stored);
+            setMode('document');
+          } else {
+            setBlocks([]);
+            setMode('welcome');
+          }
+        } else {
+          setBlocks([]);
+          setMode('welcome');
+        }
+      };
+      void reloadSession();
     }, [loadQuickActionNames])
   );
 

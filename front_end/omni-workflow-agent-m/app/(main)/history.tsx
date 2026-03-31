@@ -1,6 +1,6 @@
 // app/(main)/history.tsx
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { useThemeContext } from '@/constants/Theme-Context';
 import { Colors } from '@/constants/theme';
@@ -10,13 +10,16 @@ import History_List from '@/components/history/History_List';
 
 // 历史页  / 删除会话/加载会话/重命名/置顶状态
 import { deleteSession, loadSessions, renameSession, togglePin, type HistorySession } from '@/services/history/History_Storage';
+import { SessionManager } from '@/services/workflow/Session_Manager';
+import { WorkflowStorage } from '@/services/workflow/Workflow_Storage';
 
 interface HistoryScreenProps {
   searchQuery?: string;
+  onSwitchToWorkflow?: () => void;
 }
 
 // 历史页  / 父组件传入 导航和搜索状态
-export default function HistoryScreen({ searchQuery = '' }: HistoryScreenProps) {
+export default function HistoryScreen({ searchQuery = '', onSwitchToWorkflow }: HistoryScreenProps) {
   const { effectiveColorScheme } = useThemeContext();
   const themeColors = Colors[effectiveColorScheme];
 
@@ -27,6 +30,7 @@ export default function HistoryScreen({ searchQuery = '' }: HistoryScreenProps) 
   // 显示状态
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     loadSessions().then(setSessions);
@@ -53,9 +57,24 @@ export default function HistoryScreen({ searchQuery = '' }: HistoryScreenProps) 
     setShowActionSheet(true);
   };
 
-  // 会话跳转 / 待修改
-  const handlePress = (_session: HistorySession) => {
-    // TODO: 实现跳转逻辑，传递 session.id 或其他标识
+  // 会话跳转
+  const handlePress = async (session: HistorySession) => {
+    setIsLoading(true);
+
+    await SessionManager.setCurrentSessionId(session.id);
+
+    if (session.workflowData?.blocks) {
+      await WorkflowStorage.saveMessages(session.workflowData.blocks, session.id);
+    } else {
+      await WorkflowStorage.clearMessages(session.id);
+    }
+
+    // 先切换页面，再关闭加载状态
+    onSwitchToWorkflow?.();
+
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 300);
   };
 
   // 操作回调 / 删除
@@ -108,10 +127,27 @@ export default function HistoryScreen({ searchQuery = '' }: HistoryScreenProps) 
         onRename={handleRename}
         onTogglePin={handleTogglePin}
       />
+
+      {/* 加载指示器 */}
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={themeColors.tint} />
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });

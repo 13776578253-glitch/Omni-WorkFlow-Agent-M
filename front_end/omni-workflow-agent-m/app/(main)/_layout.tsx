@@ -6,6 +6,9 @@ import { useSharedValue } from 'react-native-reanimated';
 import { TopNavBar } from '@/components/core/top-navbar';
 import { Colors } from '@/constants/theme';
 import { useThemeContext } from '@/constants/Theme-Context';
+import { SessionManager } from '@/services/workflow/Session_Manager';
+import { WorkflowStorage } from '@/services/workflow/Workflow_Storage';
+import * as HistoryStorage from '@/services/history/History_Storage';
 
 import HistoryScreen from './history';
 import HomeScreen from './home';
@@ -120,6 +123,18 @@ export default function MainLayout() {
     pagerRef.current?.setPage(index);
   }, []);
 
+  // 处理新建 workflow
+  const handleNewWorkflow = useCallback(async () => {
+    await SessionManager.clearCurrentSessionId();
+    // 不需要清除旧 session 的数据，保留历史记录
+  }, []);
+
+  // 切换到工作流页面
+  const switchToWorkflow = useCallback(() => {
+    setActiveTabIndex(1);
+    pagerRef.current?.setPage(1);
+  }, []);
+
   const tabs = [
     { name: '首页', key: 'home' },
     { name: '工作流', key: 'workflow' },
@@ -150,7 +165,7 @@ export default function MainLayout() {
 
         {/* 历史 */}
         <View key="3" style={{ flex: 1, backgroundColor: themeColors.background }}>
-          <HistoryScreen searchQuery={searchQuery} />
+          <HistoryScreen searchQuery={searchQuery} onSwitchToWorkflow={switchToWorkflow} />
         </View>
 
       </PagerView>
@@ -164,6 +179,7 @@ export default function MainLayout() {
         translateYCompensation={keyboardVisible ? navCompensation : 0}
         containerRef={topNavRef}
         onSearchSubmit={setSearchQuery}
+        onNewWorkflowPress={handleNewWorkflow}
       />
     </View>
   );

@@ -1,5 +1,6 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as historyApi from '@/api/history-api';
+import type { WorkflowBlock } from '@/constants/workflow_type';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = '@omni_history_sessions_v1';
 const AUTH_STORAGE_KEY = '@omni_workflow_user_auth_v1';
@@ -10,6 +11,10 @@ export interface HistorySession {
   createdAt: number;    // 创建时间戳
   isPinned: boolean;    // 置顶状态
   previewText?: string; // 预览文本（可选）
+  workflowData?: {      // 新增：完整 workflow 数据
+    blocks: WorkflowBlock[];
+    lastModified: number;
+  };
 }
 
 // 模拟数据 / 空值填充数据 / 测试
@@ -150,6 +155,17 @@ export async function deleteSession(id: string): Promise<HistorySession[]> {
   const updated = sessions.filter((s) => s.id !== id);
   await writeRaw(updated);
 
+  // 同步删除 workflow 数据（软删除）
+  const { SessionManager } = await import('@/services/workflow/Session_Manager');
+  const { WorkflowStorage } = await import('@/services/workflow/Workflow_Storage');
+  const currentSessionId = await SessionManager.getCurrentSessionId();
+  if (currentSessionId === id) {
+    await WorkflowStorage.clearMessages(id);
+    await SessionManager.clearCurrentSessionId();
+  } else {
+    await WorkflowStorage.clearMessages(id);
+  }
+
   // 如果已登录，同步到服务器
   const userId = await getUserId();
   if (userId) {
@@ -200,4 +216,15 @@ export async function togglePin(id: string): Promise<HistorySession[]> {
   }
 
   return updated;
+}
+
+// 保存 workflow 数据
+export async function saveWorkflowData(sessionId: string, blocks: WorkflowBlock[]): Promise<void> {
+  const sessions = await loadSessions();
+  const updated = sessions.map((s) =>
+    s.id === sessionId
+      ? { ...s, workflowData: { blocks, lastModified: Date.now() } }
+      : s
+  );
+  await writeRaw(updated);
 }
