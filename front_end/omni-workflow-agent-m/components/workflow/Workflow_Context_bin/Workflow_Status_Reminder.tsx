@@ -108,7 +108,7 @@ function LoadingIndicator() {
       <ActivityIndicator size="small" color={textColor + '60'} />
       <Text style={[styles.loadingText, { color: textColor + '60' }]}>正在生成...</Text>
     </View>
-  );
+  );     
 }
 
 const styles = StyleSheet.create({
