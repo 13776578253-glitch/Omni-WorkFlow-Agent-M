@@ -10,6 +10,7 @@ interface WorkflowStatusReminderProps {
   thoughtChain: ThoughtChain;
 }
 
+// 工作流状态提醒组件，展示思维链的执行步骤和状态
 export function WorkflowStatusReminder({ thoughtChain }: WorkflowStatusReminderProps) {
   const [visibleSteps, setVisibleSteps] = useState(0);
   const [showLoading, setShowLoading] = useState(false);
@@ -50,6 +51,7 @@ export function WorkflowStatusReminder({ thoughtChain }: WorkflowStatusReminderP
   );
 }
 
+// 单个步骤组件，根据步骤类型展示不同的样式和动画
 function StepItem({ step }: { step: ThoughtStep }) {
   const textColor = useThemeColor({}, 'text');
   const bgColor = useThemeColor({ light: '#F5F5F5', dark: '#2A2A2A' }, 'background');
@@ -77,6 +79,7 @@ function StepItem({ step }: { step: ThoughtStep }) {
   );
 }
 
+// 打字机效果文本组件，逐字显示文本内容
 function TypewriterText({ text, textColor, fadeAnim }: { text: string; textColor: string; fadeAnim: Animated.Value }) {
   const [displayText, setDisplayText] = useState('');
 
@@ -100,6 +103,7 @@ function TypewriterText({ text, textColor, fadeAnim }: { text: string; textColor
   );
 }
 
+// 加载指示器组件，显示正在生成的状态
 function LoadingIndicator() {
   const textColor = useThemeColor({}, 'text');
 
@@ -111,13 +115,42 @@ function LoadingIndicator() {
   );     
 }
 
+
 const styles = StyleSheet.create({
-  container: { marginBottom: 12, gap: 6 },
-  stepRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  pillContainer: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, alignSelf: 'flex-start' },
-  stepText: { fontSize: 13, lineHeight: 18, flexShrink: 1 },
-  textRow: { paddingVertical: 4 },
-  textContent: { fontSize: 13, lineHeight: 20 },
-  loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6 },
-  loadingText: { fontSize: 13 },
+  container: { 
+    marginBottom: 12, 
+    gap: 6
+  },
+  stepRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 8 
+  },
+  pillContainer: {
+    paddingHorizontal: 12, 
+    paddingVertical: 8, 
+    borderRadius: 16, 
+    alignSelf: 'flex-start' 
+  },
+  stepText: { 
+    fontSize: 13, 
+    lineHeight: 18, 
+    flexShrink: 1 
+  },
+  textRow: { 
+    paddingVertical: 4 
+  },
+  textContent: { 
+    fontSize: 13, 
+    lineHeight: 20 
+  },
+  loadingRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 8, 
+    paddingVertical: 6 
+  },
+  loadingText: { 
+    fontSize: 13 
+  },
 });
