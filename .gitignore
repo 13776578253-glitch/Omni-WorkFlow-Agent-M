@@ -1,3 +1,11 @@
 node_modules
 CLAUDE.md
 *.pt
+
+.env
+*.env
+
+.VSCodeCounter
+.vscode-test
+
+.gitignore
