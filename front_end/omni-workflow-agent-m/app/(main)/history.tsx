@@ -1,5 +1,6 @@
 // app/(main)/history.tsx
-import React, { useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { useThemeContext } from '@/constants/Theme-Context';
@@ -8,35 +9,36 @@ import { Colors } from '@/constants/theme';
 import History_ActionSheet from '@/components/history/History_ActionSheet';
 import History_List from '@/components/history/History_List';
 
-// 历史页  / 删除会话/加载会话/重命名/置顶状态
 import { deleteSession, loadSessions, renameSession, togglePin, type HistorySession } from '@/services/history/History_Storage';
 import { SessionManager } from '@/services/workflow/Session_Manager';
-import { WorkflowStorage } from '@/services/workflow/Workflow_Storage';
 
 interface HistoryScreenProps {
+  onOpenSession?: (sessionId: string) => Promise<void> | void;
+  refreshToken?: number;
   searchQuery?: string;
-  onSwitchToWorkflow?: () => void;
 }
 
-// 历史页  / 父组件传入 导航和搜索状态
-export default function HistoryScreen({ searchQuery = '', onSwitchToWorkflow }: HistoryScreenProps) {
+export default function HistoryScreen({ onOpenSession, refreshToken = 0, searchQuery = '' }: HistoryScreenProps) {
   const { effectiveColorScheme } = useThemeContext();
   const themeColors = Colors[effectiveColorScheme];
 
-  // 会话列表状态 / 存储/当前选中
   const [sessions, setSessions] = useState<HistorySession[]>([]);
   const [selectedSession, setSelectedSession] = useState<HistorySession | null>(null);
-
-  // 显示状态
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    loadSessions().then(setSessions);
-  }, []);
+  // 加载会话列表
+  useFocusEffect(
+    React.useCallback(() => {
+      void loadSessions().then(setSessions);
+    }, [])
+  );
 
-  // 搜索过滤 / 置顶优先 + 时间排序
+  React.useEffect(() => {
+    void loadSessions().then(setSessions);
+  }, [refreshToken]);
+
   const filtered = sessions
     .filter((s) => {
       if (!searchQuery) return true;
@@ -50,57 +52,47 @@ export default function HistoryScreen({ searchQuery = '', onSwitchToWorkflow }: 
       (a, b) =>
         (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0) || b.createdAt - a.createdAt
     );
-
-  // 会话操作 / 长按显示
+  
+  // 会话操作：打开、删除、重命名、置顶/取消置顶
   const handleLongPress = (session: HistorySession) => {
     setSelectedSession(session);
     setShowActionSheet(true);
   };
 
-  // 会话跳转
   const handlePress = async (session: HistorySession) => {
     setIsLoading(true);
-
-    await SessionManager.setCurrentSessionId(session.id);
-
-    if (session.workflowData?.blocks) {
-      await WorkflowStorage.saveMessages(session.workflowData.blocks, session.id);
+    if (onOpenSession) {
+      await onOpenSession(session.id);
     } else {
-      await WorkflowStorage.clearMessages(session.id);
+      await SessionManager.setCurrentSessionId(session.id);
     }
-
-    // 先切换页面，再关闭加载状态
-    onSwitchToWorkflow?.();
-
     setTimeout(() => {
       setIsLoading(false);
     }, 300);
   };
 
-  // 操作回调 / 删除
   const handleDelete = async (session: HistorySession) => {
     const updated = await deleteSession(session.id);
     setSessions(updated);
   };
 
-  // 重命名：直接在列表内联编辑
   const handleRename = (session: HistorySession) => {
     setEditingSessionId(session.id);
   };
 
-  // 重命名确认（回车提交）
   const handleRenameConfirm = async (session: HistorySession, newTitle: string) => {
+    // 乐观更新 UI，等待服务器响应后再更新列表 / 测试
+    const optimistic = sessions.map((s) => (s.id === session.id ? { ...s, title: newTitle } : s));
+    setSessions(optimistic);
     setEditingSessionId(null);
     const updated = await renameSession(session.id, newTitle);
     setSessions(updated);
   };
 
-  // 重命名取消（失焦取消）
   const handleRenameCancel = () => {
     setEditingSessionId(null);
   };
 
-  // 置顶/取消置顶
   const handleTogglePin = async (session: HistorySession) => {
     const updated = await togglePin(session.id);
     setSessions(updated);
@@ -108,7 +100,6 @@ export default function HistoryScreen({ searchQuery = '', onSwitchToWorkflow }: 
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-      {/* 历史会话列表 */}
       <History_List
         sessions={filtered}
         onPress={handlePress}
@@ -118,7 +109,6 @@ export default function HistoryScreen({ searchQuery = '', onSwitchToWorkflow }: 
         onRenameCancel={handleRenameCancel}
       />
 
-      {/* 操作表单 */}
       <History_ActionSheet
         session={selectedSession}
         visible={showActionSheet}

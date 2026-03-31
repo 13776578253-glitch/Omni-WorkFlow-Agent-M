@@ -1,7 +1,6 @@
 ﻿// app/(main)/workflow.tsx
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -27,6 +26,10 @@ import { SessionManager } from '@/services/workflow/Session_Manager';
 import * as HistoryStorage from '@/services/history/History_Storage';
 
 interface WorkflowScreenProps {
+  currentSessionId: string | null;
+  onHistoryChanged: () => void;
+  onSessionChange: (sessionId: string | null) => void;
+  resetToken: number;
   setPagerScrollEnabled: (enabled: boolean) => void;
 }
 
@@ -56,7 +59,13 @@ function detectModeFromInput(text: string): ActiveWorkflowMode {
   return value.includes('1') || recordingKeywords.some((word) => value.includes(word)) ? 'recording' : 'document';
 }
 
-export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreenProps) {
+export default function WorkflowScreen({
+  currentSessionId,
+  onHistoryChanged,
+  onSessionChange,
+  resetToken,
+  setPagerScrollEnabled,
+}: WorkflowScreenProps) {
   const [inputText, setInputText] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [mode, setMode] = useState<WorkflowMode>('welcome');
@@ -98,38 +107,24 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   const pendingReleaseActionRef = useRef<'send' | 'cancel' | null>(null);
   // 内容区域引用
   const contentAreaRef = useRef<WorkflowContentAreaRef>(null);
+  const isHydratingSessionRef = useRef(false);
+  const loadedSessionIdRef = useRef<string | null>(currentSessionId);
 
   // 安全区域 信息
   const insets = useSafeAreaInsets();
   const bgColor = useThemeColor({}, 'background');
 
   // 初始化已移除，改用 useFocusEffect 统一处理
-
-  // 保存消息变更 / 测试逻辑 / 待优化：节流、去重、增量保存等
   useEffect(() => {
-    if (blocks.length > 0) {
-      const saveBlocks = async () => {
-        // 确保有 session ID，如果没有则创建
-        let sessionId = await SessionManager.getCurrentSessionId();
-        if (!sessionId) {
-          sessionId = `session-${Date.now()}`;
-          await SessionManager.setCurrentSessionId(sessionId);
-          await HistoryStorage.addSession({
-            id: sessionId,
-            title: '未命名对话',
-            createdAt: Date.now(),
-            isPinned: false,
-          });
-        }
-
-        await WorkflowStorage.saveMessages(blocks, sessionId);
-
-        // 同步到 history
-        await HistoryStorage.saveWorkflowData(sessionId, blocks);
-      };
-      saveBlocks();
-    }
-  }, [blocks]);
+    setBlocks([]);
+    setMode('welcome');
+    setInputText('');
+    setPendingAttachments([]);
+    setFirstQuestionLocked(false);
+    setActiveQuickActionKey(null);
+    setIsAutoCompactLocked(false);
+    setScrollOffset(0);
+  }, [resetToken]);
 
   // 加载用户数据（如快捷操作名称和提示） / 测试逻辑
   const loadQuickActionNames = useCallback(async () => {
@@ -149,31 +144,48 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
     }
   }, []);
 
-  // 页面聚焦
-  useFocusEffect(
-    useCallback(() => {
-      void loadQuickActionNames();
+  useEffect(() => {
+    void loadQuickActionNames();
+  }, [loadQuickActionNames]);
 
-      // 重新加载当前 session 的数据
-      const reloadSession = async () => {
-        const sessionId = await SessionManager.getCurrentSessionId();
-        if (sessionId) {
-          const stored = await WorkflowStorage.loadMessages(sessionId);
-          if (stored && stored.length > 0) {
-            setBlocks(stored);
-            setMode('document');
-          } else {
-            setBlocks([]);
-            setMode('welcome');
-          }
-        } else {
-          setBlocks([]);
-          setMode('welcome');
-        }
-      };
-      void reloadSession();
-    }, [loadQuickActionNames])
-  );
+  useEffect(() => {
+    const reloadSession = async () => {
+      isHydratingSessionRef.current = true;
+      if (currentSessionId) {
+        const stored = await WorkflowStorage.loadMessages(currentSessionId);
+        setBlocks(stored ?? []);
+        setMode(stored && stored.length > 0 ? 'document' : 'welcome');
+        loadedSessionIdRef.current = currentSessionId;
+      } else {
+        setBlocks([]);
+        setMode('welcome');
+        setInputText('');
+        setPendingAttachments([]);
+        setFirstQuestionLocked(false);
+        setActiveQuickActionKey(null);
+        setIsAutoCompactLocked(false);
+        setScrollOffset(0);
+        loadedSessionIdRef.current = null;
+      }
+      isHydratingSessionRef.current = false;
+    };
+
+    void reloadSession();
+  }, [currentSessionId, resetToken]);
+
+  // 保存消息变更 / 测试逻辑 / 待优化：节流、去重、增量保存等
+  useEffect(() => {
+    if (!currentSessionId || blocks.length === 0) return;
+    if (isHydratingSessionRef.current) return;
+    if (loadedSessionIdRef.current !== currentSessionId) return;
+
+    const saveBlocks = async () => {
+      await WorkflowStorage.saveMessages(blocks, currentSessionId);
+      await HistoryStorage.saveWorkflowData(currentSessionId, blocks);
+    };
+
+    void saveBlocks();
+  }, [blocks, currentSessionId]);
 
   // 键盘监听
   useEffect(() => {
@@ -238,7 +250,7 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
   [waveTick]);
 
   // 消息提交 事件 / 复杂逻辑
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     const trimmed = inputText.trim();
     if (!trimmed && pendingAttachments.length === 0) return;
 
@@ -266,10 +278,29 @@ export default function WorkflowScreen({ setPagerScrollEnabled }: WorkflowScreen
       thoughtChain,
     } as WorkflowBlock;
 
-    setBlocks(prev => [...prev, userMsg, aiMsg]);
+    const nextBlocks = [...blocks, userMsg, aiMsg];
+
+    let sessionId = currentSessionId;
+    if (!sessionId) {
+      sessionId = `session-${Date.now()}`;
+      await SessionManager.setCurrentSessionId(sessionId);
+      await HistoryStorage.addSession({
+        id: sessionId,
+        title: '未命名对话',
+        createdAt: Date.now(),
+        isPinned: false,
+      });
+      await WorkflowStorage.saveMessages(nextBlocks, sessionId);
+      await HistoryStorage.saveWorkflowData(sessionId, nextBlocks);
+      loadedSessionIdRef.current = sessionId;
+      onSessionChange(sessionId);
+      onHistoryChanged();
+    }
+
+    setBlocks(nextBlocks);
     setInputText('');
     setPendingAttachments([]);
-  }, [inputText, mode, blocks, pendingAttachments]);
+  }, [blocks, currentSessionId, inputText, mode, onHistoryChanged, onSessionChange, pendingAttachments]);
 
   const handleMessageUpdate = useCallback((id: string, newContent: string) => {
     const blockIndex = blocks.findIndex(b => b.id === id);

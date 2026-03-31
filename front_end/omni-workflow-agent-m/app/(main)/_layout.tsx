@@ -5,86 +5,73 @@ import { useSharedValue } from 'react-native-reanimated';
 
 import { TopNavBar } from '@/components/core/top-navbar';
 import { Colors } from '@/constants/theme';
+
 import { useThemeContext } from '@/constants/Theme-Context';
 import { SessionManager } from '@/services/workflow/Session_Manager';
-import { WorkflowStorage } from '@/services/workflow/Workflow_Storage';
-import * as HistoryStorage from '@/services/history/History_Storage';
 
 import HistoryScreen from './history';
 import HomeScreen from './home';
 import WorkflowScreen from './workflow';
 
 export default function MainLayout() {
-  // const LOG_TAG = '[KB-Compensate]';  // 测试 导航栏位移 补偿
   const { effectiveColorScheme } = useThemeContext();
   const themeColors = Colors[effectiveColorScheme];
 
-  // 初始化 PagerView 引用和动画共享值
   const pagerRef = useRef<PagerView>(null);
   const scrollOffset = useSharedValue(0);
   const position = useSharedValue(0);
 
-  // 控制 PagerView 是否允许滑动
   const [pagerScrollEnabled, setPagerScrollEnabled] = useState(true);
   const [activeTabIndex, setActiveTabIndex] = useState(1);
-  const [searchQuery, setSearchQuery] = useState('');            // 历史页 搜索查询状态 / 测试
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentWorkflowSessionId, setCurrentWorkflowSessionId] = useState<string | null>(null);
+  const [historyRefreshToken, setHistoryRefreshToken] = useState(0);
+  const [workflowResetToken, setWorkflowResetToken] = useState(0);
   const ENABLE_PAGER_SWIPE = false;
 
-  // 初始化导航栏位移补偿相关变量
-  const topNavRef = useRef<any>(null);                           //  导航栏引用，用于测量位置
-  const navBaselineYRef = useRef<number | null>(null);           //  存储导航栏 “基准 Y 坐标”
-  const [keyboardVisible, setKeyboardVisible] = useState(false); //  标记键盘是否弹出
-  const [navCompensation, setNavCompensation] = useState(0);     //  最终的导航栏位移补偿值
+  const topNavRef = useRef<any>(null);
+  const navBaselineYRef = useRef<number | null>(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [navCompensation, setNavCompensation] = useState(0);
 
-  // 定义测量导航栏 Y 坐标的函数
   const measureTopNavY = useCallback((cb: (y: number) => void) => {
     const node = topNavRef.current;
     if (!node || typeof node.measureInWindow !== 'function') {
-      // console.log(`${LOG_TAG} measureTopNavY skipped: ref/measureInWindow unavailable`);
       return;
     }
     node.measureInWindow((_x: number, y: number) => cb(y));
   }, []);
 
-  // 监听 Android 键盘显隐事件，计算位移补偿
   useEffect(() => {
     if (Platform.OS !== 'android') return;
 
-    // 定义捕获导航栏基准位置的函数
     const captureBaseline = () => {
       requestAnimationFrame(() => {
         measureTopNavY((y) => {
           navBaselineYRef.current = y;
-          // console.log(`${LOG_TAG} baselineY=${y}`);
         });
       });
     };
 
-    captureBaseline();  // 初始化
+    // 初始化
+    captureBaseline();
 
     const showSub = Keyboard.addListener('keyboardDidShow', () => {
-      // console.log(`${LOG_TAG} keyboardDidShow`);
       setKeyboardVisible(true);
       requestAnimationFrame(() => {
         measureTopNavY((currentY) => {
           const baselineY = navBaselineYRef.current;
           if (baselineY == null) {
-            // console.log(`${LOG_TAG} baseline missing `);
             return;
           }
           const delta = baselineY - currentY;
           const compensation = delta > 0 ? delta : 0;
-          // console.log(
-          //   `${LOG_TAG} currentY=${currentY}, baselineY=${baselineY}, delta=${delta}, compensation=${compensation}`
-          // );
           setNavCompensation(compensation);
         });
       });
     });
 
-    // 监听键盘隐藏事件
     const hideSub = Keyboard.addListener('keyboardDidHide', () => {
-      // console.log(`${LOG_TAG} keyboardDidHide -> compensation reset`);
       setKeyboardVisible(false);
       setNavCompensation(0);
       captureBaseline();
@@ -96,19 +83,19 @@ export default function MainLayout() {
     };
   }, [measureTopNavY]);
 
-  // //  监听补偿值/键盘状态变化，打印最终应用的补偿值  / 测试
-  // useEffect(() => {
-  //   console.log(
-  //     `${LOG_TAG} applied translateYCompensation=${keyboardVisible ? navCompensation : 0}, keyboardVisible=${keyboardVisible}`
-  //   );
-  // }, [keyboardVisible, navCompensation]);
+  // 初始化当前会话 ID
+  useEffect(() => {
+    const initCurrentSession = async () => {
+      const sessionId = await SessionManager.getCurrentSessionId();
+      setCurrentWorkflowSessionId(sessionId);
+    };
+    void initCurrentSession();
+  }, []);
 
-  // 处理抽屉状态变化
   const handleDrawerState = useCallback((isActive: boolean) => {
     setPagerScrollEnabled(!isActive);
   }, []);
 
-  // 处理 PagerView 页面切换事件
   const onPageSelected = useCallback((e: any) => {
     const index = e.nativeEvent.position;
     setActiveTabIndex(index);
@@ -117,22 +104,32 @@ export default function MainLayout() {
     }
   }, []);
 
-  // 定义缓存化的回调函数  / 处理 tab 点击
+  // 加载会话列表
   const handleTabPress = useCallback((index: number) => {
     setActiveTabIndex(index);
     pagerRef.current?.setPage(index);
   }, []);
-
-  // 处理新建 workflow
+  
+  // 新建工作流
   const handleNewWorkflow = useCallback(async () => {
     await SessionManager.clearCurrentSessionId();
-    // 不需要清除旧 session 的数据，保留历史记录
-  }, []);
-
-  // 切换到工作流页面
-  const switchToWorkflow = useCallback(() => {
+    setCurrentWorkflowSessionId(null);
+    setWorkflowResetToken((prev) => prev + 1);
     setActiveTabIndex(1);
     pagerRef.current?.setPage(1);
+  }, []);
+
+  // 打开历史会话
+  const handleOpenWorkflowSession = useCallback(async (sessionId: string) => {
+    await SessionManager.setCurrentSessionId(sessionId);
+    setCurrentWorkflowSessionId(sessionId);
+    setActiveTabIndex(1);
+    pagerRef.current?.setPage(1);
+  }, []);
+
+  // 监听历史变更，刷新列表
+  const handleHistoryChanged = useCallback(() => {
+    setHistoryRefreshToken((prev) => prev + 1);
   }, []);
 
   const tabs = [
@@ -153,21 +150,27 @@ export default function MainLayout() {
           position.value = e.nativeEvent.position;
         }}
       >
-        {/* 首页 */}
         <View key="1" style={{ flex: 1, backgroundColor: themeColors.background }}>
           <HomeScreen onDrawerStateChange={handleDrawerState} />
         </View>
 
-        {/* 工作流 */}
         <View key="2" style={{ flex: 1, backgroundColor: themeColors.background }}>
-          <WorkflowScreen setPagerScrollEnabled={setPagerScrollEnabled} />
+          <WorkflowScreen
+            currentSessionId={currentWorkflowSessionId}
+            onHistoryChanged={handleHistoryChanged}
+            onSessionChange={setCurrentWorkflowSessionId}
+            resetToken={workflowResetToken}
+            setPagerScrollEnabled={setPagerScrollEnabled}
+          />
         </View>
 
-        {/* 历史 */}
         <View key="3" style={{ flex: 1, backgroundColor: themeColors.background }}>
-          <HistoryScreen searchQuery={searchQuery} onSwitchToWorkflow={switchToWorkflow} />
+          <HistoryScreen
+            onOpenSession={handleOpenWorkflowSession}
+            refreshToken={historyRefreshToken}
+            searchQuery={searchQuery}
+          />
         </View>
-
       </PagerView>
 
       <TopNavBar
