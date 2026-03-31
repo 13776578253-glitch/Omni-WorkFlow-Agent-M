@@ -15,6 +15,8 @@ export function WorkflowStatusReminder({ thoughtChain }: WorkflowStatusReminderP
   const [visibleSteps, setVisibleSteps] = useState(0);
   const [showLoading, setShowLoading] = useState(false);
 
+  const borderLeftColor = useThemeColor({ light: '#0a7ea4', dark: '#60A5FA' }, 'tint');
+
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
     let cumulativeDelay = 0;
@@ -41,7 +43,7 @@ export function WorkflowStatusReminder({ thoughtChain }: WorkflowStatusReminderP
   }, [thoughtChain]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { borderLeftColor }]}>
       {thoughtChain.steps.map((step, i) => {
         if (i >= visibleSteps) return null;
         return <StepItem key={step.id} step={step} />;
@@ -54,7 +56,7 @@ export function WorkflowStatusReminder({ thoughtChain }: WorkflowStatusReminderP
 // 单个步骤组件，根据步骤类型展示不同的样式和动画
 function StepItem({ step }: { step: ThoughtStep }) {
   const textColor = useThemeColor({}, 'text');
-  const bgColor = useThemeColor({ light: '#F5F5F5', dark: '#2A2A2A' }, 'background');
+  const iconColor = useThemeColor({ light: '#0a7ea4', dark: '#60A5FA' }, 'tint');
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -69,12 +71,10 @@ function StepItem({ step }: { step: ThoughtStep }) {
     return <TypewriterText text={step.text} textColor={textColor} fadeAnim={fadeAnim} />;
   }
 
-  const isPill = step.type === 'command' || step.type === 'summary';
-
   return (
-    <Animated.View style={[styles.stepRow, isPill && styles.pillContainer, isPill && { backgroundColor: bgColor }, { opacity: fadeAnim }]}>
-      {step.icon && <Ionicons name={step.icon as any} size={16} color={textColor + '60'} />}
-      <Text style={[styles.stepText, { color: textColor + (isPill ? '80' : '90') }]}>{step.text}</Text>
+    <Animated.View style={[styles.stepRow, { opacity: fadeAnim }]}>
+      {step.icon && <Ionicons name={step.icon as any} size={18} color={step.type === 'command' ? iconColor : textColor + 'CC'} />}
+      <Text style={[styles.stepText, { color: textColor + 'CC' }]}>{step.text}</Text>
     </Animated.View>
   );
 }
@@ -117,25 +117,21 @@ function LoadingIndicator() {
 
 
 const styles = StyleSheet.create({
-  container: { 
-    marginBottom: 12, 
-    gap: 6
+  container: {
+    marginBottom: 12,
+    gap: 8,
+    paddingLeft: 12,
+    borderLeftWidth: 4,
   },
-  stepRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    gap: 8 
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
   },
-  pillContainer: {
-    paddingHorizontal: 12, 
-    paddingVertical: 8, 
-    borderRadius: 16, 
-    alignSelf: 'flex-start' 
-  },
-  stepText: { 
-    fontSize: 13, 
-    lineHeight: 18, 
-    flexShrink: 1 
+  stepText: {
+    fontSize: 13,
+    lineHeight: 18,
+    flexShrink: 1
   },
   textRow: { 
     paddingVertical: 4 
