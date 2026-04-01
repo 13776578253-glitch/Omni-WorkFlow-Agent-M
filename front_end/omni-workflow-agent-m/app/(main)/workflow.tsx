@@ -75,8 +75,6 @@ export default function WorkflowScreen({
   // 测试
   // 块列表
   const [blocks, setBlocks] = useState<WorkflowBlock[]>([]);
-  // 首问锁定状态
-  const [firstQuestionLocked, setFirstQuestionLocked] = useState(false);
 
   const [quickActionNames, setQuickActionNames] = useState<QuickActionNames>(DEFAULT_QUICK_ACTION_NAMES);
   const [quickActionPrompts, setQuickActionPrompts] = useState<QuickActionPrompts>(DEFAULT_QUICK_ACTION_PROMPTS);
@@ -120,7 +118,6 @@ export default function WorkflowScreen({
     setMode('welcome');
     setInputText('');
     setPendingAttachments([]);
-    setFirstQuestionLocked(false);
     setActiveQuickActionKey(null);
     setIsAutoCompactLocked(false);
     setScrollOffset(0);
@@ -163,7 +160,6 @@ export default function WorkflowScreen({
         setMode('welcome');
         setInputText('');
         setPendingAttachments([]);
-        setFirstQuestionLocked(false);
         setActiveQuickActionKey(null);
         setIsAutoCompactLocked(false);
         setScrollOffset(0);
@@ -252,6 +248,32 @@ export default function WorkflowScreen({
     }),
   [waveTick]);
 
+  // 测试 / 可编辑用户块 ID 计算 / 待处理：编辑权限、首问锁定规则等
+  const editableUserBlockId = useMemo(() => {
+    for (let i = blocks.length - 1; i >= 0; i -= 1) {
+      if (blocks[i]?.role === 'user') {
+        return blocks[i].id;
+      }
+    }
+    return null;
+  }, [blocks]);
+
+  // 测试 / 构建 AI 块（使用循环的 mock 数据和简单的思维链选择逻辑） / 待处理：实际生成内容、思维链构建规则、性能优化等
+  const buildMockAIBlock = useCallback((userContent: string, sourceBlockId: string, aiSequenceIndex: number): WorkflowBlock => {
+    const mockData = MARKDOWN_MOCK_DATA[aiSequenceIndex % MARKDOWN_MOCK_DATA.length];
+    const thoughtChain = selectThoughtChain(userContent.trim());
+
+    return {
+      ...mockData,
+      id: `ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      sourceBlockId,
+      thoughtChain,
+      thoughtChainAnimationPlayed: false,
+      messageAnimationPlayed: false,
+      editedByUser: false,
+    } as WorkflowBlock;
+  }, []);
+
   // 消息提交 事件 / 复杂逻辑
   const handleSubmit = useCallback(async () => {
     const trimmed = inputText.trim();
@@ -271,15 +293,7 @@ export default function WorkflowScreen({
 
     // Add AI Mock Message (Cycled)
     const aiMessageCount = blocks.filter(m => m.role === 'ai').length;
-    const mockData = MARKDOWN_MOCK_DATA[aiMessageCount % MARKDOWN_MOCK_DATA.length];
-
-    const thoughtChain = selectThoughtChain(trimmed);
-
-    const aiMsg: WorkflowBlock = {
-      ...mockData,
-      id: `ai-${Date.now()}`,
-      thoughtChain,
-    } as WorkflowBlock;
+    const aiMsg = buildMockAIBlock(trimmed, userMsg.id, aiMessageCount);
 
     const nextBlocks = [...blocks, userMsg, aiMsg];
 
@@ -303,48 +317,88 @@ export default function WorkflowScreen({
     setBlocks(nextBlocks);
     setInputText('');
     setPendingAttachments([]);
-  }, [blocks, currentSessionId, inputText, mode, onHistoryChanged, onSessionChange, pendingAttachments]);
+  }, [blocks, buildMockAIBlock, currentSessionId, inputText, mode, onHistoryChanged, onSessionChange, pendingAttachments]);
 
-  // 消息编辑 事件 / 待处理：编辑权限、生成触发、首问锁定规则等
-  // 待处理 / AI可编辑，用户只有最后一个块可编辑，且编辑后锁定首问，禁止删除首问
+  // 消息编辑 事件 / 编辑权限、生成触发、首问锁定规则等
   const handleMessageUpdate = useCallback((id: string, newContent: string) => {
     const blockIndex = blocks.findIndex(b => b.id === id);
     if (blockIndex === -1) return;
 
     const block = blocks[blockIndex];
 
-    // 编辑首块 / user 块
-    if (blockIndex === 0 && block.role === 'user') {
-      const updatedBlock = { ...block, content: newContent };
-      setBlocks([updatedBlock]);
-      // TODO: 触发重新生成
-      return;
-    }
-
     // 编辑 AI 块
     if (block.role === 'ai') {
-      const updatedBlock = { ...block, content: newContent, editedByUser: true };
+      const updatedBlock = {
+        ...block,
+        content: newContent,
+        editedByUser: true,
+        thoughtChainAnimationPlayed: true,
+        messageAnimationPlayed: true,
+      };
       const newBlocks = [...blocks];
       newBlocks[blockIndex] = updatedBlock;
       setBlocks(newBlocks);
-
-      // 检查是否需要锁定首问
-      if (block.sourceBlockId === blocks[0]?.id) {
-        setFirstQuestionLocked(true);
-      }
-
-      // TODO: 触发追加生成
       return;
     }
 
-    //  编辑非首块 / user 块
+    // 编辑用户块（仅限最后一个） / 编辑后替换当前轮 AI 结果
     if (block.role === 'user') {
-      const updatedBlock = { ...block, content: newContent };
-      const newBlocks = [...blocks];
-      newBlocks[blockIndex] = updatedBlock;
-      setBlocks(newBlocks);
+      if (block.id !== editableUserBlockId) {
+        return;
+      }
+
+      const updatedUserBlock: WorkflowBlock = {
+        ...block,
+        content: newContent,
+        editedByUser: true,
+        attachments: block.attachments,
+        fileRef: block.fileRef,
+      };
+
+      const linkedAiIndex = blocks.findIndex(
+        (candidate, index) => index > blockIndex && candidate.role === 'ai' && candidate.sourceBlockId === block.id
+      );
+
+      const aiSequenceIndex = linkedAiIndex >= 0
+        ? Math.max(0, blocks.slice(0, linkedAiIndex + 1).filter((candidate) => candidate.role === 'ai').length - 1)
+        : blocks.filter((candidate) => candidate.role === 'ai').length;
+
+      const regeneratedAIBlock = buildMockAIBlock(newContent, block.id, aiSequenceIndex);
+      const nextBlocks = [...blocks];
+      nextBlocks[blockIndex] = updatedUserBlock;
+
+      if (linkedAiIndex >= 0) {
+        nextBlocks.splice(linkedAiIndex, 1, regeneratedAIBlock);
+      } else {
+        nextBlocks.splice(blockIndex + 1, 0, regeneratedAIBlock);
+      }
+
+      setBlocks(nextBlocks);
     }
-  }, [blocks]);
+  }, [blocks, buildMockAIBlock, editableUserBlockId]);
+
+  // 演示状态变更 事件 / 待处理：实际生成状态、错误处理、动画控制等
+  const handlePresentationStateChange = useCallback((id: string, patch: Partial<WorkflowBlock>) => {
+    setBlocks((prev) => {
+      let changed = false;
+
+      const next = prev.map((block) => {
+        if (block.id !== id) {
+          return block;
+        }
+
+        const merged = { ...block, ...patch } as WorkflowBlock;
+        const hasDiff = Object.keys(patch).some((key) => (block as any)[key] !== (merged as any)[key]);
+        if (hasDiff) {
+          changed = true;
+          return merged;
+        }
+        return block;
+      });
+
+      return changed ? next : prev;
+    });
+  }, []);
 
   // 快捷操作 事件
   const handleQuickAction = useCallback((key: QuickActionKey) => {
@@ -443,7 +497,9 @@ export default function WorkflowScreen({
           contentPaddingTop={mode === 'recording' ? topAreaHeight + TOP_AREA_OFFSET : undefined}
           onScrollOffsetChange={handleContentScroll}
           onBlockSave={handleMessageUpdate}
-          firstQuestionLocked={firstQuestionLocked}
+          editableUserBlockId={editableUserBlockId}
+          // 待处理 / 测试
+          onPresentationStateChange={handlePresentationStateChange}
         />
         <View style={styles.topAreaDock}>
           <WorkflowTopArea

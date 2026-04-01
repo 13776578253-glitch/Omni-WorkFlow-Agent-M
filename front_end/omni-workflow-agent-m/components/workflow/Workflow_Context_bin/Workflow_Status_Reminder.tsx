@@ -8,18 +8,36 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 
 interface WorkflowStatusReminderProps {
   thoughtChain: ThoughtChain;
+  hasPlayed?: boolean;
+  onAnimationStart?: () => void;
+  onComplete?: () => void;
 }
 
 // 工作流状态提醒组件，展示思维链的执行步骤和状态
-export function WorkflowStatusReminder({ thoughtChain }: WorkflowStatusReminderProps) {
-  const [visibleSteps, setVisibleSteps] = useState(0);
+export function WorkflowStatusReminder({ thoughtChain, hasPlayed = false, onAnimationStart, onComplete }: WorkflowStatusReminderProps) {
+  const [shouldAnimate] = useState(!hasPlayed);
+  const [visibleSteps, setVisibleSteps] = useState(shouldAnimate ? 0 : thoughtChain.steps.length);
   const [showLoading, setShowLoading] = useState(false);
+  const startedRef = useRef(false);
+  const completedRef = useRef(false);
 
   const borderLeftColor = useThemeColor({ light: '#0a7ea4', dark: '#60A5FA' }, 'tint');
 
   useEffect(() => {
+    if (!shouldAnimate) {
+      setVisibleSteps(thoughtChain.steps.length);
+      setShowLoading(false);
+      return;
+    }
+
     const timers: ReturnType<typeof setTimeout>[] = [];
     let cumulativeDelay = 0;
+    completedRef.current = false;
+
+    if (!startedRef.current) {
+      startedRef.current = true;
+      onAnimationStart?.();
+    }
 
     thoughtChain.steps.forEach((step, i) => {
       const prevStep = i > 0 ? thoughtChain.steps[i - 1] : null;
@@ -39,14 +57,22 @@ export function WorkflowStatusReminder({ thoughtChain }: WorkflowStatusReminderP
       }
     });
 
+    timers.push(setTimeout(() => {
+      setShowLoading(false);
+      if (!completedRef.current) {
+        completedRef.current = true;
+        onComplete?.();
+      }
+    }, cumulativeDelay + 50));
+
     return () => timers.forEach(clearTimeout);
-  }, [thoughtChain]);
+  }, [onAnimationStart, onComplete, shouldAnimate, thoughtChain]);
 
   return (
     <View style={[styles.container, { borderLeftColor }]}>
       {thoughtChain.steps.map((step, i) => {
         if (i >= visibleSteps) return null;
-        return <StepItem key={step.id} step={step} />;
+        return <StepItem key={step.id} step={step} shouldAnimate={shouldAnimate} />;
       })}
       {showLoading && <LoadingIndicator />}
     </View>
@@ -54,7 +80,7 @@ export function WorkflowStatusReminder({ thoughtChain }: WorkflowStatusReminderP
 }
 
 // 单个步骤组件，根据步骤类型展示不同的样式和动画
-function StepItem({ step }: { step: ThoughtStep }) {
+function StepItem({ step, shouldAnimate }: { step: ThoughtStep; shouldAnimate: boolean }) {
   const textColor = useThemeColor({}, 'text');
   const iconColor = useThemeColor({ light: '#0a7ea4', dark: '#60A5FA' }, 'tint');
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -68,7 +94,7 @@ function StepItem({ step }: { step: ThoughtStep }) {
   }, [fadeAnim]);
 
   if (step.type === 'text') {
-    return <TypewriterText text={step.text} textColor={textColor} fadeAnim={fadeAnim} />;
+    return <TypewriterText text={step.text} textColor={textColor} fadeAnim={fadeAnim} shouldAnimate={shouldAnimate} />;
   }
 
   return (
@@ -80,10 +106,25 @@ function StepItem({ step }: { step: ThoughtStep }) {
 }
 
 // 打字机效果文本组件，逐字显示文本内容
-function TypewriterText({ text, textColor, fadeAnim }: { text: string; textColor: string; fadeAnim: Animated.Value }) {
-  const [displayText, setDisplayText] = useState('');
+function TypewriterText({
+  text,
+  textColor,
+  fadeAnim,
+  shouldAnimate,
+}: {
+  text: string;
+  textColor: string;
+  fadeAnim: Animated.Value;
+  shouldAnimate: boolean;
+}) {
+  const [displayText, setDisplayText] = useState(shouldAnimate ? '' : text);
 
   useEffect(() => {
+    if (!shouldAnimate) {
+      setDisplayText(text);
+      return;
+    }
+
     let index = 0;
     const timer = setInterval(() => {
       if (index < text.length) {
@@ -94,7 +135,7 @@ function TypewriterText({ text, textColor, fadeAnim }: { text: string; textColor
       }
     }, 40);
     return () => clearInterval(timer);
-  }, [text]);
+  }, [shouldAnimate, text]);
 
   return (
     <Animated.View style={[styles.textRow, { opacity: fadeAnim }]}>

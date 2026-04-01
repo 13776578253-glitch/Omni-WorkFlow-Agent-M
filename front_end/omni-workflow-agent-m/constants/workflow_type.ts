@@ -89,6 +89,8 @@ export interface WorkflowAIBlock {
   editedByUser?: boolean;                // 是否被用户编辑（可选） / 测试
   status?: 'pending' | 'done' | 'error'; // 状态 / 生成状态
   thoughtChain?: ThoughtChain;           // 思维链（可选）
+  thoughtChainAnimationPlayed?: boolean; // 思维链动画是否已播过
+  messageAnimationPlayed?: boolean;      // 正文动画是否已播过
 }
 
 // 测试

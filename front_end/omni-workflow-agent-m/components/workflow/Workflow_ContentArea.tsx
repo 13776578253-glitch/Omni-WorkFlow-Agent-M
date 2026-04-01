@@ -24,11 +24,12 @@ interface WorkflowContentAreaProps {
   contentPaddingTop?: number;                             // 内容顶部内边距
   onScrollOffsetChange?: (offsetY: number) => void;       // 滚动偏移量
   onBlockSave?: (id: string, newContent: string) => void; // 块保存回调
-  firstQuestionLocked?: boolean;                          // 首问锁定状态
+  onPresentationStateChange?: (id: string, patch: Partial<WorkflowBlock>) => void;
+  editableUserBlockId?: string | null;                    // 当前允许编辑的用户块
 }
 
 export const WorkflowContentArea = forwardRef<WorkflowContentAreaRef, WorkflowContentAreaProps>((
-  { mode, messages, contentPaddingTop, onScrollOffsetChange, onBlockSave, firstQuestionLocked },
+  { mode, messages, contentPaddingTop, onScrollOffsetChange, onBlockSave, onPresentationStateChange, editableUserBlockId },
   ref
 ) => {
   const bgColor = useThemeColor({}, 'background');
@@ -50,7 +51,8 @@ export const WorkflowContentArea = forwardRef<WorkflowContentAreaRef, WorkflowCo
         onScrollOffsetChange={onScrollOffsetChange}
         // 块保存回调
         onBlockSave={onBlockSave}
-        firstQuestionLocked={firstQuestionLocked}
+        onPresentationStateChange={onPresentationStateChange}
+        editableUserBlockId={editableUserBlockId}
       />
     </View>
   );

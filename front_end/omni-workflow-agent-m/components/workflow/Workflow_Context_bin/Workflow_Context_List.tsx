@@ -12,7 +12,8 @@ interface WorkflowContextListProps {
   contentPaddingTop?: number;                               // 内容顶部内边距
   onScrollOffsetChange?: (offsetY: number) => void;         // 滚动偏移量
   onBlockSave?: (id: string, newContent: string) => void;   // 块保存回调
-  firstQuestionLocked?: boolean;                            // 首问锁定状态
+  onPresentationStateChange?: (id: string, patch: Partial<WorkflowBlock>) => void;
+  editableUserBlockId?: string | null;                      // 当前允许编辑的用户块
 }
 
 export interface WorkflowContextListRef {
@@ -21,7 +22,7 @@ export interface WorkflowContextListRef {
 
 // 工作流上下文消息列表组件
 export const WorkflowContextList = forwardRef<WorkflowContextListRef, WorkflowContextListProps>((
-  { messages = DEFAULT_INITIAL_MESSAGES, contentPaddingTop, onScrollOffsetChange, onBlockSave, firstQuestionLocked = false },
+  { messages = DEFAULT_INITIAL_MESSAGES, contentPaddingTop, onScrollOffsetChange, onBlockSave, onPresentationStateChange, editableUserBlockId = null },
   ref
 ) => {
   const bgColor = useThemeColor({}, 'background');
@@ -63,8 +64,8 @@ export const WorkflowContextList = forwardRef<WorkflowContextListRef, WorkflowCo
         <WorkflowMessageItem
           message={item}
           onUpdate={handleUpdateMessage}
-          isFirstBlock={index === 0}
-          isLocked={firstQuestionLocked}
+          onPresentationStateChange={onPresentationStateChange}
+          canEdit={item.role === 'ai' || item.id === editableUserBlockId}
         />
       )}
       // 分隔线组件

@@ -1,5 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { WorkflowBlock } from '@/constants/workflow_type';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY_PREFIX = '@omni_workflow_chat_history_v1';
 
@@ -33,6 +33,15 @@ export const WorkflowStorage = {
         ...item,
         content: item.content || item.text || '',
         createdAt: item.createdAt || Date.now(),
+        // 对于 AI 消息，如果动画状态字段不存在，则默认认为动画已播放（兼容旧数据）
+        thoughtChainAnimationPlayed:
+          item.role === 'ai'
+            ? (typeof item.thoughtChainAnimationPlayed === 'boolean' ? item.thoughtChainAnimationPlayed : true)
+            : item.thoughtChainAnimationPlayed,
+        messageAnimationPlayed:
+          item.role === 'ai'
+            ? (typeof item.messageAnimationPlayed === 'boolean' ? item.messageAnimationPlayed : true)
+            : item.messageAnimationPlayed,
       }));
     } catch (e) {
       console.error('Failed to load blocks', e);
