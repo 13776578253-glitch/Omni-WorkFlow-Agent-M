@@ -13,17 +13,17 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 
 import { WorkflowRecordingOverlay } from '@/components/ui/workflow-recording-overlay';
 import { WorkflowContentArea, type WorkflowContentAreaRef } from '@/components/workflow/Workflow_ContentArea';
+import { selectThoughtChain } from '@/components/workflow/Workflow_Context_bin/Workflow_Status_Reminder_Data';
 import { WorkflowInputBar } from '@/components/workflow/Workflow_InputBar';
 import { WorkflowQuickActions, type QuickActionKey } from '@/components/workflow/Workflow_QuickActions';
 import { TOP_AREA_EXPANDED_HEIGHT, WorkflowTopArea } from '@/components/workflow/Workflow_Top_Area';
-import { selectThoughtChain } from '@/components/workflow/Workflow_Context_bin/Workflow_Status_Reminder_Data';
 
 // 待处理
 import { MARKDOWN_MOCK_DATA } from '@/components/workflow/Workflow_Context_bin/Workflow_Context_Data';
+import * as HistoryStorage from '@/services/history/History_Storage';
+import { SessionManager } from '@/services/workflow/Session_Manager';
 import { WorkflowStorage } from '@/services/workflow/Workflow_Storage';
 import { createWorkflowUploadService } from '@/services/workflow/Workflow_Upload';
-import { SessionManager } from '@/services/workflow/Session_Manager';
-import * as HistoryStorage from '@/services/history/History_Storage';
 
 interface WorkflowScreenProps {
   currentSessionId: string | null;
@@ -144,10 +144,12 @@ export default function WorkflowScreen({
     }
   }, []);
 
+  // 测试 / 快捷操作名称加载
   useEffect(() => {
     void loadQuickActionNames();
   }, [loadQuickActionNames]);
-
+  
+  // 加载会话数据 / 测试逻辑 / 待优化：节流、去重、增量加载等
   useEffect(() => {
     const reloadSession = async () => {
       isHydratingSessionRef.current = true;
@@ -235,6 +237,7 @@ export default function WorkflowScreen({
     }
   }, [isAutoCompactLocked, mode]);
 
+  // 测试 / 录音波形数据计算 / 待处理：实际音频数据、性能优化、样式调整等
   const recordingDots = useMemo(() => 
     Array.from({ length: RECORD_DOT_COUNT }).map((_, index) => {
       const centerIndex = (RECORD_DOT_COUNT - 1) / 2;
@@ -257,7 +260,7 @@ export default function WorkflowScreen({
     const nextMode = detectModeFromInput(trimmed);
     if (mode === 'welcome') setMode(nextMode);
 
-    // 1. Add User Message
+    // Add User Message
     const userMsg: WorkflowBlock = {
       id: `user-${Date.now()}`,
       role: 'user',
@@ -266,7 +269,7 @@ export default function WorkflowScreen({
       createdAt: Date.now(),
     };
 
-    // 2. Add AI Mock Message (Cycled)
+    // Add AI Mock Message (Cycled)
     const aiMessageCount = blocks.filter(m => m.role === 'ai').length;
     const mockData = MARKDOWN_MOCK_DATA[aiMessageCount % MARKDOWN_MOCK_DATA.length];
 
@@ -302,13 +305,15 @@ export default function WorkflowScreen({
     setPendingAttachments([]);
   }, [blocks, currentSessionId, inputText, mode, onHistoryChanged, onSessionChange, pendingAttachments]);
 
+  // 消息编辑 事件 / 待处理：编辑权限、生成触发、首问锁定规则等
+  // 待处理 / AI可编辑，用户只有最后一个块可编辑，且编辑后锁定首问，禁止删除首问
   const handleMessageUpdate = useCallback((id: string, newContent: string) => {
     const blockIndex = blocks.findIndex(b => b.id === id);
     if (blockIndex === -1) return;
 
     const block = blocks[blockIndex];
 
-    // 规则1: 编辑首块 / user 块
+    // 编辑首块 / user 块
     if (blockIndex === 0 && block.role === 'user') {
       const updatedBlock = { ...block, content: newContent };
       setBlocks([updatedBlock]);
@@ -316,7 +321,7 @@ export default function WorkflowScreen({
       return;
     }
 
-    // 规则2: 编辑 AI 块
+    // 编辑 AI 块
     if (block.role === 'ai') {
       const updatedBlock = { ...block, content: newContent, editedByUser: true };
       const newBlocks = [...blocks];
@@ -332,7 +337,7 @@ export default function WorkflowScreen({
       return;
     }
 
-    // 规则3: 编辑非首块 / user 块
+    //  编辑非首块 / user 块
     if (block.role === 'user') {
       const updatedBlock = { ...block, content: newContent };
       const newBlocks = [...blocks];
@@ -371,6 +376,7 @@ export default function WorkflowScreen({
     // handleSubmit();
   }, []);
 
+  // 录音按钮按下 事件 / 待拆分
   const handleRecordPressIn = useCallback(async () => {
     setIsSlideCancelPreview(false);
     setIsPressRecording(true);
@@ -494,7 +500,7 @@ export default function WorkflowScreen({
         {/* 滚动到底部按钮 */}
         {showScrollToBottom && (
           <TouchableOpacity
-            // todo: 进一步适配不同输入栏高度和安全区域变化 / 上传文件后滚动按钮隐藏
+            // 适配不同输入栏高度和安全区域变化 / 上传文件后滚动按钮隐藏
             style={[styles.scrollToBottomButton, { bottom: inputBarMarginBottom + 122 }]}
             onPress={handleScrollToBottom}
             activeOpacity={0.8}

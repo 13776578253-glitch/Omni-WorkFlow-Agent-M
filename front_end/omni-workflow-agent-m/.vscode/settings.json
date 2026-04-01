@@ -6,5 +6,21 @@
   },
   "editor.fontSize": 14,
   "editor.hover.sticky": false,
-  "editor.hover.enabled": "off"
+  "editor.hover.enabled": "off",
+  // "terminal.integrated.profiles.windows": {
+  //   "PowerShell": {
+  //     "source": "PowerShell",
+  //     "icon": "terminal-powershell",
+  //     "args": ["-NoExit", "-Command", "chcp 65001"]
+  //   }
+  // },
+  "files.encoding": "utf8",
+  "files.autoGuessEncoding": false,
+  "terminal.integrated.defaultProfile.windows": "PowerShell 7",
+  "terminal.integrated.profiles.windows": {
+    "PowerShell 7": {
+        "path": "pwsh.exe", 
+        "icon": "terminal-powershell"
+    }
+  }
 }

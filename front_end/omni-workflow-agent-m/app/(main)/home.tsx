@@ -196,7 +196,6 @@ export default function HomeScreen({ onDrawerStateChange }: HomeScreenProps) {
             {/* /测试/  */}
             {/* <View style={[styles.lightAvatar, { backgroundColor: cardColor }]} /> */}
             {/* 顶层 模块 */}
-            {/* <HomeContent /> */}
             <HomeContent translateY={translateY} />
           </Animated.View>
 

@@ -5,7 +5,8 @@ import type { WorkflowBlock } from '@/constants/workflow_type';
 // 仅使用 content 字段，后续如果需要区分不同格式（如纯文本、富文本、Markdown等），可以考虑增加一个字段来标识内容类型，例如 contentType: 'markdown' | 'text' | 'html' 等，以便在渲染时进行不同的处理。
 // 没有使用到 WorkflowUserBlock 和 WorkflowAIBlock 的特定字段
 
-// 供循环使用的 Mock 数据源
+// 供循环使用的 Mock 数据源 
+// 可能错误的逻辑 / 待修改 
 export const MARKDOWN_MOCK_DATA: WorkflowBlock[] = [
   {
     id: 'mock-1',
