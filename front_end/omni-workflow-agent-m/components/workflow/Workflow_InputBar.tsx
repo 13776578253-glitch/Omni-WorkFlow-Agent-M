@@ -7,12 +7,19 @@ import { Image } from 'expo-image';
 import { WorkflowFileUpload } from '@/components/workflow/Workflow_file upload';
 import type {
   WorkflowAttachment,
+  WorkflowPendingLongAudioInput,
   WorkflowRecordedAudioPreview,
   WorkflowRecordingSession,
 } from '@/constants/workflow_type';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { pickWorkflowCameraImage } from '@/services/workflow/Workflow_Camera';
 import { createWorkflowUploadService } from '@/services/workflow/Workflow_Upload';
+import { getWorkflowAudioDurationMs } from '@/services/workflow/Workflow_audio_read';
+import {
+  DEFAULT_LONG_AUDIO_PROMPT,
+  inferWorkflowAudioMimeType,
+  isWorkflowAudioFile,
+} from '@/services/workflow/Workflow_audio_utils';
 import { uploadAttachmentToBackend } from '@/services/workflow/Workflow_Upload_Backend';
 import { pickWorkflowUploadFile } from '@/services/workflow/Workflow_upload_file';
 
@@ -31,7 +38,7 @@ interface WorkflowInputBarProps {
   attachments?: WorkflowAttachment[];
   onAttachmentsChange?: (attachments: WorkflowAttachment[]) => void;
   onLongRecordAudioReady?: (audio: WorkflowRecordedAudioPreview) => void;
-  onLongRecordComplete?: (transcriptText: string) => void;
+  onLongAudioInputReady?: (audio: WorkflowPendingLongAudioInput) => void;
   hasRecordedAudioPreview?: boolean;
   onClearRecordedAudioPreview?: () => void;
 }
@@ -51,7 +58,7 @@ export function WorkflowInputBar({
   attachments = [],
   onAttachmentsChange,
   onLongRecordAudioReady,
-  onLongRecordComplete,
+  onLongAudioInputReady,
   hasRecordedAudioPreview = false,
   onClearRecordedAudioPreview,
 }: WorkflowInputBarProps) {
@@ -61,6 +68,7 @@ export function WorkflowInputBar({
   const inactiveSendBorderColor = useThemeColor({ light: 'rgba(128,128,128,0.2)', dark: '#38383A' }, 'border');
   // 输入框文字数量 / 控制发送 UI
   const hasText = value.trim().length > 0;
+  const hasSubmitContent = hasText || hasRecordedAudioPreview;
 
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [isPressHolding, setIsPressHolding] = useState(false);
@@ -384,6 +392,28 @@ export function WorkflowInputBar({
     const mimeType = result.mimeType || 'application/octet-stream';
     const fileEntry = await WorkflowLocalFileStorage.saveFile(result.uri, fileName, mimeType);
 
+    if (isWorkflowAudioFile({ fileName, mimeType })) {
+      const durationMs = (await getWorkflowAudioDurationMs(fileEntry.localPath)) ?? 0;
+      onLongRecordAudioReady?.({
+        audioUri: fileEntry.localPath,
+        durationMs,
+        remoteAudioId: null,
+        sourceMode: 'long-form',
+      });
+      onLongAudioInputReady?.({
+        audioUri: fileEntry.localPath,
+        durationMs,
+        remoteAudioId: null,
+        sourceMode: 'long-form',
+        prompt: DEFAULT_LONG_AUDIO_PROMPT,
+        origin: 'uploaded-audio',
+        fileName: fileEntry.originalName,
+        mimeType: inferWorkflowAudioMimeType({ fileName, mimeType }),
+      });
+      handleCloseLongRecordSheet();
+      return;
+    }
+
     const attachment: WorkflowAttachment = {
       id: fileEntry.id,
       type: 'file',
@@ -440,7 +470,6 @@ export function WorkflowInputBar({
     const session = longRecordSessionRef.current;
     if (session?.phase === 'recording') {
       const stopped = await uploadServiceRef.current.stopPressRecording(session);
-      const promptText = '请整理这段长时录音的完整内容，提取重点并生成后续工作流结果。';
       const safeStoppedDurationMs =
         typeof stopped.durationMs === 'number' &&
         Number.isFinite(stopped.durationMs) &&
@@ -465,8 +494,17 @@ export function WorkflowInputBar({
           remoteAudioId: stopped.remoteAudioId ?? null,
           sourceMode: 'long-form',
         });
+        onLongAudioInputReady?.({
+          audioUri: stopped.localUrl,
+          durationMs: effectiveDurationMs,
+          remoteAudioId: stopped.remoteAudioId ?? null,
+          sourceMode: 'long-form',
+          prompt: DEFAULT_LONG_AUDIO_PROMPT,
+          origin: 'recorded',
+          fileName: `record-${Date.now()}.m4a`,
+          mimeType: 'audio/m4a',
+        });
       }
-      onLongRecordComplete?.(promptText);
     }
 
     setIsLongRecording(false);
@@ -576,8 +614,8 @@ export function WorkflowInputBar({
             <TouchableOpacity
               style={[
                 styles.sendIconCircle,
-                hasText ? styles.sendIconCircleActive : styles.sendIconCircleInactive,
-                hasText ? null :
+                hasSubmitContent ? styles.sendIconCircleActive : styles.sendIconCircleInactive,
+                hasSubmitContent ? null :
                     {
                       backgroundColor: inactiveSendBgColor,
                       borderColor: inactiveSendBorderColor,
@@ -591,7 +629,7 @@ export function WorkflowInputBar({
               <Ionicons
                 name="arrow-up"
                 size={18}
-                color={hasText ? '#FFFFFF' : textColor}
+                color={hasSubmitContent ? '#FFFFFF' : textColor}
               />
             </TouchableOpacity>
           </View>

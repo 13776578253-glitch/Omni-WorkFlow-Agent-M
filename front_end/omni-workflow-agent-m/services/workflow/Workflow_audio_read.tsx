@@ -14,6 +14,22 @@ interface UseAudioPlayerResult {
   loadAudio: (uri?: string | null, durationMs?: number | null) => Promise<void>;
 }
 
+function createAudioPlayerInstance(uri: string) {
+  const source = { uri };
+  try {
+    const AudioPlayerCtor = AudioModule.AudioPlayer as any;
+    return new AudioPlayerCtor(source, 100, false);
+  } catch {
+    try {
+      const AudioPlayerCtor = AudioModule.AudioPlayer as any;
+      return new AudioPlayerCtor(source, 100, false, 0);
+    } catch (secondaryError) {
+      console.error('Failed to create audio player:', secondaryError);
+      return null;
+    }
+  }
+}
+
 function buildPlaceholderWaveform(durationSeconds: number) {
   const normalizedDuration =
     Number.isFinite(durationSeconds) && durationSeconds > 0 ? durationSeconds : 12;
@@ -65,21 +81,7 @@ export function useAudioPlayer(): UseAudioPlayerResult {
     };
   }, [clearSyncTimer]);
 
-  const createPlayer = useCallback((uri: string) => {
-    const source = { uri };
-    try {
-      const AudioPlayerCtor = AudioModule.AudioPlayer as any;
-      return new AudioPlayerCtor(source, 100, false);
-    } catch (error) {
-      try {
-        const AudioPlayerCtor = AudioModule.AudioPlayer as any;
-        return new AudioPlayerCtor(source, 100, false, 0);
-      } catch (secondaryError) {
-        console.error('Failed to create audio player:', secondaryError);
-        return null;
-      }
-    }
-  }, []);
+  const createPlayer = useCallback((uri: string) => createAudioPlayerInstance(uri), []);
 
   const loadAudio = useCallback(async (uri?: string | null, durationMs?: number | null) => {
     clearSyncTimer();
@@ -190,4 +192,56 @@ export function useAudioPlayer(): UseAudioPlayerResult {
     seekTo,
     loadAudio,
   }), [audioData, currentTime, isLoading, isPlaying, loadAudio, seekTo, stopPlay, togglePlay, totalTime]);
+}
+
+export async function getWorkflowAudioDurationMs(uri?: string | null): Promise<number | null> {
+  if (!uri) {
+    return null;
+  }
+
+  try {
+    await setAudioModeAsync({
+      allowsRecording: false,
+      playsInSilentMode: true,
+      shouldPlayInBackground: false,
+      shouldRouteThroughEarpiece: false,
+    });
+
+    const player = createAudioPlayerInstance(uri);
+    if (!player) {
+      return null;
+    }
+
+    return await new Promise<number | null>((resolve) => {
+      let settled = false;
+
+      const finalize = (durationSeconds?: number | null) => {
+        if (settled) return;
+        settled = true;
+        const safeDurationMs =
+          typeof durationSeconds === 'number' &&
+          Number.isFinite(durationSeconds) &&
+          durationSeconds > 0
+            ? Math.round(durationSeconds * 1000)
+            : null;
+        player.remove();
+        resolve(safeDurationMs);
+      };
+
+      const firstTimer = setTimeout(() => {
+        const duration = player.duration;
+        if (typeof duration === 'number' && Number.isFinite(duration) && duration > 0) {
+          clearTimeout(secondTimer);
+          finalize(duration);
+        }
+      }, 180);
+
+      const secondTimer = setTimeout(() => {
+        clearTimeout(firstTimer);
+        finalize(player.duration);
+      }, 520);
+    });
+  } catch {
+    return null;
+  }
 }

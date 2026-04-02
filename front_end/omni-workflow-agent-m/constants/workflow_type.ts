@@ -176,6 +176,13 @@ export interface WorkflowRecordedAudioPreview {
   sourceMode: 'long-form';
 }
 
+export interface WorkflowPendingLongAudioInput extends WorkflowRecordedAudioPreview {
+  prompt: string;
+  origin: 'recorded' | 'uploaded-audio';
+  fileName?: string;
+  mimeType?: string;
+}
+
 export interface WorkflowLongAudioTaskPayload {
   audio: WorkflowRecordedAudioPreview;
   prompt: string;

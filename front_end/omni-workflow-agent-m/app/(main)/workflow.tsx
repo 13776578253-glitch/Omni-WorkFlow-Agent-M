@@ -13,6 +13,7 @@ import type {
   WorkflowBlock,
   WorkflowFileRef,
   WorkflowMode,
+  WorkflowPendingLongAudioInput,
   WorkflowRecordedAudioPreview,
   WorkflowRecordingSession,
 } from '@/constants/workflow_type';
@@ -36,9 +37,14 @@ import {
 
 import * as HistoryStorage from '@/services/history/History_Storage';
 import { SessionManager } from '@/services/workflow/Session_Manager';
+import { DEFAULT_LONG_AUDIO_PROMPT, inferWorkflowAudioMimeType } from '@/services/workflow/Workflow_audio_utils';
 import { WorkflowStorage } from '@/services/workflow/Workflow_Storage';
 import { createWorkflowUploadService } from '@/services/workflow/Workflow_Upload';
-import { uploadAttachmentToBackend } from '@/services/workflow/Workflow_Upload_Backend';
+import {
+  submitWorkflowLongAudioTask,
+  uploadAttachmentToBackend,
+  uploadWorkflowAudioToBackend,
+} from '@/services/workflow/Workflow_Upload_Backend';
 
 interface WorkflowScreenProps {
   currentSessionId: string | null;
@@ -113,6 +119,7 @@ export default function WorkflowScreen({
   const [topAreaHeight, setTopAreaHeight] = useState(TOP_AREA_EXPANDED_HEIGHT);
   const [isAutoCompactLocked, setIsAutoCompactLocked] = useState(false);
   const [recordedAudioPreview, setRecordedAudioPreview] = useState<WorkflowRecordedAudioPreview | null>(null);
+  const [pendingLongAudioInput, setPendingLongAudioInput] = useState<WorkflowPendingLongAudioInput | null>(null);
 
   // 测试
   // 块列表
@@ -168,6 +175,7 @@ export default function WorkflowScreen({
     setActiveQuickActionKey(null);
     setIsAutoCompactLocked(false);
     setRecordedAudioPreview(null);
+    setPendingLongAudioInput(null);
     setScrollOffset(0);
   }, [resetToken]);
 
@@ -246,6 +254,7 @@ export default function WorkflowScreen({
         setActiveQuickActionKey(null);
         setIsAutoCompactLocked(false);
         setRecordedAudioPreview(null);
+        setPendingLongAudioInput(null);
         setScrollOffset(0);
         loadedSessionIdRef.current = null;
       }
@@ -622,10 +631,88 @@ export default function WorkflowScreen({
   const hasRecordedAudioPreview = mode === 'recording' && !!recordedAudioPreview?.audioUri;
   const hasRecordingTopArea = mode === 'recording';
 
+  const ensureWorkflowSessionId = useCallback((previewText?: string) => {
+    let sessionId = currentSessionId;
+    if (!sessionId) {
+      sessionId = `session-${Date.now()}`;
+      loadedSessionIdRef.current = sessionId;
+      onSessionChange(sessionId);
+      void SessionManager.setCurrentSessionId(sessionId);
+      void HistoryStorage.addSession({
+        id: sessionId,
+        title: '未命名对话',
+        createdAt: Date.now(),
+        isPinned: false,
+        previewText: previewText || undefined,
+      }, { skipRemoteCreate: true });
+      onHistoryChanged();
+    }
+    return sessionId;
+  }, [currentSessionId, onHistoryChanged, onSessionChange]);
+
+  const submitPendingLongAudio = useCallback(async () => {
+    if (!pendingLongAudioInput?.audioUri) {
+      return false;
+    }
+
+    const promptText = inputText.trim() || pendingLongAudioInput.prompt || DEFAULT_LONG_AUDIO_PROMPT;
+    const sessionId = ensureWorkflowSessionId(promptText);
+    if (!sessionId) {
+      return false;
+    }
+
+    setInputText('');
+
+    void (async () => {
+      try {
+        let remoteAudioId = pendingLongAudioInput.remoteAudioId ?? null;
+
+        if (!remoteAudioId) {
+          const inferredMimeType = inferWorkflowAudioMimeType({
+            fileName: pendingLongAudioInput.fileName,
+            mimeType: pendingLongAudioInput.mimeType,
+          });
+          const uploadResult = await uploadWorkflowAudioToBackend({
+            localPath: pendingLongAudioInput.audioUri,
+            fileName: pendingLongAudioInput.fileName || `long-audio-${Date.now()}.m4a`,
+            mimeType: inferredMimeType,
+            durationMs: pendingLongAudioInput.durationMs,
+          });
+          remoteAudioId = uploadResult.remoteAudioId;
+          setPendingLongAudioInput((prev) => (
+            prev
+              ? {
+                  ...prev,
+                  remoteAudioId,
+                  mimeType: inferredMimeType,
+                }
+              : prev
+          ));
+        }
+
+        await submitWorkflowLongAudioTask({
+          remoteAudioId,
+          audioUri: pendingLongAudioInput.audioUri,
+          durationMs: pendingLongAudioInput.durationMs,
+          prompt: promptText,
+          sessionId,
+        });
+      } catch {
+        // 静默失败：保留顶部音频，允许用户再次点击发送重试
+      }
+    })();
+
+    return true;
+  }, [ensureWorkflowSessionId, inputText, pendingLongAudioInput]);
+
   // 消息提交 事件 / 复杂逻辑
   const handleSubmit = useCallback(async () => {
+    if (pendingLongAudioInput?.audioUri) {
+      await submitPendingLongAudio();
+      return;
+    }
     await submitWorkflowInput(inputText, pendingAttachments);
-  }, [inputText, pendingAttachments, submitWorkflowInput]);
+  }, [inputText, pendingAttachments, pendingLongAudioInput?.audioUri, submitPendingLongAudio, submitWorkflowInput]);
 
   useEffect(() => {
     if (!pendingExternalInput || pendingExternalSubmitToken <= 0) {
@@ -869,13 +956,21 @@ export default function WorkflowScreen({
     setMode('recording');
   }, []);
 
-  const handleLongRecordComplete = useCallback((transcriptText: string) => {
-    setInputText(transcriptText);
+  const handleLongAudioInputReady = useCallback((audioInput: WorkflowPendingLongAudioInput) => {
+    setPendingLongAudioInput(audioInput);
+    setRecordedAudioPreview({
+      audioUri: audioInput.audioUri,
+      durationMs: audioInput.durationMs,
+      remoteAudioId: audioInput.remoteAudioId ?? null,
+      sourceMode: 'long-form',
+    });
+    setInputText(audioInput.prompt);
     setMode('recording');
   }, []);
 
   const handleClearRecordedAudioPreview = useCallback(() => {
     setRecordedAudioPreview(null);
+    setPendingLongAudioInput(null);
     setInputText('');
     setMode(blocks.length > 0 ? 'document' : 'welcome');
   }, [blocks.length]);
@@ -943,8 +1038,8 @@ export default function WorkflowScreen({
               onSlideCancelStateChange={setIsSlideCancelPreview}
               isPressRecording={isPressRecording}
               onKeyboardVisibleChange={handleKeyboardVisibleChange}
-              onLongRecordComplete={handleLongRecordComplete}
               onLongRecordAudioReady={handleLongRecordAudioReady}
+              onLongAudioInputReady={handleLongAudioInputReady}
               hasRecordedAudioPreview={hasRecordedAudioPreview}
               onClearRecordedAudioPreview={handleClearRecordedAudioPreview}
               containerStyle={{ marginTop: isKeyboardVisible ? 12 : 4, marginBottom: inputBarMarginBottom }}
