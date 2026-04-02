@@ -1,6 +1,6 @@
 ﻿// app/(main)/user.tsx
 import { BlurView } from 'expo-blur';
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { Dimensions, StyleSheet } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { Extrapolation, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
@@ -9,6 +9,7 @@ import { useThemeContext } from '@/constants/Theme-Context';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 import { HomeContent } from '@/components/home/Home_Content';
+import { HomeRecord } from '@/components/home/Home_Record';
 import { useBlurOpacityStyle } from '@/components/home/Home_Content_bin/Home_Content_Animations';
 import HomePortal from '@/components/home/Home_Portal';
 
@@ -27,19 +28,36 @@ const MECHANICAL_SPRING = {
 // 定义 Props 类型
 interface HomeScreenProps {
   onDrawerStateChange?: (isActive: boolean) => void;
+  onStartWorkflowFromHome?: (transcriptText: string) => void;
 }
 
 // 旧逻辑样式 / 存在冗余逻辑 / 保留
-export default function HomeScreen({ onDrawerStateChange }: HomeScreenProps) {
+export default function HomeScreen({ onDrawerStateChange, onStartWorkflowFromHome }: HomeScreenProps) {
   const bgColor = useThemeColor({}, 'background');
+  const cardColor = useThemeColor({}, 'background');
   const { effectiveColorScheme } = useThemeContext();
   const isDark = effectiveColorScheme === 'dark';
-  // const cardColor = useThemeColor({}, 'card'); // 无用声明
 
   const translateY = useSharedValue(0);
   const context = useSharedValue(0);
+  const [isHomeRecordingActive, setIsHomeRecordingActive] = useState(false);
+  const ringColor = isDark ? '#9EA3B0' : '#7C7C84';
+  const ringPressedColor = isDark ? '#8B90A0' : '#6C6C74';
+  const subtitleColor = isDark ? '#A3A8B3' : '#7A7A82';
+
+  const handleHomeRecordingStateChange = useCallback((isActive: boolean) => {
+    setIsHomeRecordingActive(isActive);
+    onDrawerStateChange?.(isActive);
+  }, [onDrawerStateChange]);
+
+  const handleHomeTranscriptReady = useCallback((transcriptText: string) => {
+    onDrawerStateChange?.(false);
+    setIsHomeRecordingActive(false);
+    onStartWorkflowFromHome?.(transcriptText);
+  }, [onDrawerStateChange, onStartWorkflowFromHome]);
 
   const gesture = Gesture.Pan()
+    .enabled(!isHomeRecordingActive)
     // 设置激活阈值  // 垂直滑动超过10像素激活手势，防止过早触发锁死
     .activeOffsetY([-10, 10]) 
 
@@ -196,7 +214,19 @@ export default function HomeScreen({ onDrawerStateChange }: HomeScreenProps) {
             {/* /测试/  */}
             {/* <View style={[styles.lightAvatar, { backgroundColor: cardColor }]} /> */}
             {/* 顶层 模块 */}
-            <HomeContent translateY={translateY} />
+            <HomeContent
+              translateY={translateY}
+              recordSlot={
+                <HomeRecord
+                  cardBg={cardColor}
+                  ringColor={ringColor}
+                  ringPressedColor={ringPressedColor}
+                  subtitleColor={subtitleColor}
+                  onRecordingStateChange={handleHomeRecordingStateChange}
+                  onTranscriptReady={handleHomeTranscriptReady}
+                />
+              }
+            />
           </Animated.View>
 
         </Animated.View>

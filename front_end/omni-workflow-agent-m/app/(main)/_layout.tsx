@@ -27,6 +27,8 @@ export default function MainLayout() {
   const [currentWorkflowSessionId, setCurrentWorkflowSessionId] = useState<string | null>(null);
   const [historyRefreshToken, setHistoryRefreshToken] = useState(0);
   const [workflowResetToken, setWorkflowResetToken] = useState(0);
+  const [pendingWorkflowInput, setPendingWorkflowInput] = useState<string | null>(null);
+  const [pendingWorkflowSubmitToken, setPendingWorkflowSubmitToken] = useState(0);
   const ENABLE_PAGER_SWIPE = false;
 
   const topNavRef = useRef<any>(null);
@@ -132,6 +134,16 @@ export default function MainLayout() {
     setHistoryRefreshToken((prev) => prev + 1);
   }, []);
 
+  const handleStartWorkflowFromHome = useCallback(async (transcriptText: string) => {
+    await SessionManager.clearCurrentSessionId();
+    setCurrentWorkflowSessionId(null);
+    setWorkflowResetToken((prev) => prev + 1);
+    setPendingWorkflowInput(transcriptText);
+    setPendingWorkflowSubmitToken((prev) => prev + 1);
+    setActiveTabIndex(1);
+    pagerRef.current?.setPage(1);
+  }, []);
+
   const tabs = [
     { name: '首页', key: 'home' },
     { name: '工作流', key: 'workflow' },
@@ -151,7 +163,10 @@ export default function MainLayout() {
         }}
       >
         <View key="1" style={{ flex: 1, backgroundColor: themeColors.background }}>
-          <HomeScreen onDrawerStateChange={handleDrawerState} />
+          <HomeScreen
+            onDrawerStateChange={handleDrawerState}
+            onStartWorkflowFromHome={handleStartWorkflowFromHome}
+          />
         </View>
 
         <View key="2" style={{ flex: 1, backgroundColor: themeColors.background }}>
@@ -161,6 +176,8 @@ export default function MainLayout() {
             onSessionChange={setCurrentWorkflowSessionId}
             resetToken={workflowResetToken}
             setPagerScrollEnabled={setPagerScrollEnabled}
+            pendingExternalInput={pendingWorkflowInput}
+            pendingExternalSubmitToken={pendingWorkflowSubmitToken}
           />
         </View>
 

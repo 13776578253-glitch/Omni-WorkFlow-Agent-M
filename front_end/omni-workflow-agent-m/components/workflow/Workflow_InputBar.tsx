@@ -56,6 +56,7 @@ export function WorkflowInputBar({
   const [showLongRecordSheet, setShowLongRecordSheet] = useState(false);
   const [isLongRecording, setIsLongRecording] = useState(false);
   const [longRecordDuration, setLongRecordDuration] = useState(0);
+  const [longRecordWaveTick, setLongRecordWaveTick] = useState(0);
 
   // 持久化 Ref / 测试 / 待确认
   const pressStartXRef = useRef<number | null>(null);  // 按动时 X坐标
@@ -98,6 +99,14 @@ export function WorkflowInputBar({
       hideSub.remove();
     };
   }, [onKeyboardVisibleChange]);
+
+  useEffect(() => {
+    if (!isLongRecording) return;
+    const timer = setInterval(() => {
+      setLongRecordWaveTick((prev) => prev + 1);
+    }, 70);
+    return () => clearInterval(timer);
+  }, [isLongRecording]);
 
   // 监听 触摸事件 坐标
   const readTouchPoint = (event: GestureResponderEvent) => {
@@ -363,6 +372,8 @@ export function WorkflowInputBar({
       longRecordTimerRef.current = setInterval(() => {
         setLongRecordDuration((prev) => prev + 1);
       }, 1000);
+    } else {
+      setIsLongRecording(false);
     }
   };
 
@@ -378,6 +389,7 @@ export function WorkflowInputBar({
 
     setIsLongRecording(false);
     setLongRecordDuration(0);
+    setLongRecordWaveTick(0);
     longRecordSessionRef.current = null;
   };
 
@@ -396,17 +408,24 @@ export function WorkflowInputBar({
 
     setIsLongRecording(false);
     setLongRecordDuration(0);
+    setLongRecordWaveTick(0);
     longRecordSessionRef.current = null;
   };
 
   // 长录音波形数据
   const longRecordDots = useMemo(() =>
-    Array.from({ length: 30 }).map((_, i) => ({
-      key: `long-dot-${i}`,
-      height: 5 + Math.random() * 15,
-      opacity: 0.5 + Math.random() * 0.5,
-    })),
-  []);
+    Array.from({ length: 38 }).map((_, i) => {
+      const centerIndex = (38 - 1) / 2;
+      const distanceRatio = Math.abs(i - centerIndex) / centerIndex;
+      const envelope = Math.max(0.32, 1 - Math.pow(distanceRatio, 1.28));
+      const oscillation = 0.5 + 0.5 * Math.sin(longRecordWaveTick * 0.42 + i * 0.62);
+      return {
+        key: `long-dot-${i}`,
+        height: 6 + envelope * (2 + oscillation * 8),
+        opacity: 0.48 + envelope * (0.14 + oscillation * 0.2),
+      };
+    }),
+  [longRecordWaveTick]);
 
   return (
     <>
@@ -512,28 +531,39 @@ export function WorkflowInputBar({
           </>
         ) : (
           <>
-            {/* 状态 B: 录音复核状态 */}
-            <View style={styles.recordingReviewContainer}>
-              <View style={styles.recordingTopRow}>
-                <View style={styles.waveformContainer}>
-                  {longRecordDots.map((dot) => (
-                    <View
-                      key={dot.key}
-                      style={[styles.recordingDot, { height: Math.max(4, dot.height), opacity: dot.opacity }]}
-                    />
-                  ))}
+            {/* 状态 B: 长录音状态 */}
+            <View style={styles.longRecordingContent}>
+              <View style={styles.longRecordingInfoRow}>
+                <View style={styles.waveformCenterWrap}>
+                  <View style={styles.waveformContainer}>
+                    {longRecordDots.map((dot) => (
+                      <View
+                        key={dot.key}
+                        style={[styles.recordingDot, { height: Math.max(4, dot.height), opacity: dot.opacity }]}
+                      />
+                    ))}
+                  </View>
                 </View>
-                <Text style={[styles.durationText, { color: textColor }]}>
-                  {Math.floor(longRecordDuration / 60)}:{(longRecordDuration % 60).toString().padStart(2, '0')}
-                </Text>
+                <View style={styles.durationWrap}>
+                  <Text style={[styles.durationText, { color: textColor }]}>
+                    {Math.floor(longRecordDuration / 60)}:{(longRecordDuration % 60).toString().padStart(2, '0')}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.recordingBottomRow}>
-                <TouchableOpacity style={styles.cancelButton} onPress={handleCancelLongRecord}>
-                  <Ionicons name="close" size={22} color="#EF4444" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.confirmButton} onPress={handleConfirmLongRecord}>
-                  <Ionicons name="checkmark" size={22} color="#10B981" />
-                </TouchableOpacity>
+
+              <View style={styles.actionRow}>
+                <View style={styles.leftActions}>
+                  <Text style={[styles.longRecordingLabel, { color: textColor }]}>长时录音中</Text>
+                </View>
+
+                <View style={styles.rightActions}>
+                  <TouchableOpacity style={[styles.iconCircle, styles.cancelActionButton]} onPress={handleCancelLongRecord}>
+                    <Ionicons name="close" size={18} color="#EF4444" />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.iconCircle, styles.confirmActionButton]} onPress={handleConfirmLongRecord}>
+                    <Ionicons name="checkmark" size={18} color="#10B981" />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           </>
@@ -677,21 +707,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  recordingReviewContainer: {
-    paddingVertical: 16,
-    paddingHorizontal: 12,
+  longRecordingContent: {
+    minHeight: 72,
+    justifyContent: 'space-between',
   },
-  recordingTopRow: {
+  longRecordingInfoRow: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
+    minHeight: 40,
+  },
+  waveformCenterWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingLeft: 8,
+    paddingRight: 34,
   },
   waveformContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    flex: 1,
+    justifyContent: 'center',
+    gap: 2.5,
+    height: 28,
+    width: '100%',
+  },
+  durationWrap: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
   },
   recordingDot: {
     width: 3,
@@ -700,27 +746,20 @@ const styles = StyleSheet.create({
   },
   durationText: {
     fontSize: 14,
-    marginLeft: 12,
+    minWidth: 40,
+    textAlign: 'right',
   },
-  recordingBottomRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  longRecordingLabel: {
+    fontSize: 13,
+    opacity: 0.72,
   },
-  cancelButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  cancelActionButton: {
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderColor: 'rgba(239, 68, 68, 0.18)',
   },
-  confirmButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  confirmActionButton: {
     backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderColor: 'rgba(16, 185, 129, 0.18)',
   },
 });
 

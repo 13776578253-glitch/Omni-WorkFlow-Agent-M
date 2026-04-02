@@ -49,11 +49,11 @@ export function WorkflowLongRecordingOverlay({
 
       <View style={styles.buttonRow}>
         <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-          <Ionicons name="close" size={28}  />
+          <Ionicons name="close" size={28} />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.confirmButton} onPress={onConfirm}>
-          <Ionicons name="checkmark" size={28}  />
+          <Ionicons name="checkmark" size={28} />
         </TouchableOpacity>
       </View>
     </View>

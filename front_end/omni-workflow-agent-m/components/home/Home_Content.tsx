@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, StyleSheet, Text, View } from 'react-native';
 import Animated, { SharedValue } from 'react-native-reanimated';
 
 import { HomeContentMessage } from '@/components/home/Home_Content_bin/Home_Content_Message';
@@ -16,9 +16,10 @@ const userName = "绝望的cpp";
 
 interface HomeContentProps {
   translateY: SharedValue<number>;
+  recordSlot?: React.ReactNode;
 }
 
-export function HomeContent({ translateY }: HomeContentProps) {
+export function HomeContent({ translateY, recordSlot }: HomeContentProps) {
   // Keep prop for upcoming gesture-linked animation work.
   void translateY;
 
@@ -28,10 +29,6 @@ export function HomeContent({ translateY }: HomeContentProps) {
 
   const cardBg = useThemeColor({}, 'background');
   const titleColor = useThemeColor({}, 'text');
-
-  const ringColor = isDark ? '#9EA3B0' : '#7C7C84';
-  const ringPressedColor = isDark ? '#8B90A0' : '#6C6C74';
-  const heroDotBg = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.55)';
   const subtitleColor = isDark ? '#A3A8B3' : '#7A7A82';
   const footerTextColor = isDark ? '#8F96A3' : '#8C8C94';
   const statusTextColor = isDark ? '#AEB4C0' : '#7A7A82';
@@ -70,21 +67,7 @@ export function HomeContent({ translateY }: HomeContentProps) {
           </View>
 
           <View style={[styles.ringAnchor, { transform: [{ translateY: BUTTON_CENTER_OFFSET }] }]}>
-            <Pressable
-              accessibilityRole="button"
-              android_ripple={{ color: 'rgba(124,124,132,0.18)', radius: 30 }}
-              onPress={() => {}}
-              style={({ pressed }) => [
-                styles.ringButtonOuter,
-                { backgroundColor: pressed ? ringPressedColor : ringColor },
-              ]}>
-              <View style={[styles.ringButtonInner, { backgroundColor: cardBg }]} />
-            </Pressable>
-
-            <View style={styles.pullHint} pointerEvents="none">
-              <View style={[styles.chevronStroke, styles.chevronLeft, { backgroundColor: subtitleColor }]} />
-              <View style={[styles.chevronStroke, styles.chevronRight, { backgroundColor: subtitleColor }]} />
-            </View>
+            {recordSlot}
           </View>
         </View>
       </Animated.View>
@@ -212,39 +195,6 @@ const styles = StyleSheet.create({
     marginLeft: -26,
     top: '48.8%',
     alignItems: 'center',
-  },
-  ringButtonOuter: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ringButtonInner: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  pullHint: {
-    marginTop: 17,
-    width: 20,
-    height: 12,
-    position: 'relative',
-  },
-  chevronStroke: {
-    position: 'absolute',
-    top: 5,
-    width: 11,
-    height: 3,
-    borderRadius: 1,
-  },
-  chevronLeft: {
-    left: 0,
-    transform: [{ rotate: '34deg' }],
-  },
-  chevronRight: {
-    right: 0,
-    transform: [{ rotate: '-34deg' }],
   },
   belowMaskArea: {
     position: 'absolute',

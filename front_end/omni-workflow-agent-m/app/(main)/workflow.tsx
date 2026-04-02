@@ -31,6 +31,8 @@ interface WorkflowScreenProps {
   onSessionChange: (sessionId: string | null) => void;
   resetToken: number;
   setPagerScrollEnabled: (enabled: boolean) => void;
+  pendingExternalInput?: string | null;
+  pendingExternalSubmitToken?: number;
 }
 
 // 测试
@@ -65,6 +67,8 @@ export default function WorkflowScreen({
   onSessionChange,
   resetToken,
   setPagerScrollEnabled,
+  pendingExternalInput,
+  pendingExternalSubmitToken = 0,
 }: WorkflowScreenProps) {
   const [inputText, setInputText] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -107,6 +111,7 @@ export default function WorkflowScreen({
   const contentAreaRef = useRef<WorkflowContentAreaRef>(null);
   const isHydratingSessionRef = useRef(false);
   const loadedSessionIdRef = useRef<string | null>(currentSessionId);
+  const handledExternalSubmitTokenRef = useRef(0);
 
   // 安全区域 信息
   const insets = useSafeAreaInsets();
@@ -274,24 +279,20 @@ export default function WorkflowScreen({
     } as WorkflowBlock;
   }, []);
 
-  // 消息提交 事件 / 复杂逻辑
-  const handleSubmit = useCallback(async () => {
-    const trimmed = inputText.trim();
-    if (!trimmed && pendingAttachments.length === 0) return;
-
+  const submitWorkflowInput = useCallback(async (rawText: string, submitAttachments: WorkflowAttachment[] = []) => {
+    const trimmed = rawText.trim();
+    if (!trimmed && submitAttachments.length === 0) return;
     const nextMode = detectModeFromInput(trimmed);
     if (mode === 'welcome') setMode(nextMode);
 
-    // Add User Message
     const userMsg: WorkflowBlock = {
       id: `user-${Date.now()}`,
       role: 'user',
       content: trimmed,
-      attachments: pendingAttachments.length > 0 ? pendingAttachments.map(a => ({ ...a, uploadStatus: 'success' as const })) : undefined,
+      attachments: submitAttachments.length > 0 ? submitAttachments.map(a => ({ ...a, uploadStatus: 'success' as const })) : undefined,
       createdAt: Date.now(),
     };
 
-    // Add AI Mock Message (Cycled)
     const aiMessageCount = blocks.filter(m => m.role === 'ai').length;
     const aiMsg = buildMockAIBlock(trimmed, userMsg.id, aiMessageCount);
 
@@ -317,7 +318,25 @@ export default function WorkflowScreen({
     setBlocks(nextBlocks);
     setInputText('');
     setPendingAttachments([]);
-  }, [blocks, buildMockAIBlock, currentSessionId, inputText, mode, onHistoryChanged, onSessionChange, pendingAttachments]);
+  }, [blocks, buildMockAIBlock, currentSessionId, mode, onHistoryChanged, onSessionChange]);
+
+  // 消息提交 事件 / 复杂逻辑
+  const handleSubmit = useCallback(async () => {
+    await submitWorkflowInput(inputText, pendingAttachments);
+  }, [inputText, pendingAttachments, submitWorkflowInput]);
+
+  useEffect(() => {
+    if (!pendingExternalInput || pendingExternalSubmitToken <= 0) {
+      return;
+    }
+    if (handledExternalSubmitTokenRef.current === pendingExternalSubmitToken) {
+      return;
+    }
+
+    handledExternalSubmitTokenRef.current = pendingExternalSubmitToken;
+    setInputText(pendingExternalInput);
+    void submitWorkflowInput(pendingExternalInput, []);
+  }, [pendingExternalInput, pendingExternalSubmitToken, submitWorkflowInput]);
 
   // 消息编辑 事件 / 编辑权限、生成触发、首问锁定规则等
   const handleMessageUpdate = useCallback((id: string, newContent: string) => {
