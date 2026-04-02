@@ -8,7 +8,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { QuickActionNames, QuickActionPrompts, UserDataState } from '@/constants/type';
 // tyye 类型待处理
-import type { WorkflowAttachment, WorkflowBlock, WorkflowMode, WorkflowRecordingSession } from '@/constants/workflow_type';
+import type {
+  WorkflowAttachment,
+  WorkflowBlock,
+  WorkflowMode,
+  WorkflowRecordedAudioPreview,
+  WorkflowRecordingSession,
+} from '@/constants/workflow_type';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 import { WorkflowRecordingOverlay } from '@/components/ui/workflow-recording-overlay';
@@ -75,6 +81,7 @@ export default function WorkflowScreen({
   const [mode, setMode] = useState<WorkflowMode>('welcome');
   const [topAreaHeight, setTopAreaHeight] = useState(TOP_AREA_EXPANDED_HEIGHT);
   const [isAutoCompactLocked, setIsAutoCompactLocked] = useState(false);
+  const [recordedAudioPreview, setRecordedAudioPreview] = useState<WorkflowRecordedAudioPreview | null>(null);
 
   // 测试
   // 块列表
@@ -125,6 +132,7 @@ export default function WorkflowScreen({
     setPendingAttachments([]);
     setActiveQuickActionKey(null);
     setIsAutoCompactLocked(false);
+    setRecordedAudioPreview(null);
     setScrollOffset(0);
   }, [resetToken]);
 
@@ -167,6 +175,7 @@ export default function WorkflowScreen({
         setPendingAttachments([]);
         setActiveQuickActionKey(null);
         setIsAutoCompactLocked(false);
+        setRecordedAudioPreview(null);
         setScrollOffset(0);
         loadedSessionIdRef.current = null;
       }
@@ -320,6 +329,9 @@ export default function WorkflowScreen({
     setPendingAttachments([]);
   }, [blocks, buildMockAIBlock, currentSessionId, mode, onHistoryChanged, onSessionChange]);
 
+  const hasRecordedAudioPreview = mode === 'recording' && !!recordedAudioPreview?.audioUri;
+  const hasRecordingTopArea = mode === 'recording';
+
   // 消息提交 事件 / 复杂逻辑
   const handleSubmit = useCallback(async () => {
     await submitWorkflowInput(inputText, pendingAttachments);
@@ -431,20 +443,39 @@ export default function WorkflowScreen({
 
   // 录音相关 事件 
   const finalizePressRecord = useCallback(async (action: 'send' | 'cancel') => {
+    const fallbackTranscript = '请把这段按住说话的内容整理成结构化任务清单，并继续生成后续结果。';
     setIsSlideCancelPreview(false);
     setIsPressRecording(false);
     const current = recordingSessionRef.current;
-    if (!current || current.phase !== 'recording') return;
+    if (!current || current.phase !== 'recording') {
+      if (action === 'send') {
+        setInputText(fallbackTranscript);
+      }
+      recordingSessionRef.current = null;
+      return;
+    }
 
     const stopped = await uploadServiceRef.current.stopPressRecording(current);
     recordingSessionRef.current = stopped;
-    if (stopped.phase === 'error' || action === 'cancel') return;
+    if (action === 'cancel') {
+      recordingSessionRef.current = null;
+      return;
+    }
+    if (stopped.phase === 'error') {
+      setInputText(fallbackTranscript);
+      recordingSessionRef.current = null;
+      return;
+    }
 
-    const pipelineResult = await uploadServiceRef.current.runPressToTalkPipeline(stopped);
-    const transcriptText = pipelineResult.transcriptText.trim() || 'Mock transcript content.';
+    const pipelineResult = await uploadServiceRef.current.runPressToTalkPipeline(stopped, {
+      source: 'workflow-press',
+      strategy: 'mock_only',
+    });
+    const transcriptText = pipelineResult.transcriptText.trim() || fallbackTranscript;
     
     // TODO: 直接提交或让用户确认 / 这里直接填充输入框，用户可修改后再提交
     setInputText(transcriptText);
+    recordingSessionRef.current = null;
     // 自动触发提交（可选） / 这里不自动提交，给用户修改空间
     // handleSubmit();
   }, []);
@@ -458,7 +489,7 @@ export default function WorkflowScreen({
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 
     // 启动 录音
-    const session = await uploadServiceRef.current.startPressRecording('press-to-talk');
+    const session = await uploadServiceRef.current.startPressRecording('press-to-talk', 'workflow-press');
     recordingSessionRef.current = session;
     startRecordingPendingRef.current = false;
 
@@ -502,6 +533,11 @@ export default function WorkflowScreen({
     setInputText(transcriptText);
   }, []);
 
+  const handleLongRecordAudioReady = useCallback((audio: WorkflowRecordedAudioPreview) => {
+    setRecordedAudioPreview(audio);
+    setMode('recording');
+  }, []);
+
   // 滚动到底部
   const handleScrollToBottom = useCallback(() => {
     contentAreaRef.current?.scrollToEnd();
@@ -518,7 +554,7 @@ export default function WorkflowScreen({
           ref={contentAreaRef}
           mode={mode}
           messages={blocks}
-          contentPaddingTop={mode === 'recording' ? topAreaHeight + TOP_AREA_OFFSET : undefined}
+          contentPaddingTop={hasRecordingTopArea ? topAreaHeight + TOP_AREA_OFFSET : undefined}
           onScrollOffsetChange={handleContentScroll}
           onBlockSave={handleMessageUpdate}
           editableUserBlockId={editableUserBlockId}
@@ -528,8 +564,11 @@ export default function WorkflowScreen({
         <View style={styles.topAreaDock}>
           <WorkflowTopArea
             mode={mode}
-            onHeightChange={mode === 'recording' ? setTopAreaHeight : undefined}
-            forcedCompact={mode === 'recording' && isAutoCompactLocked}
+            onHeightChange={hasRecordingTopArea ? setTopAreaHeight : undefined}
+            forcedCompact={hasRecordingTopArea && isAutoCompactLocked}
+            audioUri={recordedAudioPreview?.audioUri}
+            audioDurationMs={recordedAudioPreview?.durationMs}
+            hasPlayableAudio={hasRecordedAudioPreview}
           />
         </View>
 
@@ -563,6 +602,7 @@ export default function WorkflowScreen({
               isPressRecording={isPressRecording}
               onKeyboardVisibleChange={handleKeyboardVisibleChange}
               onLongRecordComplete={handleLongRecordComplete}
+              onLongRecordAudioReady={handleLongRecordAudioReady}
               containerStyle={{ marginTop: isKeyboardVisible ? 12 : 4, marginBottom: inputBarMarginBottom }}
             />
           </View>

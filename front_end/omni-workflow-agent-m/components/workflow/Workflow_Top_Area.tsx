@@ -15,6 +15,9 @@ interface WorkflowTopAreaProps {
   mode: WorkflowMode;
   onHeightChange?: (height: number) => void;
   forcedCompact?: boolean;
+  audioUri?: string | null;        // 录音文件 URI
+  audioDurationMs?: number | null; // 录音时长（毫秒）
+  hasPlayableAudio?: boolean;      // 是否有可播放的录音 (控制是否显示顶部区域)
   // onEditPress?: () => void;
 }
 
@@ -26,7 +29,14 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
-export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: WorkflowTopAreaProps) {
+export function WorkflowTopArea({
+  mode,
+  onHeightChange,
+  forcedCompact,
+  audioUri,
+  audioDurationMs,
+  hasPlayableAudio = false,
+}: WorkflowTopAreaProps) {
   const bgColor = useThemeColor({ light: '#F3F4F6', dark: '#2A2A2E' }, 'background');
   const textColor = useThemeColor({}, 'text');
 
@@ -51,10 +61,11 @@ export function WorkflowTopArea({ mode, onHeightChange, forcedCompact }: Workflo
   
   // 初始化：读取音频数据
   useEffect(() => {
-    if (mode === 'recording') { // 这里假设 mode='recording' 是触发场景，实际可能是 'review' 或其他
-      loadAudio();
+    if (mode !== 'recording') {
+      return;
     }
-  }, [mode, loadAudio]);
+    void loadAudio(audioUri, audioDurationMs);
+  }, [audioDurationMs, audioUri, loadAudio, mode]);
 
   const [isCompact, setIsCompact] = useState(false);
   const panelHeightAnim = useRef(new Animated.Value(TOP_AREA_EXPANDED_HEIGHT)).current;

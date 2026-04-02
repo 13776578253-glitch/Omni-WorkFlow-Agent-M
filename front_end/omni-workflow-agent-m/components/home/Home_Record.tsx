@@ -127,20 +127,36 @@ export function HomeRecord({
   };
 
   const finalizePressRecord = async (action: 'send' | 'cancel') => {
+    const fallbackTranscript = '帮我整理今天这段首页录音的重点，并直接开始新的工作流处理。';
     setIsSlideCancelPreview(false);
     setIsPressRecording(false);
     const current = recordingSessionRef.current;
-    if (!current || current.phase !== 'recording') return;
-
-    const stopped = await uploadServiceRef.current.stopPressRecording(current);
-    recordingSessionRef.current = stopped;
-    if (stopped.phase === 'error' || action === 'cancel') {
+    if (!current || current.phase !== 'recording') {
+      if (action === 'send') {
+        onTranscriptReady?.(fallbackTranscript);
+      }
       recordingSessionRef.current = null;
       return;
     }
 
-    const pipelineResult = await uploadServiceRef.current.runPressToTalkPipeline(stopped);
-    const transcriptText = pipelineResult.transcriptText.trim() || 'Mock transcript content.';
+    const stopped = await uploadServiceRef.current.stopPressRecording(current);
+    recordingSessionRef.current = stopped;
+    if (action === 'cancel') {
+      recordingSessionRef.current = null;
+      return;
+    }
+    if (stopped.phase === 'error') {
+      recordingSessionRef.current = null;
+      onTranscriptReady?.(fallbackTranscript);
+      return;
+    }
+
+    // 发送录音文件并获取转写结果
+    const pipelineResult = await uploadServiceRef.current.runPressToTalkPipeline(stopped, {
+      source: 'home-press',
+      strategy: 'mock_only',
+    });
+    const transcriptText = pipelineResult.transcriptText.trim() || fallbackTranscript;
     recordingSessionRef.current = null;
     onTranscriptReady?.(transcriptText);
   };
@@ -152,7 +168,8 @@ export function HomeRecord({
     startRecordingPendingRef.current = true;
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 
-    const session = await uploadServiceRef.current.startPressRecording('press-to-talk');
+    // 调用上传服务开始录音，获取会话信息
+    const session = await uploadServiceRef.current.startPressRecording('press-to-talk', 'home-press');
     recordingSessionRef.current = session;
     startRecordingPendingRef.current = false;
 

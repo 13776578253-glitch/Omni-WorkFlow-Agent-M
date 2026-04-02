@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 
 import { WorkflowFileUpload } from '@/components/workflow/Workflow_file upload';
-import type { WorkflowAttachment, WorkflowRecordingSession } from '@/constants/workflow_type';
+import type { WorkflowAttachment, WorkflowRecordedAudioPreview, WorkflowRecordingSession } from '@/constants/workflow_type';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { pickWorkflowCameraImage } from '@/services/workflow/Workflow_Camera';
 import { createWorkflowUploadService } from '@/services/workflow/Workflow_Upload';
@@ -26,6 +26,7 @@ interface WorkflowInputBarProps {
   attachments?: WorkflowAttachment[];
   onAttachmentsChange?: (attachments: WorkflowAttachment[]) => void;
   onLongRecordComplete?: (transcriptText: string) => void;
+  onLongRecordAudioReady?: (audio: WorkflowRecordedAudioPreview) => void;
 }
 
 export function WorkflowInputBar({
@@ -43,6 +44,7 @@ export function WorkflowInputBar({
   attachments = [],
   onAttachmentsChange,
   onLongRecordComplete,
+  onLongRecordAudioReady,
 }: WorkflowInputBarProps) {
   const cardColor = useThemeColor({}, 'card');
   const textColor = useThemeColor({}, 'text');
@@ -365,7 +367,7 @@ export function WorkflowInputBar({
     setIsLongRecording(true);
     setLongRecordDuration(0);
 
-    const session = await uploadServiceRef.current.startPressRecording('long-form');
+    const session = await uploadServiceRef.current.startPressRecording('long-form', 'workflow-long-form');
     longRecordSessionRef.current = session;
 
     if (session.phase === 'recording') {
@@ -402,7 +404,28 @@ export function WorkflowInputBar({
     const session = longRecordSessionRef.current;
     if (session?.phase === 'recording') {
       const stopped = await uploadServiceRef.current.stopPressRecording(session);
-      const result = await uploadServiceRef.current.runPressToTalkPipeline(stopped);
+      const effectiveDurationMs =
+        typeof stopped.durationMs === 'number' && stopped.durationMs > 0
+          ? stopped.durationMs
+          : longRecordDuration * 1000;
+      // 预览回调 / 先展示录音文件 + 时长 / 后续上传完成后可更新状态或 URL
+      if (stopped.localUrl) {
+        console.log('[workflow-long-record] preview payload', {
+          audioUri: stopped.localUrl,
+          effectiveDurationMs,
+          remoteAudioId: stopped.remoteAudioId ?? null,
+        });
+        onLongRecordAudioReady?.({
+          audioUri: stopped.localUrl,
+          durationMs: effectiveDurationMs,
+          remoteAudioId: stopped.remoteAudioId ?? null,
+          sourceMode: 'long-form',
+        });
+      }
+      const result = await uploadServiceRef.current.runPressToTalkPipeline(stopped, {
+        source: 'workflow-long-form',
+        strategy: 'api_then_mock_fallback',
+      });
       onLongRecordComplete?.(result.transcriptText);
     }
 

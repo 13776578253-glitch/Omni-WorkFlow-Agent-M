@@ -120,6 +120,10 @@ export interface WorkflowTranscriptSegment {
 
 // 录音模式
 export type WorkflowRecordingMode = 'press-to-talk' | 'long-form';
+// 录音来源
+export type WorkflowRecordingSource = 'home-press' | 'workflow-press' | 'workflow-long-form';
+// 录音转写策略
+export type WorkflowTranscriptStrategy = 'mock_only' | 'api_then_mock_fallback';
 
 // 输入区域
 // 短时录音 (按住说话)
@@ -138,6 +142,7 @@ export type WorkflowRecordingPhase =
 export interface WorkflowRecordingSession {
   sessionId: string;
   mode: WorkflowRecordingMode;          // 录音模式
+  source: WorkflowRecordingSource;      // 录音来源
   phase: WorkflowRecordingPhase;        // 所处阶段
   startedAt: number;
   stoppedAt?: number;
@@ -156,9 +161,17 @@ export interface WorkflowRecordingUploadPayload {
 }
 
 export interface WorkflowRecordingPipelineResult {
-  session: WorkflowRecordingSession;             // 录音 完整会话信息
+  session: WorkflowRecordingSession;                  // 录音 完整会话信息
   transcriptText: string;                             // 文字
   // transcriptSegments: WorkflowTranscriptSegment[];
+}
+
+// 录音预览
+export interface WorkflowRecordedAudioPreview {
+  audioUri: string;
+  durationMs: number;
+  remoteAudioId?: string | null;
+  sourceMode: 'long-form';
 }
 
 // AI 状态文本辅助函数

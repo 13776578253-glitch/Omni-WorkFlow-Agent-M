@@ -32,7 +32,7 @@ interface WorkflowWaveformTestProps {
 }
 
 export function formatHms(totalSeconds: number): string {
-  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+  const safeSeconds = Number.isFinite(totalSeconds) ? Math.max(0, Math.floor(totalSeconds)) : 0;
   const mm = Math.floor((safeSeconds % 3600) / 60).toString().padStart(2, '0');
   const ss = (safeSeconds % 60).toString().padStart(2, '0');
   return `${mm}:${ss}`;
@@ -104,16 +104,19 @@ export function WorkflowWaveformTest({
   totalSeconds,
   colors,
 }: WorkflowWaveformTestProps) {
+  const safeTotalSeconds = Number.isFinite(totalSeconds) && totalSeconds > 0 ? totalSeconds : 0;
+  const safeCurrentTime = Number.isFinite(currentTime) && currentTime > 0 ? currentTime : 0;
+
   // 使用 SharedValue 驱动动画，确保 60fps 流畅度
   const progress = useSharedValue(0);
 
   // 监听 currentTime 变化，平滑过渡
   useEffect(() => {
-    progress.value = withTiming(currentTime, {
+    progress.value = withTiming(safeCurrentTime, {
       duration: 100, // 与外部更新频率保持一致 (100ms)
       easing: Easing.linear,
     });
-  }, [currentTime, progress]);
+  }, [progress, safeCurrentTime]);
 
   // 左侧（已播放）动画样式
   const leftAnimatedStyle = useAnimatedStyle(() => {
@@ -144,8 +147,9 @@ export function WorkflowWaveformTest({
 
   // 预计算时间轴标签
   const axisLabels = useMemo(() => {
-    return Array.from({ length: Math.ceil(totalSeconds) + 1 }).map((_, i) => i);
-  }, [totalSeconds]);
+    const axisLength = Math.min(3601, Math.max(1, Math.ceil(safeTotalSeconds) + 1));
+    return Array.from({ length: axisLength }).map((_, i) => i);
+  }, [safeTotalSeconds]);
 
   return (
     <View style={styles.container}>

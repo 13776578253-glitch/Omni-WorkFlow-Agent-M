@@ -1,43 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-// 模拟后端返回的音频数据结构
-export interface AudioData {
-  id: string;
-  duration: number; // 秒
-  waveform: number[]; // 波形振幅数据 (0-100)
-}
-
-// 模拟 12s 音频数据
-// 15 bars/sec * 12 sec = 180 bars
-const MOCK_AUDIO_DATA: AudioData = {
-  id: 'mock-audio-001',
-  duration: 12,
-  waveform: Array.from({ length: 180 }).map((_, index) => {
-    // 生成一些随机但看起来像波形的数据
-    const x = index / 179;
-    // 几个波峰
-    const burstA = Math.exp(-Math.pow((x - 0.2) / 0.05, 2));
-    const burstB = Math.exp(-Math.pow((x - 0.5) / 0.1, 2));
-    const burstC = Math.exp(-Math.pow((x - 0.8) / 0.08, 2));
-    
-    const base = 10 + (burstA * 40 + burstB * 30 + burstC * 35);
-    const noise = Math.random() * 10;
-    
-    return Math.min(100, Math.max(5, base + noise));
-  })
-};
-
-// 模拟异步读取音频服务
-export const WorkflowAudioService = {
-  // 模拟从后端获取音频数据
-  getAudioData: async (): Promise<AudioData> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(MOCK_AUDIO_DATA);
-      }, 500); // 模拟 500ms 网络延迟
-    });
-  }
-};
+import { AudioModule, setAudioModeAsync } from 'expo-audio';
 
 interface UseAudioPlayerResult {
   currentTime: number;
@@ -48,82 +11,175 @@ interface UseAudioPlayerResult {
   togglePlay: () => void;
   stopPlay: () => void;
   seekTo: (time: number) => void;
-  loadAudio: () => Promise<void>;
+  loadAudio: (uri?: string | null, durationMs?: number | null) => Promise<void>;
 }
 
-// 封装音频播放逻辑的自定义 Hook
+function buildPlaceholderWaveform(durationSeconds: number) {
+  const normalizedDuration =
+    Number.isFinite(durationSeconds) && durationSeconds > 0 ? durationSeconds : 12;
+  const safeDurationSeconds = Math.min(600, normalizedDuration);
+  const rawBarCount = Math.round(safeDurationSeconds * 15);
+  const barCount = Math.min(9000, Math.max(36, Number.isFinite(rawBarCount) ? rawBarCount : 180));
+  return Array.from({ length: barCount }).map((_, index) => {
+    const x = index / Math.max(1, barCount - 1);
+    const burstA = Math.exp(-Math.pow((x - 0.18) / 0.06, 2));
+    const burstB = Math.exp(-Math.pow((x - 0.48) / 0.1, 2));
+    const burstC = Math.exp(-Math.pow((x - 0.78) / 0.09, 2));
+    const base = 10 + burstA * 34 + burstB * 28 + burstC * 30;
+    const texture = 4 + ((index * 7) % 9);
+    return Math.min(50, Math.max(5, base * 0.5 + texture));
+  });
+}
+
 export function useAudioPlayer(): UseAudioPlayerResult {
   const [currentTime, setCurrentTime] = useState(0);
-  const currentTimeRef = useRef(0);
   const [totalTime, setTotalTime] = useState(0);
   const [audioData, setAudioData] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // 加载音频数据
-  const loadAudio = useCallback(async () => {
-    setIsLoading(true);
+  const playerRef = useRef<InstanceType<typeof AudioModule.AudioPlayer> | null>(null);
+  const syncTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const clearSyncTimer = useCallback(() => {
+    if (syncTimerRef.current) {
+      clearInterval(syncTimerRef.current);
+      syncTimerRef.current = null;
+    }
+  }, []);
+
+  const syncStatus = useCallback(() => {
+    const player = playerRef.current;
+    if (!player) return;
+
+    setCurrentTime(player.currentTime);
+    setTotalTime(player.duration || 0);
+    setIsPlaying(player.playing);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearSyncTimer();
+      playerRef.current?.remove();
+      playerRef.current = null;
+    };
+  }, [clearSyncTimer]);
+
+  const createPlayer = useCallback((uri: string) => {
+    const source = { uri };
     try {
-      const data = await WorkflowAudioService.getAudioData();
-      setTotalTime(data.duration);
-      // 预处理波形数据，缩放到 0-50 高度
-      const processedWave = data.waveform.map(h => Math.min(50, h * 0.5));
-      setAudioData(processedWave);
-      // 加载完成后自动播放
-      setIsPlaying(true);
+      const AudioPlayerCtor = AudioModule.AudioPlayer as any;
+      return new AudioPlayerCtor(source, 100, false);
+    } catch (error) {
+      try {
+        const AudioPlayerCtor = AudioModule.AudioPlayer as any;
+        return new AudioPlayerCtor(source, 100, false, 0);
+      } catch (secondaryError) {
+        console.error('Failed to create audio player:', secondaryError);
+        return null;
+      }
+    }
+  }, []);
+
+  const loadAudio = useCallback(async (uri?: string | null, durationMs?: number | null) => {
+    clearSyncTimer();
+    playerRef.current?.remove();
+    playerRef.current = null;
+
+    setCurrentTime(0);
+    setIsPlaying(false);
+
+    if (!uri) {
+      setTotalTime(durationMs ? durationMs / 1000 : 0);
+      setAudioData(buildPlaceholderWaveform(durationMs ? durationMs / 1000 : 12));
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      await setAudioModeAsync({
+        allowsRecording: false,
+        playsInSilentMode: true,
+        shouldPlayInBackground: false,
+        shouldRouteThroughEarpiece: false,
+      });
+
+      const player = createPlayer(uri);
+      if (!player) {
+        throw new Error('Audio player is unavailable in the current runtime');
+      }
+      playerRef.current = player;
+      console.log('[workflow-audio] loadAudio source', { uri, durationMs });
+
+      const fallbackSeconds =
+        typeof durationMs === 'number' && Number.isFinite(durationMs) && durationMs > 0
+          ? durationMs / 1000
+          : 12;
+      setTotalTime(fallbackSeconds);
+      setAudioData(buildPlaceholderWaveform(fallbackSeconds));
+
+      syncTimerRef.current = setInterval(() => {
+        syncStatus();
+      }, 120);
+
+      setTimeout(() => {
+        syncStatus();
+        const resolvedDuration = player.duration || fallbackSeconds;
+        setTotalTime(resolvedDuration);
+        setAudioData(buildPlaceholderWaveform(resolvedDuration));
+      }, 180);
     } catch (error) {
       console.error('Failed to load audio data:', error);
+      setTotalTime(durationMs ? durationMs / 1000 : 0);
+      setAudioData(buildPlaceholderWaveform(durationMs ? durationMs / 1000 : 12));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [clearSyncTimer, createPlayer, syncStatus]);
 
-  // 播放控制逻辑
-  useEffect(() => {
-    if (!isPlaying || totalTime === 0) return;
-
-    const interval = setInterval(() => {
-      if (currentTimeRef.current >= totalTime) {
-        setIsPlaying(false); // 播放结束
-        clearInterval(interval);
-        return;
-      }
-      
-      const nextTime = Math.min(currentTimeRef.current + 0.1, totalTime);
-      currentTimeRef.current = nextTime;
-      
-      // 只有在 UI 需要显示时间或者处理交互时才更新 state
-      setCurrentTime(nextTime);
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, [isPlaying, totalTime]);
-
-  // 播放/暂停切换
   const togglePlay = useCallback(() => {
-    if (currentTimeRef.current >= totalTime) {
-      // 如果已经播放结束，重置并重新播放
-      currentTimeRef.current = 0;
-      setCurrentTime(0);
-      setIsPlaying(true);
-    } else {
-      setIsPlaying(prev => !prev);
+    const player = playerRef.current;
+    if (!player) return;
+
+    if (player.currentTime >= player.duration && player.duration > 0) {
+      void player.seekTo(0);
+      player.play();
+      syncStatus();
+      return;
     }
-  }, [totalTime]);
+
+    if (player.playing) {
+      player.pause();
+    } else {
+      player.play();
+    }
+
+    syncStatus();
+  }, [syncStatus]);
 
   const stopPlay = useCallback(() => {
-    setIsPlaying(false);
-    currentTimeRef.current = 0;
+    const player = playerRef.current;
+    if (!player) return;
+
+    player.pause();
+    void player.seekTo(0);
     setCurrentTime(0);
+    setIsPlaying(false);
   }, []);
 
   const seekTo = useCallback((time: number) => {
-    const clampedTime = Math.max(0, Math.min(time, totalTime));
-    currentTimeRef.current = clampedTime;
+    const player = playerRef.current;
+    if (!player) return;
+
+    const duration = player.duration || totalTime;
+    const clampedTime = Math.max(0, Math.min(time, duration));
+    void player.seekTo(clampedTime);
     setCurrentTime(clampedTime);
   }, [totalTime]);
 
-  return {
+  return useMemo(() => ({
     currentTime,
     totalTime,
     audioData,
@@ -133,5 +189,5 @@ export function useAudioPlayer(): UseAudioPlayerResult {
     stopPlay,
     seekTo,
     loadAudio,
-  };
+  }), [audioData, currentTime, isLoading, isPlaying, loadAudio, seekTo, stopPlay, togglePlay, totalTime]);
 }
