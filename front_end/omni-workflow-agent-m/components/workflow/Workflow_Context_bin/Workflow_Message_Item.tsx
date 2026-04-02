@@ -309,8 +309,9 @@ export function WorkflowMessageItem({ message, onUpdate, onPresentationStateChan
     );
   }
 
+  // Markdown 块类型定义和解析函数
   interface MarkdownBlockChunk {
-    type: 'paragraph' | 'heading' | 'list' | 'blockquote' | 'code' | 'other';
+    type: 'paragraph' | 'heading' | 'list' | 'blockquote' | 'code' | 'mermaid' | 'other';
     content: string;
   }
 
@@ -381,6 +382,7 @@ export function WorkflowMessageItem({ message, onUpdate, onPresentationStateChan
   // 已定位 4 个核心章节：项目背景、技术选型、开发进度、后续计划。
   function detectMarkdownLineType(line: string): MarkdownBlockChunk['type'] | null {
     if (!line) return null;
+    if (line.startsWith('```mermaid')) return 'mermaid';
     if (line.startsWith('```')) return 'code';
     if (/^#{1,6}\s/.test(line)) return 'heading';
     if (/^>\s?/.test(line)) return 'blockquote';
@@ -432,7 +434,14 @@ export function WorkflowMessageItem({ message, onUpdate, onPresentationStateChan
               onCancel={handleCancel}
             />
           ) : (
-            <TouchableOpacity onPress={handleEdit} activeOpacity={0.8} style={styles.rendererContainer}>
+            // 消息内容 / 如果有思维链且消息未编辑过，则先展示思维链动画，动画完成后逐字显示消息文本
+            <TouchableOpacity
+              onPress={handleEdit}
+              activeOpacity={0.8}
+              style={[
+                styles.rendererContainer,
+                !isUser && message.content.includes('```mermaid') ? styles.rendererContainerMermaid : null,
+              ]}>
               {isUser || !shouldAnimateMessage ? (
                 <WorkflowMarkdownRenderer content={message.content} align={isUser ? 'right' : 'left'} />
               ) : canRevealMessage ? (
@@ -517,6 +526,10 @@ const styles = StyleSheet.create({
   },
   rendererContainer: {
     paddingVertical: 8,
+  },
+  // Mermaid 图表容器样式，增加底部间距以避免与附件重叠
+  rendererContainerMermaid: {
+    width: '100%',
   },
   // 角色头部样式
   roleHeader: {
