@@ -96,6 +96,20 @@ export interface WorkflowTranscriptResponse {
   fullText?: string;
 }
 
+export interface WorkflowLongAudioTaskRequest {
+  audioResourceId?: string;
+  audioUri?: string;
+  durationMs?: number;
+  prompt: string;
+  sessionId?: string;
+}
+
+export interface WorkflowLongAudioTaskResponse {
+  taskId?: string;
+  sessionId?: string;
+  accepted: boolean;
+}
+
 // ----- 5. 会话/历史（可选） -----
 
 export interface WorkflowSessionSummary {
@@ -125,6 +139,9 @@ export interface IWorkflowApi {
 
   /** 转写音频，返回带时间戳的 segments */
   transcript(req: WorkflowTranscriptRequest): Promise<WorkflowTranscriptResponse>;
+
+  /** 长时录音任务：携带音频文件与固定提示词提交给后端 */
+  submitLongAudioTask?(req: WorkflowLongAudioTaskRequest): Promise<WorkflowLongAudioTaskResponse>;
 
   /** 获取会话块列表（可选） */
   getSession?(sessionId: string): Promise<WorkflowGetSessionResponse>;

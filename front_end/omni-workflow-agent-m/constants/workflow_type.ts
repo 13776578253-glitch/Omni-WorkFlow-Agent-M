@@ -174,6 +174,11 @@ export interface WorkflowRecordedAudioPreview {
   sourceMode: 'long-form';
 }
 
+export interface WorkflowLongAudioTaskPayload {
+  audio: WorkflowRecordedAudioPreview;
+  prompt: string;
+}
+
 // AI 状态文本辅助函数
 export function getAIStatusText(status?: 'pending' | 'done' | 'error'): string {
   if (status === 'pending') return '正在思考...';

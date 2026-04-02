@@ -5,7 +5,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 
 import { WorkflowFileUpload } from '@/components/workflow/Workflow_file upload';
-import type { WorkflowAttachment, WorkflowRecordedAudioPreview, WorkflowRecordingSession } from '@/constants/workflow_type';
+import type {
+  WorkflowAttachment,
+  WorkflowRecordedAudioPreview,
+  WorkflowRecordingSession,
+} from '@/constants/workflow_type';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { pickWorkflowCameraImage } from '@/services/workflow/Workflow_Camera';
 import { createWorkflowUploadService } from '@/services/workflow/Workflow_Upload';
@@ -25,8 +29,8 @@ interface WorkflowInputBarProps {
   onKeyboardVisibleChange?: (visible: boolean) => void;
   attachments?: WorkflowAttachment[];
   onAttachmentsChange?: (attachments: WorkflowAttachment[]) => void;
-  onLongRecordComplete?: (transcriptText: string) => void;
   onLongRecordAudioReady?: (audio: WorkflowRecordedAudioPreview) => void;
+  onLongRecordComplete?: (transcriptText: string) => void;
   hasRecordedAudioPreview?: boolean;
   onClearRecordedAudioPreview?: () => void;
 }
@@ -45,8 +49,8 @@ export function WorkflowInputBar({
   onKeyboardVisibleChange,
   attachments = [],
   onAttachmentsChange,
-  onLongRecordComplete,
   onLongRecordAudioReady,
+  onLongRecordComplete,
   hasRecordedAudioPreview = false,
   onClearRecordedAudioPreview,
 }: WorkflowInputBarProps) {
@@ -408,10 +412,18 @@ export function WorkflowInputBar({
     const session = longRecordSessionRef.current;
     if (session?.phase === 'recording') {
       const stopped = await uploadServiceRef.current.stopPressRecording(session);
-      const effectiveDurationMs =
-        typeof stopped.durationMs === 'number' && stopped.durationMs > 0
+      const promptText = '请整理这段长时录音的完整内容，提取重点并生成后续工作流结果。';
+      const safeStoppedDurationMs =
+        typeof stopped.durationMs === 'number' &&
+        Number.isFinite(stopped.durationMs) &&
+        stopped.durationMs > 0 &&
+        stopped.durationMs <= 12 * 60 * 60 * 1000
           ? stopped.durationMs
-          : longRecordDuration * 1000;
+          : 0;
+      const effectiveDurationMs =
+        longRecordDuration > 0
+          ? longRecordDuration * 1000
+          : safeStoppedDurationMs;
       // 预览回调 / 先展示录音文件 + 时长 / 后续上传完成后可更新状态或 URL
       if (stopped.localUrl) {
         console.log('[workflow-long-record] preview payload', {
@@ -426,11 +438,7 @@ export function WorkflowInputBar({
           sourceMode: 'long-form',
         });
       }
-      const result = await uploadServiceRef.current.runPressToTalkPipeline(stopped, {
-        source: 'workflow-long-form',
-        strategy: 'mock_only',
-      });
-      onLongRecordComplete?.(result.transcriptText);
+      onLongRecordComplete?.(promptText);
     }
 
     setIsLongRecording(false);

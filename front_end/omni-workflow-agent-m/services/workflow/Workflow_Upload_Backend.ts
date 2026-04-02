@@ -100,3 +100,36 @@ export async function requestWorkflowAudioTranscript(params: {
 
   return { transcriptText: String(transcriptText) };
 }
+
+export async function submitWorkflowLongAudioTask(params: {
+  remoteAudioId?: string | null;
+  audioUri?: string | null;
+  durationMs?: number;
+  prompt: string;
+  sessionId?: string | null;
+}): Promise<{ accepted: boolean; taskId?: string; sessionId?: string }> {
+  const response = await fetch(`${API_BASE}/workflow/audio/long-form`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      audioResourceId: params.remoteAudioId ?? undefined,
+      audioUri: params.audioUri ?? undefined,
+      durationMs: params.durationMs,
+      prompt: params.prompt,
+      sessionId: params.sessionId ?? undefined,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Long audio task failed with status ${response.status}`);
+  }
+
+  const data = await response.json();
+  return {
+    accepted: true,
+    taskId: data?.taskId ? String(data.taskId) : undefined,
+    sessionId: data?.sessionId ? String(data.sessionId) : undefined,
+  };
+}

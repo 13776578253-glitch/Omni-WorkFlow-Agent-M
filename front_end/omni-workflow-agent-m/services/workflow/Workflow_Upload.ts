@@ -29,6 +29,7 @@ const MOCK_TRANSCRIPTS: Record<WorkflowRecordingSource, string> = {
   'workflow-press': '请把这段按住说话的内容整理成结构化任务清单，并继续生成后续结果。',
   'workflow-long-form': '请整理这段长时录音的完整内容，提取重点并生成后续工作流结果。',
 };
+const MAX_REASONABLE_RECORDING_DURATION_MS = 12 * 60 * 60 * 1000;
 
 // 工作流上传服务
 interface WorkflowUploadRuntime {
@@ -113,13 +114,23 @@ function createDefaultRuntime(): WorkflowUploadRuntime {
 
       const activeRecorder = recorder;
       recorder = null;
-      const durationBeforeStopMs = Math.max(0, Math.round(activeRecorder.currentTime * 1000));
+      const durationBeforeStopMsRaw = Math.max(0, Math.round(activeRecorder.currentTime * 1000));
       const previewUriBeforeStop = activeRecorder.uri;
 
       await activeRecorder.stop();
       const status = activeRecorder.getStatus();
       const sourceUri = status.url ?? activeRecorder.uri ?? previewUriBeforeStop;
-      const durationMs = Math.max(0, status.durationMillis, durationBeforeStopMs, Date.now() - startedAt);
+      const durationCandidates = [
+        status.durationMillis,
+        durationBeforeStopMsRaw,
+        Date.now() - startedAt,
+      ].filter((value): value is number =>
+        typeof value === 'number' &&
+        Number.isFinite(value) &&
+        value > 0 &&
+        value <= MAX_REASONABLE_RECORDING_DURATION_MS
+      );
+      const durationMs = durationCandidates.length > 0 ? Math.max(...durationCandidates) : 0;
 
       await setAudioModeAsync({
         allowsRecording: false,

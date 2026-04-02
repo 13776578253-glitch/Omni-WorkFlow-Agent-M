@@ -528,13 +528,13 @@ export default function WorkflowScreen({
     setIsKeyboardVisible(visible);
   }, []);
 
-  // 长录音完成回调
-  const handleLongRecordComplete = useCallback((transcriptText: string) => {
-    setInputText(transcriptText);
-  }, []);
-
   const handleLongRecordAudioReady = useCallback((audio: WorkflowRecordedAudioPreview) => {
     setRecordedAudioPreview(audio);
+    setMode('recording');
+  }, []);
+
+  const handleLongRecordComplete = useCallback((transcriptText: string) => {
+    setInputText(transcriptText);
     setMode('recording');
   }, []);
 
