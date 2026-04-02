@@ -173,7 +173,6 @@ export interface WorkflowAudioUploadResponse {
 
 export interface WorkflowLongAudioTaskRequest extends SessionCompatiblePayload {
   audioResourceId?: string;
-  audioUri?: string;
   durationMs?: number;
   prompt: string;
 }

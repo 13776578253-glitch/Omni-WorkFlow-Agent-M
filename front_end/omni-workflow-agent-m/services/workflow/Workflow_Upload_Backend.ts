@@ -76,14 +76,12 @@ export async function requestWorkflowAudioTranscript(params: {
 
 export async function submitWorkflowLongAudioTask(params: {
   remoteAudioId?: string | null;
-  audioUri?: string | null;
   durationMs?: number;
   prompt: string;
   sessionId?: string | null;
 }): Promise<{ accepted: boolean; taskId?: string; sessionId?: string }> {
   const result = await submitLongAudioTask({
     audioResourceId: params.remoteAudioId ?? undefined,
-    audioUri: params.audioUri ?? undefined,
     durationMs: params.durationMs,
     prompt: params.prompt,
     sessionId: params.sessionId ?? undefined,

@@ -413,7 +413,7 @@
 - 说明：
   - 该接口主要服务短录音 / 长按录音场景
 
-#### 23. 长时录音任务创建（新增）（存在耦合 注意！ 删除了 audioUri）
+#### 23. 长时录音任务创建（新增）（存在耦合  移除了 audioUri，改为仅接收 audioResourceId）
 - 接口地址：`POST /workflow/audio/long-form`
 - 用途：提交长时录音处理任务，大文件场景采用异步任务模式
 - 请求参数：
@@ -432,6 +432,9 @@
   | sessionId | string | 会话主键 |
 - 说明：
   - 该接口不复用短录音 transcript 主链路
+  - 前端必须先调用 `POST /workflow/audio/upload` 获取 `audioResourceId`
+  - 本接口只负责基于 `audioResourceId` 创建长时录音异步任务
+  - 本接口不再接收 `audioUri` 或原始音频文件
   - 推荐后端采用“上传文件 -> 建任务 -> 轮询状态”模型
 
 #### 24. 查询长时录音任务状态（新增）（可选）
@@ -487,8 +490,3 @@
  - `@omni_history_sessions_v1` 对应 history 摘要缓存
  - `@omni_workflow_chat_history_v1_${sessionId}` 对应 workflow 完整内容缓存
  - `current_session_id` 仅对应当前激活会话指针，不需要单独服务端资源
-
-### 录音关系结论
-- audio/upload 负责“原始文件 -> 资源引用”
-- audio/long-form 负责“资源引用 -> 建任务”
-- workflow/input 负责“文本/普通文件 -> 对话主链”

@@ -30,6 +30,7 @@ import { TOP_AREA_EXPANDED_HEIGHT, WorkflowTopArea } from '@/components/workflow
 
 import {
   generate as generateWorkflowToBackend,
+  getLongAudioTaskStatus as getWorkflowLongAudioTaskStatus,
   getSession as getWorkflowSession,
   submitInput as submitWorkflowInputToBackend,
   type WorkflowGenerateResponse,
@@ -120,6 +121,7 @@ export default function WorkflowScreen({
   const [isAutoCompactLocked, setIsAutoCompactLocked] = useState(false);
   const [recordedAudioPreview, setRecordedAudioPreview] = useState<WorkflowRecordedAudioPreview | null>(null);
   const [pendingLongAudioInput, setPendingLongAudioInput] = useState<WorkflowPendingLongAudioInput | null>(null);
+  const [isSubmittingLongAudio, setIsSubmittingLongAudio] = useState(false);
 
   // 测试
   // 块列表
@@ -161,6 +163,7 @@ export default function WorkflowScreen({
   const isHydratingSessionRef = useRef(false);
   const loadedSessionIdRef = useRef<string | null>(currentSessionId);
   const handledExternalSubmitTokenRef = useRef(0);
+  const longAudioRequestTokenRef = useRef(0);
 
   // 安全区域 信息
   const insets = useSafeAreaInsets();
@@ -176,6 +179,7 @@ export default function WorkflowScreen({
     setIsAutoCompactLocked(false);
     setRecordedAudioPreview(null);
     setPendingLongAudioInput(null);
+    setIsSubmittingLongAudio(false);
     setScrollOffset(0);
   }, [resetToken]);
 
@@ -255,6 +259,7 @@ export default function WorkflowScreen({
         setIsAutoCompactLocked(false);
         setRecordedAudioPreview(null);
         setPendingLongAudioInput(null);
+        setIsSubmittingLongAudio(false);
         setScrollOffset(0);
         loadedSessionIdRef.current = null;
       }
@@ -408,6 +413,18 @@ export default function WorkflowScreen({
     blockId: string,
     replacement: WorkflowBlock
   ) => targetBlocks.map((block) => (block.id === blockId ? replacement : block)), []);
+
+  const buildLongAudioErrorBlock = useCallback((sourceBlockId: string, errorContent?: string): WorkflowBlock => ({
+    id: `ai-error-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    role: 'ai',
+    content: errorContent ?? '长音频任务处理失败，请稍后重试。',
+    createdAt: Date.now(),
+    sourceBlockId,
+    status: 'error',
+    thoughtChainAnimationPlayed: true,
+    messageAnimationPlayed: true,
+    editedByUser: false,
+  }), []);
 
   const uploadAttachmentsForSubmission = useCallback(async (
     submitAttachments: WorkflowAttachment[]
@@ -650,8 +667,47 @@ export default function WorkflowScreen({
     return sessionId;
   }, [currentSessionId, onHistoryChanged, onSessionChange]);
 
+  const hydrateWorkflowSessionFromBackend = useCallback(async (sessionId: string) => {
+    const remoteSession = await getWorkflowSession(sessionId);
+    if (!remoteSession.blocks || remoteSession.blocks.length === 0) {
+      return false;
+    }
+
+    if (loadedSessionIdRef.current !== sessionId) {
+      return false;
+    }
+
+    setBlocks(remoteSession.blocks);
+    setMode(recordedAudioPreview?.audioUri ? 'recording' : (remoteSession.blocks.length > 0 ? 'document' : 'welcome'));
+    await WorkflowStorage.saveMessages(remoteSession.blocks, sessionId);
+    await HistoryStorage.saveWorkflowData(sessionId, remoteSession.blocks);
+    return true;
+  }, [recordedAudioPreview?.audioUri]);
+
+  const waitForLongAudioTaskCompletion = useCallback(async (taskId: string, sessionId: string) => {
+    const maxAttempts = 30;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const status = await getWorkflowLongAudioTaskStatus(taskId);
+
+      if (status.status === 'completed') {
+        const hydrated = await hydrateWorkflowSessionFromBackend(status.sessionId || sessionId);
+        if (hydrated) {
+          return 'completed' as const;
+        }
+      }
+
+      if (status.status === 'failed') {
+        return 'failed' as const;
+      }
+    }
+
+    return 'timeout' as const;
+  }, [hydrateWorkflowSessionFromBackend]);
+
   const submitPendingLongAudio = useCallback(async () => {
-    if (!pendingLongAudioInput?.audioUri) {
+    if (!pendingLongAudioInput?.audioUri || isSubmittingLongAudio) {
       return false;
     }
 
@@ -661,7 +717,37 @@ export default function WorkflowScreen({
       return false;
     }
 
+    const userBlockId = `user-${Date.now()}`;
+    const pendingLongAudioAIBlockId = `ai-long-audio-pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const userMsg: WorkflowBlock = {
+      id: userBlockId,
+      role: 'user',
+      content: promptText,
+      createdAt: Date.now(),
+    };
+    const pendingAIBlock: WorkflowBlock = {
+      id: pendingLongAudioAIBlockId,
+      role: 'ai',
+      content: '',
+      createdAt: Date.now(),
+      sourceBlockId: userBlockId,
+      status: 'pending',
+      thoughtChain: selectThoughtChain(promptText.trim()),
+      thoughtChainAnimationPlayed: true,
+      messageAnimationPlayed: true,
+      editedByUser: false,
+    };
+    const optimisticBlocks = [...blocks, userMsg, pendingAIBlock];
+    const requestToken = Date.now();
+
+    longAudioRequestTokenRef.current = requestToken;
+    setIsSubmittingLongAudio(true);
+    setBlocks(optimisticBlocks);
     setInputText('');
+
+    if (sessionId) {
+      persistSessionBlocks(sessionId, optimisticBlocks);
+    }
 
     void (async () => {
       try {
@@ -690,20 +776,60 @@ export default function WorkflowScreen({
           ));
         }
 
-        await submitWorkflowLongAudioTask({
+        const taskResult = await submitWorkflowLongAudioTask({
           remoteAudioId,
-          audioUri: pendingLongAudioInput.audioUri,
           durationMs: pendingLongAudioInput.durationMs,
           prompt: promptText,
           sessionId,
         });
+
+        if (longAudioRequestTokenRef.current !== requestToken) {
+          return;
+        }
+
+        if (!taskResult.accepted || !taskResult.taskId) {
+          throw new Error('Long audio task was not accepted');
+        }
+
+        const taskStatus = await waitForLongAudioTaskCompletion(taskResult.taskId, taskResult.sessionId || sessionId);
+        if (longAudioRequestTokenRef.current !== requestToken) {
+          return;
+        }
+
+        if (taskStatus !== 'completed') {
+          const errorBlock = buildLongAudioErrorBlock(userBlockId);
+          const nextBlocks = replaceBlockById(optimisticBlocks, pendingLongAudioAIBlockId, errorBlock);
+          setBlocks((prev) => replaceBlockById(prev, pendingLongAudioAIBlockId, errorBlock));
+          persistSessionBlocks(sessionId, nextBlocks);
+        }
       } catch {
-        // 静默失败：保留顶部音频，允许用户再次点击发送重试
+        if (longAudioRequestTokenRef.current !== requestToken) {
+          return;
+        }
+
+        const errorBlock = buildLongAudioErrorBlock(userBlockId);
+        const nextBlocks = replaceBlockById(optimisticBlocks, pendingLongAudioAIBlockId, errorBlock);
+        setBlocks((prev) => replaceBlockById(prev, pendingLongAudioAIBlockId, errorBlock));
+        persistSessionBlocks(sessionId, nextBlocks);
+      } finally {
+        if (longAudioRequestTokenRef.current === requestToken) {
+          setIsSubmittingLongAudio(false);
+        }
       }
     })();
 
     return true;
-  }, [ensureWorkflowSessionId, inputText, pendingLongAudioInput]);
+  }, [
+    blocks,
+    buildLongAudioErrorBlock,
+    ensureWorkflowSessionId,
+    inputText,
+    isSubmittingLongAudio,
+    pendingLongAudioInput,
+    persistSessionBlocks,
+    replaceBlockById,
+    waitForLongAudioTaskCompletion,
+  ]);
 
   // 消息提交 事件 / 复杂逻辑
   const handleSubmit = useCallback(async () => {
@@ -957,6 +1083,8 @@ export default function WorkflowScreen({
   }, []);
 
   const handleLongAudioInputReady = useCallback((audioInput: WorkflowPendingLongAudioInput) => {
+    longAudioRequestTokenRef.current = Date.now();
+    setIsSubmittingLongAudio(false);
     setPendingLongAudioInput(audioInput);
     setRecordedAudioPreview({
       audioUri: audioInput.audioUri,
@@ -969,6 +1097,8 @@ export default function WorkflowScreen({
   }, []);
 
   const handleClearRecordedAudioPreview = useCallback(() => {
+    longAudioRequestTokenRef.current = Date.now();
+    setIsSubmittingLongAudio(false);
     setRecordedAudioPreview(null);
     setPendingLongAudioInput(null);
     setInputText('');
