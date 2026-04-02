@@ -23,6 +23,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { WorkflowRecordingOverlay } from '@/components/ui/workflow-recording-overlay';
 import { WorkflowContentArea, type WorkflowContentAreaRef } from '@/components/workflow/Workflow_ContentArea';
 import { MARKDOWN_MOCK_DATA } from '@/components/workflow/Workflow_Context_bin/Workflow_Context_Data';
+import { buildLongAudioMockAIBlock } from '@/components/workflow/Workflow_Context_bin/Workflow_Long_Audio_Mock';
 import { selectThoughtChain } from '@/components/workflow/Workflow_Context_bin/Workflow_Status_Reminder_Data';
 import { WorkflowInputBar } from '@/components/workflow/Workflow_InputBar';
 import { WorkflowQuickActions, type QuickActionKey } from '@/components/workflow/Workflow_QuickActions';
@@ -414,18 +415,6 @@ export default function WorkflowScreen({
     replacement: WorkflowBlock
   ) => targetBlocks.map((block) => (block.id === blockId ? replacement : block)), []);
 
-  const buildLongAudioErrorBlock = useCallback((sourceBlockId: string, errorContent?: string): WorkflowBlock => ({
-    id: `ai-error-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    role: 'ai',
-    content: errorContent ?? '长音频任务处理失败，请稍后重试。',
-    createdAt: Date.now(),
-    sourceBlockId,
-    status: 'error',
-    thoughtChainAnimationPlayed: true,
-    messageAnimationPlayed: true,
-    editedByUser: false,
-  }), []);
-
   const uploadAttachmentsForSubmission = useCallback(async (
     submitAttachments: WorkflowAttachment[]
   ): Promise<{ attachments: WorkflowAttachment[]; primaryFileRef?: WorkflowFileRef }> => {
@@ -797,9 +786,9 @@ export default function WorkflowScreen({
         }
 
         if (taskStatus !== 'completed') {
-          const errorBlock = buildLongAudioErrorBlock(userBlockId);
-          const nextBlocks = replaceBlockById(optimisticBlocks, pendingLongAudioAIBlockId, errorBlock);
-          setBlocks((prev) => replaceBlockById(prev, pendingLongAudioAIBlockId, errorBlock));
+          const fallbackAIBlock = buildLongAudioMockAIBlock(userBlockId);
+          const nextBlocks = replaceBlockById(optimisticBlocks, pendingLongAudioAIBlockId, fallbackAIBlock);
+          setBlocks((prev) => replaceBlockById(prev, pendingLongAudioAIBlockId, fallbackAIBlock));
           persistSessionBlocks(sessionId, nextBlocks);
         }
       } catch {
@@ -807,9 +796,9 @@ export default function WorkflowScreen({
           return;
         }
 
-        const errorBlock = buildLongAudioErrorBlock(userBlockId);
-        const nextBlocks = replaceBlockById(optimisticBlocks, pendingLongAudioAIBlockId, errorBlock);
-        setBlocks((prev) => replaceBlockById(prev, pendingLongAudioAIBlockId, errorBlock));
+        const fallbackAIBlock = buildLongAudioMockAIBlock(userBlockId);
+        const nextBlocks = replaceBlockById(optimisticBlocks, pendingLongAudioAIBlockId, fallbackAIBlock);
+        setBlocks((prev) => replaceBlockById(prev, pendingLongAudioAIBlockId, fallbackAIBlock));
         persistSessionBlocks(sessionId, nextBlocks);
       } finally {
         if (longAudioRequestTokenRef.current === requestToken) {
@@ -821,7 +810,6 @@ export default function WorkflowScreen({
     return true;
   }, [
     blocks,
-    buildLongAudioErrorBlock,
     ensureWorkflowSessionId,
     inputText,
     isSubmittingLongAudio,

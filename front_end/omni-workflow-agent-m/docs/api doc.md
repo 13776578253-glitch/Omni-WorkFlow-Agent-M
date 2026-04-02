@@ -273,18 +273,64 @@
   | 字段 | 类型 | 说明 |
   |------|------|------|
   | sessionId | string | 会话主键 |
-  | blocks | array | 完整 block 列表 |
+  | blocks | array | 完整 block 列表；其中 AI block 可包含 `attachments` |
   | lastModified | number | 最后修改时间 |
   | recordedAudio | object | 可选；长时录音预览信息：`{ audioResourceId?, audioUri?, durationMs }` |
 - block 内文件相关字段：
   | 字段 | 类型 | 说明 |
   |------|------|------|
   | fileRef | object | 可选；单文件引用：`{ url?, path?, mimeType?, fileName }` |
-  | attachments | array | 可选；附件数组，元素可包含 `{ id, type, fileName, mimeType, url?, thumbnailUri? }` |
+  | attachments | array | 可选；附件数组，元素可包含 `{ id, type, fileName, mimeType, thumbnailUri?, fileRef? }` |
 - 说明：
   - `GET /history/sessions` 负责返回会话摘要；`GET /workflow/sessions/{sessionId}` 负责返回完整会话内容
   - 用户在 history 页点击某条记录后，应使用该条 history 的 `id` 作为这里的 `sessionId` 获取完整详情
   - 文件信息、附件信息、长时录音预览信息应放在该接口中返回，不放在 history 摘要列表中
+- 响应示例：
+```json
+{
+  "code": "0",
+  "message": "ok",
+  "data": {
+    "sessionId": "session-20260403-001",
+    "blocks": [
+      {
+        "id": "user-20260403-001",
+        "role": "user",
+        "content": "请整理这段长音频并输出重点",
+        "createdAt": 1775203200000
+      },
+      {
+        "id": "ai-20260403-001",
+        "role": "ai",
+        "content": "我已完成整理，见下方附件。",
+        "createdAt": 1775203205000,
+        "sourceBlockId": "user-20260403-001",
+        "status": "done",
+        "attachments": [
+          {
+            "id": "att-20260403-001",
+            "type": "file",
+            "fileName": "会议总结.pdf",
+            "mimeType": "application/pdf",
+            "fileRef": {
+              "url": "https://api.example.com/files/att-20260403-001/download",
+              "path": "/generated/2026/04/03/meeting-summary.pdf",
+              "fileName": "会议总结.pdf",
+              "mimeType": "application/pdf"
+            }
+          }
+        ]
+      }
+    ],
+    "lastModified": 1775203206000,
+    "recordedAudio": {
+      "audioResourceId": "audio-20260403-001",
+      "audioUri": "https://api.example.com/audio/audio-20260403-001/play",
+      "durationMs": 98321
+    }
+  }
+}
+```
 
 #### 18. 提交 Workflow 输入（新增）
 - 接口地址：`POST /workflow/input`
@@ -301,7 +347,52 @@
   | 字段 | 类型 | 说明 |
   |------|------|------|
   | userBlockId | string | 新 user block 标识 |
-  | aiBlock | object | 可选；若后端同步生成，则返回第一条 AI block |
+  | aiBlock | object | 可选；若后端同步生成，则返回第一条 AI block，结构与 `POST /workflow/generate` 返回一致，可包含 `attachments` |
+- 请求示例：
+```json
+{
+  "text": "请根据附件内容输出一份总结",
+  "fileRef": {
+    "url": "https://api.example.com/files/file-20260403-001/download",
+    "path": "/uploads/2026/04/03/report.pdf",
+    "fileName": "report.pdf",
+    "mimeType": "application/pdf"
+  },
+  "blocks": [],
+  "sessionId": "session-20260403-001",
+  "id": "session-20260403-001"
+}
+```
+- 响应示例：
+```json
+{
+  "code": "0",
+  "message": "ok",
+  "data": {
+    "userBlockId": "user-20260403-002",
+    "aiBlock": {
+      "blockId": "ai-20260403-002",
+      "content": "我已阅读附件并整理出概要，附件见下方。",
+      "sourceBlockId": "user-20260403-002",
+      "status": "done",
+      "attachments": [
+        {
+          "id": "att-20260403-002",
+          "type": "file",
+          "fileName": "分析结果.docx",
+          "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "fileRef": {
+            "url": "https://api.example.com/files/att-20260403-002/download",
+            "path": "/generated/2026/04/03/result.docx",
+            "fileName": "分析结果.docx",
+            "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          }
+        }
+      ]
+    }
+  }
+}
+```
 
 #### 19. Workflow 生成（新增）
 - 接口地址：`POST /workflow/generate`
@@ -321,6 +412,72 @@
   | content | string | 生成内容 |
   | sourceBlockId | string | 源块标识 |
   | status | string | `done` |
+  | attachments | array | 可选；AI 输出附带的文件列表，元素可包含 `{ id, type, fileName, mimeType, fileRef/url/thumbnailUri }` |
+- AI 生成附件返回示例：
+```json
+{
+  "code": "0",
+  "message": "ok",
+  "data": {
+    "blockId": "ai-20260403-001",
+    "content": "我已根据本次内容整理出总结文件，见下方附件。",
+    "sourceBlockId": "user-20260403-001",
+    "status": "done",
+    "attachments": [
+      {
+        "id": "att-20260403-001",
+        "type": "file",
+        "fileName": "会议总结.pdf",
+        "mimeType": "application/pdf",
+        "fileRef": {
+          "url": "https://api.example.com/files/att-20260403-001/download",
+          "path": "/generated/2026/04/03/meeting-summary.pdf",
+          "fileName": "会议总结.pdf",
+          "mimeType": "application/pdf"
+        }
+      }
+    ]
+  }
+}
+```
+- 图片附件示例：
+```json
+{
+  "id": "att-20260403-002",
+  "type": "image",
+  "fileName": "流程图.png",
+  "mimeType": "image/png",
+  "thumbnailUri": "https://api.example.com/files/att-20260403-002/thumb",
+  "fileRef": {
+    "url": "https://api.example.com/files/att-20260403-002/download",
+    "path": "/generated/2026/04/03/diagram.png",
+    "fileName": "流程图.png",
+    "mimeType": "image/png"
+  }
+}
+```
+- 说明：
+  - workflow JSON 接口不直接返回文件二进制内容
+  - 后端生成文件后，应先保存到可访问的文件服务、对象存储或静态资源目录
+  - 前端只接收附件元数据与 `fileRef.url`
+  - 用户点击附件时，前端通过 `fileRef.url` 进行预览、下载或外部打开
+- 请求示例：
+```json
+{
+  "blocks": [
+    {
+      "id": "user-20260403-003",
+      "role": "user",
+      "content": "请基于当前上下文继续输出正式版本",
+      "createdAt": 1775203300000
+    }
+  ],
+  "action": "append_after",
+  "afterBlockId": "user-20260403-003",
+  "sessionId": "session-20260403-001",
+  "id": "session-20260403-001"
+}
+```
 
 #### 20. Workflow 文件上传（新增）
 - 接口地址：`POST /workflow/file/upload`
@@ -359,6 +516,30 @@
 - 说明：
   - `POST /workflow/file/upload` 的职责只是上传并返回 `fileRef`
   - 若要把文件作为一次用户输入参与 workflow，需要再调用 `POST /workflow/input`，并把该 `fileRef` 放入请求体
+- 请求示例（multipart/form-data 语义）：
+```text
+POST /workflow/file/upload
+Content-Type: multipart/form-data
+
+file = { uri: "file:///local/report.pdf", name: "report.pdf", type: "application/pdf" }
+sessionId = "session-20260403-001"
+id = "session-20260403-001"
+```
+- 响应示例：
+```json
+{
+  "code": "0",
+  "message": "ok",
+  "data": {
+    "fileRef": {
+      "url": "https://api.example.com/files/file-20260403-001/download",
+      "path": "/uploads/2026/04/03/report.pdf",
+      "fileName": "report.pdf",
+      "mimeType": "application/pdf"
+    }
+  }
+}
+```
 
 #### 21. 音频上传（新增）
 - 接口地址：`POST /workflow/audio/upload`
@@ -394,6 +575,27 @@
   - `POST /workflow/audio/upload` 只负责上传并返回音频资源引用
   - 短录音后续应调用 `POST /workflow/audio/transcript`
   - 长时录音后续应调用 `POST /workflow/audio/long-form`
+- 请求示例（multipart/form-data 语义）：
+```text
+POST /workflow/audio/upload
+Content-Type: multipart/form-data
+
+file = { uri: "file:///local/meeting.m4a", name: "meeting.m4a", type: "audio/m4a" }
+durationMs = 98321
+sessionId = "session-20260403-001"
+id = "session-20260403-001"
+```
+- 响应示例：
+```json
+{
+  "code": "0",
+  "message": "ok",
+  "data": {
+    "remoteAudioId": "audio-20260403-001",
+    "url": "https://api.example.com/audio/audio-20260403-001/play"
+  }
+}
+```
 
 #### 22. 短录音转写（新增）
 - 接口地址：`POST /workflow/audio/transcript`
@@ -412,6 +614,28 @@
   | fullText | string | 可选；完整文本 |
 - 说明：
   - 该接口主要服务短录音 / 长按录音场景
+- 请求示例：
+```json
+{
+  "audioResourceId": "audio-20260403-002",
+  "sessionId": "session-20260403-001",
+  "id": "session-20260403-001"
+}
+```
+- 响应示例：
+```json
+{
+  "code": "0",
+  "message": "ok",
+  "data": {
+    "segments": [
+      { "startTime": 0, "endTime": 1620, "text": "今天先确认需求范围。" },
+      { "startTime": 1620, "endTime": 3510, "text": "然后安排后续开发节点。" }
+    ],
+    "fullText": "今天先确认需求范围。然后安排后续开发节点。"
+  }
+}
+```
 
 #### 23. 长时录音任务创建（新增）（存在耦合  移除了 audioUri，改为仅接收 audioResourceId）
 - 接口地址：`POST /workflow/audio/long-form`
@@ -436,6 +660,28 @@
   - 本接口只负责基于 `audioResourceId` 创建长时录音异步任务
   - 本接口不再接收 `audioUri` 或原始音频文件
   - 推荐后端采用“上传文件 -> 建任务 -> 轮询状态”模型
+- 请求示例：
+```json
+{
+  "audioResourceId": "audio-20260403-001",
+  "prompt": "请整理这段长时录音的完整内容，提取重点并生成后续工作流结果。",
+  "durationMs": 98321,
+  "sessionId": "session-20260403-001",
+  "id": "session-20260403-001"
+}
+```
+- 响应示例：
+```json
+{
+  "code": "0",
+  "message": "ok",
+  "data": {
+    "accepted": true,
+    "taskId": "long-task-20260403-001",
+    "sessionId": "session-20260403-001"
+  }
+}
+```
 
 #### 24. 查询长时录音任务状态（新增）（可选）
 - 接口地址：`GET /workflow/audio/tasks/{taskId}`
@@ -452,6 +698,36 @@
   | sessionId | string | 对应会话主键 |
   | result | object | 可选；任务完成后的结果摘要 |
   | errorMessage | string | 可选；失败原因 |
+- 完成态约束：
+  - 当前前端在 `status=completed` 后，会继续调用 `GET /workflow/sessions/{sessionId}` 拉取完整 blocks
+  - 因此后端在返回 `completed` 时，应保证对应 `sessionId` 的 workflow 数据已经落库并可被该接口读取
+- 响应示例（处理中）：
+```json
+{
+  "code": "0",
+  "message": "ok",
+  "data": {
+    "taskId": "long-task-20260403-001",
+    "status": "processing",
+    "sessionId": "session-20260403-001"
+  }
+}
+```
+- 响应示例（已完成）：
+```json
+{
+  "code": "0",
+  "message": "ok",
+  "data": {
+    "taskId": "long-task-20260403-001",
+    "status": "completed",
+    "sessionId": "session-20260403-001",
+    "result": {
+      "summary": "长音频任务已处理完成，结果已写入 workflow session。"
+    }
+  }
+}
+```
 
 ## 前端缓存与服务端 session 的映射
 ### 本地缓存现状

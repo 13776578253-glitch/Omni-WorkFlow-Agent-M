@@ -100,6 +100,7 @@ export interface WorkflowGenerateResponse {
   content: string;
   sourceBlockId: string;
   status: 'done';
+  /** 可选：AI 输出附带的文件列表 */
   attachments?: WorkflowAttachment[];
 }
 
@@ -126,7 +127,7 @@ export interface WorkflowSubmitInputRequest extends SessionCompatiblePayload {
 /** 提交后后端可能直接返回新 user 块 + 触发生成的 AI 块，或仅确认，由前端追加 user 块并再调生成接口，依后端设计二选一 */
 export interface WorkflowSubmitInputResponse {
   userBlockId: string;
-  /** 若后端同步生成，则返回首条 AI 块；否则前端再调 generate */
+  /** 若后端同步生成，则返回首条 AI 块；结构与 WorkflowGenerateResponse 一致，可包含 attachments */
   aiBlock?: WorkflowGenerateResponse;
 }
 
@@ -203,6 +204,7 @@ export interface WorkflowSessionSummary {
 /** 拉取某会话的块列表（用于恢复或历史） */
 export interface WorkflowGetSessionResponse {
   sessionId: string;
+  /** 完整 block 列表；其中 AI block 可包含 attachments */
   blocks: WorkflowBlock[];
   lastModified?: number;
   recordedAudio?: {
