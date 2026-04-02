@@ -8,6 +8,28 @@ const UPLOAD_DIR = `${FileSystem.documentDirectory}upload_local_file/`;
 // 文件索引结构 / 包含文件基本信息和上传状态 / 方便管理和展示
 const INDEX_KEY = '@upload_file_index';
 
+function guessExtensionFromMimeType(mimeType: string): string {
+  const normalized = mimeType.toLowerCase();
+  const mimeToExtensionMap: Record<string, string> = {
+    'application/pdf': 'pdf',
+    'application/msword': 'doc',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+    'application/vnd.ms-powerpoint': 'ppt',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+    'application/vnd.ms-excel': 'xls',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'audio/mpeg': 'mp3',
+    'audio/mp4': 'm4a',
+    'audio/m4a': 'm4a',
+    'audio/wav': 'wav',
+  };
+
+  return mimeToExtensionMap[normalized] || 'bin';
+}
+
 // 文件索引项类型定义 
 interface FileIndexEntry {
   id: string;
@@ -32,7 +54,8 @@ export class WorkflowLocalFileStorage {
   static async saveFile(uri: string, fileName: string, mimeType: string): Promise<FileIndexEntry> {
     await this.init();
     const id = `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const ext = fileName.split('.').pop() || 'bin';
+    const rawExt = fileName.includes('.') ? fileName.split('.').pop() : '';
+    const ext = rawExt && rawExt.trim() ? rawExt.trim() : guessExtensionFromMimeType(mimeType);
     const localPath = `${UPLOAD_DIR}${id}.${ext}`;
 
     await FileSystem.copyAsync({ from: uri, to: localPath });

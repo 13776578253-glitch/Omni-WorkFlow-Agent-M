@@ -381,6 +381,7 @@ export default function WorkflowScreen({
     content: response.content ?? '',
     createdAt: Date.now(),
     sourceBlockId: response.sourceBlockId,
+    attachments: response.attachments,
     status: response.status ?? 'done',
     thoughtChain: selectThoughtChain(userContent.trim()),
     thoughtChainAnimationPlayed: false,

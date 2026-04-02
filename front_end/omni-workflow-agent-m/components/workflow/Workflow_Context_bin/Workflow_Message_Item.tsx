@@ -2,8 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 
+import { WorkflowMessageAttachments } from '@/components/workflow/Workflow_Context_bin/Workflow_Message_Attachments';
 import { WorkflowMarkdownEditor } from '@/components/workflow/Workflow_Context_bin/Workflow_Markdown_Editor';
 import { WorkflowMarkdownRenderer } from '@/components/workflow/Workflow_Context_bin/Workflow_Markdown_Renderer';
 import { WorkflowStatusReminder } from './Workflow_Status_Reminder';
@@ -455,27 +455,9 @@ export function WorkflowMessageItem({ message, onUpdate, onPresentationStateChan
             </TouchableOpacity>
           )}
 
-          {/* 附件容器 */}
-          {isUser && 'attachments' in message && message.attachments && message.attachments.length > 0 && (
-            <View style={styles.attachmentsContainer}>
-              {message.attachments.map((att) => (
-                <View key={att.id} style={styles.messageAttachmentItem}>
-                  {att.type === 'image' ? (
-                    <Image
-                      source={{ uri: att.thumbnailUri || att.fileRef?.url || att.localPath }}
-                      style={styles.messageAttachmentThumbnail}
-                      contentFit="cover"
-                    />
-                  ) : (
-                    <View style={styles.messageFileThumbnail}>
-                      <Ionicons name="document-outline" size={32} color="#666" />
-                      <Text style={styles.messageFileName} numberOfLines={1}>{att.fileName}</Text>
-                    </View>
-                  )}
-                </View>
-              ))}
-            </View>
-          )}
+          {'attachments' in message && message.attachments && message.attachments.length > 0 ? (
+            <WorkflowMessageAttachments attachments={message.attachments} />
+          ) : null}
         </View>
         
         {/* 用户消息右侧标识 */}
@@ -557,36 +539,6 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     fontStyle: 'italic',
     marginLeft: 4,
-  },
-  attachmentsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 8,
-  },
-  messageAttachmentItem: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: '#F5F5F5',
-  },
-  messageAttachmentThumbnail: {
-    width: '100%',
-    height: '100%',
-  },
-  messageFileThumbnail: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 4,
-  },
-  messageFileName: {
-    fontSize: 10,
-    color: '#666',
-    marginTop: 2,
-    textAlign: 'center',
   },
   progressiveParagraph: {
     fontSize: 16,

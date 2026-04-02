@@ -3,9 +3,9 @@
  * Base path: /api
  */
 
-import type { WorkflowBlock, WorkflowFileRef } from '@/constants/workflow_type';
+import type { WorkflowAttachment, WorkflowBlock, WorkflowFileRef } from '@/constants/workflow_type';
 
-const API_BASE = 'http://localhost:8000/api';
+export const WORKFLOW_API_BASE = 'http://localhost:8000/api';
 
 interface ApiResponse<T = any> {
   code: string;
@@ -100,6 +100,7 @@ export interface WorkflowGenerateResponse {
   content: string;
   sourceBlockId: string;
   status: 'done';
+  attachments?: WorkflowAttachment[];
 }
 
 /** 流式 chunk（若后端支持 SSE/WebSocket） */
@@ -247,7 +248,7 @@ export interface IWorkflowApi {
  * 获取 workflow 会话详情
  */
 export async function getSession(sessionId: string): Promise<WorkflowGetSessionResponse> {
-  const response = await fetch(`${API_BASE}/workflow/sessions/${encodeURIComponent(sessionId)}`, {
+  const response = await fetch(`${WORKFLOW_API_BASE}/workflow/sessions/${encodeURIComponent(sessionId)}`, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },
   });
@@ -267,7 +268,7 @@ export async function getSession(sessionId: string): Promise<WorkflowGetSessionR
 export async function submitInput(
   req: WorkflowSubmitInputRequest
 ): Promise<WorkflowSubmitInputResponse> {
-  const response = await fetch(`${API_BASE}/workflow/input`, {
+  const response = await fetch(`${WORKFLOW_API_BASE}/workflow/input`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(appendSessionCompatFields(req)),
@@ -281,7 +282,7 @@ export async function submitInput(
  * 请求 AI 生成
  */
 export async function generate(req: WorkflowGenerateRequest): Promise<WorkflowGenerateResponse> {
-  const response = await fetch(`${API_BASE}/workflow/generate`, {
+  const response = await fetch(`${WORKFLOW_API_BASE}/workflow/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(appendSessionCompatFields(req)),
@@ -308,7 +309,7 @@ export async function uploadFile(
     formData.append('id', compat.id);
   }
 
-  const response = await fetch(`${API_BASE}/workflow/file/upload`, {
+  const response = await fetch(`${WORKFLOW_API_BASE}/workflow/file/upload`, {
     method: 'POST',
     body: formData,
   });
@@ -338,7 +339,7 @@ export async function uploadAudio(
     formData.append('id', compat.id);
   }
 
-  const response = await fetch(`${API_BASE}/workflow/audio/upload`, {
+  const response = await fetch(`${WORKFLOW_API_BASE}/workflow/audio/upload`, {
     method: 'POST',
     body: formData,
   });
@@ -360,7 +361,7 @@ export async function uploadAudio(
 export async function transcript(
   req: WorkflowTranscriptRequest
 ): Promise<WorkflowTranscriptResponse> {
-  const response = await fetch(`${API_BASE}/workflow/audio/transcript`, {
+  const response = await fetch(`${WORKFLOW_API_BASE}/workflow/audio/transcript`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(appendSessionCompatFields(req)),
@@ -376,7 +377,7 @@ export async function transcript(
 export async function submitLongAudioTask(
   req: WorkflowLongAudioTaskRequest
 ): Promise<WorkflowLongAudioTaskResponse> {
-  const response = await fetch(`${API_BASE}/workflow/audio/long-form`, {
+  const response = await fetch(`${WORKFLOW_API_BASE}/workflow/audio/long-form`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(appendSessionCompatFields(req)),
@@ -398,7 +399,7 @@ export async function getLongAudioTaskStatus(
   taskId: string
 ): Promise<WorkflowLongAudioTaskStatus> {
   const response = await fetch(
-    `${API_BASE}/workflow/audio/tasks/${encodeURIComponent(taskId)}`,
+    `${WORKFLOW_API_BASE}/workflow/audio/tasks/${encodeURIComponent(taskId)}`,
     {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },

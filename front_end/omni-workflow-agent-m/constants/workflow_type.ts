@@ -23,12 +23,12 @@ export interface WorkflowAttachment {
   id: string;
   type: 'image' | 'file';
   fileName: string;
-  fileSize: number;
-  mimeType: string;
-  localPath: string;
-  thumbnailUri?: string;
+  fileSize?: number;           // 文件大小（可选）
+  mimeType?: string;           // MIME 类型（可选）
+  localPath?: string;          // 本地文件路径（可选）/ 上传前使用
+  thumbnailUri?: string;       // 缩略图 URI（可选）/ 图片预览使用
   fileRef?: WorkflowFileRef;   // 上传成功后关联的文件引用
-  uploadStatus: 'pending' | 'uploading' | 'success' | 'error';
+  uploadStatus?: 'pending' | 'uploading' | 'success' | 'error';
   uploadProgress?: number;
 }
 
@@ -87,6 +87,7 @@ export interface WorkflowAIBlock {
   content: string;                       // 内容  / 输出文本
   createdAt: number;                     // 创建时间（时间戳）
   sourceBlockId: string;                 // 源块 ID（可选） / 测试
+  attachments?: WorkflowAttachment[];    // AI 输出附件（可选）
   editedByUser?: boolean;                // 是否被用户编辑（可选） / 测试
   status?: 'pending' | 'done' | 'error'; // 状态 / 生成状态
   thoughtChain?: ThoughtChain;           // 思维链（可选）
