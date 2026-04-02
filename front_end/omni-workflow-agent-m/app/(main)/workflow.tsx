@@ -538,6 +538,12 @@ export default function WorkflowScreen({
     setMode('recording');
   }, []);
 
+  const handleClearRecordedAudioPreview = useCallback(() => {
+    setRecordedAudioPreview(null);
+    setInputText('');
+    setMode(blocks.length > 0 ? 'document' : 'welcome');
+  }, [blocks.length]);
+
   // 滚动到底部
   const handleScrollToBottom = useCallback(() => {
     contentAreaRef.current?.scrollToEnd();
@@ -603,6 +609,8 @@ export default function WorkflowScreen({
               onKeyboardVisibleChange={handleKeyboardVisibleChange}
               onLongRecordComplete={handleLongRecordComplete}
               onLongRecordAudioReady={handleLongRecordAudioReady}
+              hasRecordedAudioPreview={hasRecordedAudioPreview}
+              onClearRecordedAudioPreview={handleClearRecordedAudioPreview}
               containerStyle={{ marginTop: isKeyboardVisible ? 12 : 4, marginBottom: inputBarMarginBottom }}
             />
           </View>

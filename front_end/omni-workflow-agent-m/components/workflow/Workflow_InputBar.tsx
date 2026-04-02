@@ -27,6 +27,8 @@ interface WorkflowInputBarProps {
   onAttachmentsChange?: (attachments: WorkflowAttachment[]) => void;
   onLongRecordComplete?: (transcriptText: string) => void;
   onLongRecordAudioReady?: (audio: WorkflowRecordedAudioPreview) => void;
+  hasRecordedAudioPreview?: boolean;
+  onClearRecordedAudioPreview?: () => void;
 }
 
 export function WorkflowInputBar({
@@ -45,6 +47,8 @@ export function WorkflowInputBar({
   onAttachmentsChange,
   onLongRecordComplete,
   onLongRecordAudioReady,
+  hasRecordedAudioPreview = false,
+  onClearRecordedAudioPreview,
 }: WorkflowInputBarProps) {
   const cardColor = useThemeColor({}, 'card');
   const textColor = useThemeColor({}, 'text');
@@ -424,7 +428,7 @@ export function WorkflowInputBar({
       }
       const result = await uploadServiceRef.current.runPressToTalkPipeline(stopped, {
         source: 'workflow-long-form',
-        strategy: 'api_then_mock_fallback',
+        strategy: 'mock_only',
       });
       onLongRecordComplete?.(result.transcriptText);
     }
@@ -519,6 +523,11 @@ export function WorkflowInputBar({
           <View style={styles.leftActions} />
 
           <View style={styles.rightActions}>
+            {hasRecordedAudioPreview ? (
+              <TouchableOpacity style={styles.iconCircle} onPress={onClearRecordedAudioPreview}>
+                <Ionicons name="close" size={18} color={textColor} />
+              </TouchableOpacity>
+            ) : null}
             {/* 文件上传 */}
             <TouchableOpacity style={styles.iconCircle} onPress={handleOpenLongRecordSheet}>
               <Ionicons name="add" size={24} color={textColor} />
