@@ -1,8 +1,9 @@
 ﻿import type {
-  WorkflowPressRecordingSession,
+  WorkflowRecordingSession,
   WorkflowRecordingPhase,
   WorkflowRecordingPipelineResult,
-  WorkflowRecordingUploadPayload
+  WorkflowRecordingUploadPayload,
+  WorkflowRecordingMode
 } from '@/constants/workflow_type';
 
 // 录音
@@ -51,12 +52,13 @@ const DEFAULT_RUNTIME: WorkflowUploadRuntime = {
 };
 
 // 创建录音会话
-function createSession(phase: WorkflowRecordingPhase): WorkflowPressRecordingSession {
+function createSession(phase: WorkflowRecordingPhase, mode: WorkflowRecordingMode): WorkflowRecordingSession {
   const now = Date.now();
   return {
     sessionId: `record-${now}`,
-    phase,             // 流程阶段
-    startedAt: now,    // 会话时间戳
+    mode,                      // 录音模式
+    phase,                     // 流程阶段
+    startedAt: now,            // 会话时间戳
   };
 }
 
@@ -71,9 +73,9 @@ export class WorkflowUploadService {
   }
 
   // 开始录音
-  async startPressRecording(): Promise<WorkflowPressRecordingSession> {
+  async startPressRecording(mode: WorkflowRecordingMode = 'press-to-talk'): Promise<WorkflowRecordingSession> {
     // 请求权限
-    const requesting = createSession('requesting_permission');
+    const requesting = createSession('requesting_permission', mode);
     const granted = await this.runtime.requestPermission();
     if (!granted) {
       return {
@@ -93,7 +95,7 @@ export class WorkflowUploadService {
   }
 
   // 停止录音
-  async stopPressRecording(session: WorkflowPressRecordingSession): Promise<WorkflowPressRecordingSession> {
+  async stopPressRecording(session: WorkflowRecordingSession): Promise<WorkflowRecordingSession> {
     if (session.phase !== 'recording') {
       return {
         ...session,
@@ -115,7 +117,7 @@ export class WorkflowUploadService {
   }
 
   // 上传/转写
-  async runPressToTalkPipeline(session: WorkflowPressRecordingSession): Promise<WorkflowRecordingPipelineResult> {
+  async runPressToTalkPipeline(session: WorkflowRecordingSession): Promise<WorkflowRecordingPipelineResult> {
     if (!session.localUrl) {
       return {
         session: {
@@ -130,7 +132,7 @@ export class WorkflowUploadService {
     const localUrl = session.localUrl;
 
     // 创建 上传中 会话
-    const uploadingSession: WorkflowPressRecordingSession = {
+    const uploadingSession: WorkflowRecordingSession = {
       ...session,
       phase: 'uploading',
     };
@@ -144,7 +146,7 @@ export class WorkflowUploadService {
     });
 
     // 创建 转写中 会话
-    const transcribingSession: WorkflowPressRecordingSession = {
+    const transcribingSession: WorkflowRecordingSession = {
       ...uploadingSession,
       phase: 'transcribing',
       remoteAudioId: uploadResult.remoteAudioId,

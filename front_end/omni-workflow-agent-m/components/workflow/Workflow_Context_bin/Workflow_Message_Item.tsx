@@ -378,7 +378,6 @@ export function WorkflowMessageItem({ message, onUpdate, onPresentationStateChan
   }
 
   // 测试用例：逐字显示文本组件
-  // const testContent = `正在分析文档结构...
   // 已定位 4 个核心章节：项目背景、技术选型、开发进度、后续计划。
   function detectMarkdownLineType(line: string): MarkdownBlockChunk['type'] | null {
     if (!line) return null;

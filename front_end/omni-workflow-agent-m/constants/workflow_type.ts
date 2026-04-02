@@ -118,12 +118,8 @@ export interface WorkflowTranscriptSegment {
   isTranslated?: boolean;               // 是否已翻译
 }
 
-// 录音会话
-export interface WorkflowRecordingState {
-  isRecording: boolean;                 // 是否录音中
-  isCollapsed: boolean;                 // 是否折叠
-  durationSeconds?: number;             // 录音时长（秒）
-}
+// 录音模式
+export type WorkflowRecordingMode = 'press-to-talk' | 'long-form';
 
 // 输入区域
 // 短时录音 (按住说话)
@@ -139,10 +135,11 @@ export type WorkflowRecordingPhase =
   | 'error';                            // 异常
 
   // 单次录音会话 信息
-export interface WorkflowPressRecordingSession {
-  sessionId: string;                
+export interface WorkflowRecordingSession {
+  sessionId: string;
+  mode: WorkflowRecordingMode;          // 录音模式
   phase: WorkflowRecordingPhase;        // 所处阶段
-  startedAt: number;                    
+  startedAt: number;
   stoppedAt?: number;
   durationMs?: number;                  // 录音时长
   localUrl?: string;                    // 本地缓存路径
@@ -159,7 +156,7 @@ export interface WorkflowRecordingUploadPayload {
 }
 
 export interface WorkflowRecordingPipelineResult {
-  session: WorkflowPressRecordingSession;             // 录音 完整会话信息
+  session: WorkflowRecordingSession;             // 录音 完整会话信息
   transcriptText: string;                             // 文字
   // transcriptSegments: WorkflowTranscriptSegment[];
 }

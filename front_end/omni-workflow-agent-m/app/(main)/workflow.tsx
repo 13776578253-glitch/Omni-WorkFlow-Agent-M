@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { QuickActionNames, QuickActionPrompts, UserDataState } from '@/constants/type';
 // tyye 类型待处理
-import type { WorkflowAttachment, WorkflowBlock, WorkflowMode, WorkflowPressRecordingSession } from '@/constants/workflow_type';
+import type { WorkflowAttachment, WorkflowBlock, WorkflowMode, WorkflowRecordingSession } from '@/constants/workflow_type';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 import { WorkflowRecordingOverlay } from '@/components/ui/workflow-recording-overlay';
@@ -98,7 +98,7 @@ export default function WorkflowScreen({
   // 上传服务实例 / 测试
   const uploadServiceRef = useRef(createWorkflowUploadService());
   // 录音会话实例
-  const recordingSessionRef = useRef<WorkflowPressRecordingSession | null>(null);
+  const recordingSessionRef = useRef<WorkflowRecordingSession | null>(null);
   // 录音启动中实例
   const startRecordingPendingRef = useRef(false);
   //待执行 释放操作 / 中间态
@@ -439,7 +439,7 @@ export default function WorkflowScreen({
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 
     // 启动 录音
-    const session = await uploadServiceRef.current.startPressRecording();
+    const session = await uploadServiceRef.current.startPressRecording('press-to-talk');
     recordingSessionRef.current = session;
     startRecordingPendingRef.current = false;
 
@@ -476,6 +476,11 @@ export default function WorkflowScreen({
   // 键盘显隐回调
   const handleKeyboardVisibleChange = useCallback((visible: boolean) => {
     setIsKeyboardVisible(visible);
+  }, []);
+
+  // 长录音完成回调
+  const handleLongRecordComplete = useCallback((transcriptText: string) => {
+    setInputText(transcriptText);
   }, []);
 
   // 滚动到底部
@@ -538,6 +543,7 @@ export default function WorkflowScreen({
               onSlideCancelStateChange={setIsSlideCancelPreview}
               isPressRecording={isPressRecording}
               onKeyboardVisibleChange={handleKeyboardVisibleChange}
+              onLongRecordComplete={handleLongRecordComplete}
               containerStyle={{ marginTop: isKeyboardVisible ? 12 : 4, marginBottom: inputBarMarginBottom }}
             />
           </View>

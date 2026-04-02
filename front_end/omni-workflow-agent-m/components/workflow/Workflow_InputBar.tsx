@@ -5,9 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 
 import { WorkflowFileUpload } from '@/components/workflow/Workflow_file upload';
-import type { WorkflowAttachment } from '@/constants/workflow_type';
+import type { WorkflowAttachment, WorkflowRecordingSession } from '@/constants/workflow_type';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { pickWorkflowCameraImage } from '@/services/workflow/Workflow_Camera';
+import { createWorkflowUploadService } from '@/services/workflow/Workflow_Upload';
 import { pickWorkflowUploadFile } from '@/services/workflow/Workflow_upload_file';
 
 interface WorkflowInputBarProps {
@@ -15,7 +16,7 @@ interface WorkflowInputBarProps {
   onChangeText: (text: string) => void;
   onSubmit?: () => void;
   onPressInRecord?: () => void;   // 新增录音相关回调
-  onPressOutRecord?: () => void;  
+  onPressOutRecord?: () => void;
   onCancelRecord?: () => void;    // 滑动取消录音回调
   onSlideCancelStateChange?: (isCancel: boolean) => void;
   isPressRecording?: boolean;
@@ -24,6 +25,7 @@ interface WorkflowInputBarProps {
   onKeyboardVisibleChange?: (visible: boolean) => void;
   attachments?: WorkflowAttachment[];
   onAttachmentsChange?: (attachments: WorkflowAttachment[]) => void;
+  onLongRecordComplete?: (transcriptText: string) => void;
 }
 
 export function WorkflowInputBar({
@@ -40,6 +42,7 @@ export function WorkflowInputBar({
   onKeyboardVisibleChange,
   attachments = [],
   onAttachmentsChange,
+  onLongRecordComplete,
 }: WorkflowInputBarProps) {
   const cardColor = useThemeColor({}, 'card');
   const textColor = useThemeColor({}, 'text');
@@ -51,6 +54,8 @@ export function WorkflowInputBar({
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [isPressHolding, setIsPressHolding] = useState(false);
   const [showLongRecordSheet, setShowLongRecordSheet] = useState(false);
+  const [isLongRecording, setIsLongRecording] = useState(false);
+  const [longRecordDuration, setLongRecordDuration] = useState(0);
 
   // 持久化 Ref / 测试 / 待确认
   const pressStartXRef = useRef<number | null>(null);  // 按动时 X坐标
@@ -62,6 +67,9 @@ export function WorkflowInputBar({
   // 长计时器 Ref / 测试 / 长按延迟
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<TextInput>(null);            // 输入框 Ref / 聚焦
+  const uploadServiceRef = useRef(createWorkflowUploadService());
+  const longRecordSessionRef = useRef<WorkflowRecordingSession | null>(null);
+  const longRecordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
   // 录音 启动 / 未录音 + 键盘收起 + 无输入框文字(可选)
   const pressToRecordEnabled = !isPressRecording && !isKeyboardVisible && value.trim().length === 0;
@@ -343,15 +351,74 @@ export function WorkflowInputBar({
     handleCloseLongRecordSheet();
   };
 
+  // 长录音处理函数
+  const handleStartLongRecord = async () => {
+    setIsLongRecording(true);
+    setLongRecordDuration(0);
+
+    const session = await uploadServiceRef.current.startPressRecording('long-form');
+    longRecordSessionRef.current = session;
+
+    if (session.phase === 'recording') {
+      longRecordTimerRef.current = setInterval(() => {
+        setLongRecordDuration((prev) => prev + 1);
+      }, 1000);
+    }
+  };
+
+  const handleCancelLongRecord = async () => {
+    if (longRecordTimerRef.current) {
+      clearInterval(longRecordTimerRef.current);
+      longRecordTimerRef.current = null;
+    }
+
+    if (longRecordSessionRef.current?.phase === 'recording') {
+      await uploadServiceRef.current.stopPressRecording(longRecordSessionRef.current);
+    }
+
+    setIsLongRecording(false);
+    setLongRecordDuration(0);
+    longRecordSessionRef.current = null;
+  };
+
+  const handleConfirmLongRecord = async () => {
+    if (longRecordTimerRef.current) {
+      clearInterval(longRecordTimerRef.current);
+      longRecordTimerRef.current = null;
+    }
+
+    const session = longRecordSessionRef.current;
+    if (session?.phase === 'recording') {
+      const stopped = await uploadServiceRef.current.stopPressRecording(session);
+      const result = await uploadServiceRef.current.runPressToTalkPipeline(stopped);
+      onLongRecordComplete?.(result.transcriptText);
+    }
+
+    setIsLongRecording(false);
+    setLongRecordDuration(0);
+    longRecordSessionRef.current = null;
+  };
+
+  // 长录音波形数据
+  const longRecordDots = useMemo(() =>
+    Array.from({ length: 30 }).map((_, i) => ({
+      key: `long-dot-${i}`,
+      height: 5 + Math.random() * 15,
+      opacity: 0.5 + Math.random() * 0.5,
+    })),
+  []);
+
   return (
     <>
       <View style={[styles.inputContainer, { backgroundColor: cardColor }, containerStyle]}>
-        
-        {/* 附件预览区 */}
-        {attachments.length > 0 && (
-          <View style={styles.attachmentPreviewArea}>
-            
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.attachmentScroll}>
+
+        {!isLongRecording ? (
+          <>
+            {/* 状态 A: 默认输入状态 */}
+            {/* 附件预览区 */}
+            {attachments.length > 0 && (
+              <View style={styles.attachmentPreviewArea}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.attachmentScroll}>
               {attachments.map((att) => (
                 <View key={att.id} style={styles.attachmentItem}>
                   {att.type === 'image' ? (
@@ -375,7 +442,7 @@ export function WorkflowInputBar({
             </ScrollView>
             
             {/* 附件分隔线 */}
-            <View style={styles.attachmentDivider} />
+            {/* <View style={styles.attachmentDivider} /> */}
           </View>
         )}
 
@@ -414,8 +481,8 @@ export function WorkflowInputBar({
             <TouchableOpacity style={styles.iconCircle} onPress={handleOpenLongRecordSheet}>
               <Ionicons name="add" size={24} color={textColor} />
             </TouchableOpacity>
-            {/* 长时录音 / 待处理 */}
-            <TouchableOpacity style={styles.iconCircle} >
+            {/* 长时录音  */}
+            <TouchableOpacity style={styles.iconCircle} onPress={handleStartLongRecord}>
               <Ionicons name="mic-outline" size={24} color={textColor} />
             </TouchableOpacity>
             {/* 发送 */}
@@ -442,6 +509,35 @@ export function WorkflowInputBar({
             </TouchableOpacity>
           </View>
         </View>
+          </>
+        ) : (
+          <>
+            {/* 状态 B: 录音复核状态 */}
+            <View style={styles.recordingReviewContainer}>
+              <View style={styles.recordingTopRow}>
+                <View style={styles.waveformContainer}>
+                  {longRecordDots.map((dot) => (
+                    <View
+                      key={dot.key}
+                      style={[styles.recordingDot, { height: Math.max(4, dot.height), opacity: dot.opacity }]}
+                    />
+                  ))}
+                </View>
+                <Text style={[styles.durationText, { color: textColor }]}>
+                  {Math.floor(longRecordDuration / 60)}:{(longRecordDuration % 60).toString().padStart(2, '0')}
+                </Text>
+              </View>
+              <View style={styles.recordingBottomRow}>
+                <TouchableOpacity style={styles.cancelButton} onPress={handleCancelLongRecord}>
+                  <Ionicons name="close" size={22} color="#EF4444" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.confirmButton} onPress={handleConfirmLongRecord}>
+                  <Ionicons name="checkmark" size={22} color="#10B981" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </>
+        )}
       </View>
 
       <WorkflowFileUpload
@@ -461,6 +557,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     paddingHorizontal: 16,
     paddingVertical: 12,
+    minHeight: 92,
     elevation: 2,
     shadowColor: '#7A7A7A',
     shadowOffset: { width: 0, height: 1 },
@@ -577,6 +674,51 @@ const styles = StyleSheet.create({
   retryOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(128,128,128,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  recordingReviewContainer: {
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+  },
+  recordingTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  waveformContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    flex: 1,
+  },
+  recordingDot: {
+    width: 3,
+    borderRadius: 1.5,
+    backgroundColor: '#3B82F6',
+  },
+  durationText: {
+    fontSize: 14,
+    marginLeft: 12,
+  },
+  recordingBottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  cancelButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  confirmButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
