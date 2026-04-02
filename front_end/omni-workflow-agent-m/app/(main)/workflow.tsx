@@ -11,6 +11,7 @@ import type { QuickActionNames, QuickActionPrompts, UserDataState } from '@/cons
 import type {
   WorkflowAttachment,
   WorkflowBlock,
+  WorkflowFileRef,
   WorkflowMode,
   WorkflowRecordedAudioPreview,
   WorkflowRecordingSession,
@@ -37,6 +38,7 @@ import * as HistoryStorage from '@/services/history/History_Storage';
 import { SessionManager } from '@/services/workflow/Session_Manager';
 import { WorkflowStorage } from '@/services/workflow/Workflow_Storage';
 import { createWorkflowUploadService } from '@/services/workflow/Workflow_Upload';
+import { uploadAttachmentToBackend } from '@/services/workflow/Workflow_Upload_Backend';
 
 interface WorkflowScreenProps {
   currentSessionId: string | null;
@@ -365,15 +367,60 @@ export default function WorkflowScreen({
     editedByUser: false,
   }), []);
 
+  const persistSessionBlocks = useCallback((sessionId: string, nextBlocks: WorkflowBlock[]) => {
+    void WorkflowStorage.saveMessages(nextBlocks, sessionId);
+    void HistoryStorage.saveWorkflowData(sessionId, nextBlocks);
+  }, []);
+
+  const replaceBlockById = useCallback((
+    targetBlocks: WorkflowBlock[],
+    blockId: string,
+    replacement: WorkflowBlock
+  ) => targetBlocks.map((block) => (block.id === blockId ? replacement : block)), []);
+
+  const uploadAttachmentsForSubmission = useCallback(async (
+    submitAttachments: WorkflowAttachment[]
+  ): Promise<{ attachments: WorkflowAttachment[]; primaryFileRef?: WorkflowFileRef }> => {
+    const uploadedAttachments = await Promise.all(
+      submitAttachments.map(async (attachment) => {
+        if (attachment.fileRef && attachment.uploadStatus === 'success') {
+          return attachment;
+        }
+
+        try {
+          const fileRef = await uploadAttachmentToBackend(attachment);
+          return {
+            ...attachment,
+            fileRef,
+            uploadStatus: 'success' as const,
+          };
+        } catch {
+          return {
+            ...attachment,
+            uploadStatus: 'error' as const,
+          };
+        }
+      })
+    );
+
+    const primaryFileRef = uploadedAttachments.find((attachment) => attachment.fileRef)?.fileRef;
+    return {
+      attachments: uploadedAttachments,
+      primaryFileRef,
+    };
+  }, []);
+
   // 请求后端生成 AI 块 / 待处理：错误处理、性能优化、请求取消等
   const requestBackendAIBlock = useCallback(async (params: {
     sessionId: string;
     text: string;
     blocks: WorkflowBlock[];
     userBlockId: string;
+    fileRef?: WorkflowFileRef;
   }): Promise<WorkflowBlock> => {
     const submitResponse = await submitWorkflowInputToBackend({
       text: params.text,
+      fileRef: params.fileRef,
       blocks: params.blocks,
       sessionId: params.sessionId,
       id: params.sessionId,
@@ -405,7 +452,7 @@ export default function WorkflowScreen({
       id: `user-${Date.now()}`,
       role: 'user',
       content: trimmed,
-      attachments: submitAttachments.length > 0 ? submitAttachments.map(a => ({ ...a, uploadStatus: 'success' as const })) : undefined,
+      attachments: submitAttachments.length > 0 ? submitAttachments : undefined,
       createdAt: Date.now(),
     };
 
@@ -434,55 +481,63 @@ export default function WorkflowScreen({
     setPendingAttachments([]);
 
     if (sessionId) {
-      void WorkflowStorage.saveMessages(optimisticBlocks, sessionId);
-      void HistoryStorage.saveWorkflowData(sessionId, optimisticBlocks);
+      persistSessionBlocks(sessionId, optimisticBlocks);
     }
 
     const currentSessionIdForSync = sessionId;
-    const hasOnlyTextPayload = submitAttachments.length === 0;
 
     // 后端静默同步：不阻塞前端交互；失败时回退 mock。
-    if (currentSessionIdForSync && trimmed && hasOnlyTextPayload) {
+    if (currentSessionIdForSync) {
       void (async () => {
         const userId = await getLoggedInUserId();
         const aiMessageCount = blocks.filter(m => m.role === 'ai').length;
+        let latestBlocks = optimisticBlocks;
 
         try {
           if (!userId) {
             throw new Error('User is not logged in');
           }
 
+          const { attachments: uploadedAttachments, primaryFileRef } = await uploadAttachmentsForSubmission(
+            submitAttachments
+          );
+          const hydratedUserBlock: WorkflowBlock = {
+            ...userMsg,
+            attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
+            fileRef: primaryFileRef,
+          };
+          const backendContextBlocks = [...blocks, hydratedUserBlock];
+          const blocksWithUploadedAttachments = replaceBlockById(
+            optimisticBlocks,
+            userMsg.id,
+            hydratedUserBlock
+          );
+          latestBlocks = blocksWithUploadedAttachments;
+
+          setBlocks((prev) => replaceBlockById(prev, userMsg.id, hydratedUserBlock));
+          persistSessionBlocks(currentSessionIdForSync, blocksWithUploadedAttachments);
+
           const backendAIBlock = await requestBackendAIBlock({
             sessionId: currentSessionIdForSync,
             text: trimmed,
-            blocks,
+            fileRef: primaryFileRef,
+            blocks: backendContextBlocks,
             userBlockId: userMsg.id,
           });
 
-          setBlocks((prev) => prev.map((block) => (
-            block.id === pendingAIBlock.id ? backendAIBlock : block
-          )));
-
-          void WorkflowStorage.saveMessages(
-            optimisticBlocks.map((block) => (block.id === pendingAIBlock.id ? backendAIBlock : block)),
-            currentSessionIdForSync
+          const successBlocks = replaceBlockById(
+            blocksWithUploadedAttachments,
+            pendingAIBlock.id,
+            backendAIBlock
           );
-          void HistoryStorage.saveWorkflowData(
-            currentSessionIdForSync,
-            optimisticBlocks.map((block) => (block.id === pendingAIBlock.id ? backendAIBlock : block))
-          );
+          setBlocks((prev) => replaceBlockById(prev, pendingAIBlock.id, backendAIBlock));
+          persistSessionBlocks(currentSessionIdForSync, successBlocks);
         } catch {
           const fallbackAIBlock = buildMockAIBlock(trimmed, userMsg.id, aiMessageCount);
-          const fallbackBlocks = optimisticBlocks.map((block) => (
-            block.id === pendingAIBlock.id ? fallbackAIBlock : block
-          ));
+          const fallbackBlocks = replaceBlockById(latestBlocks, pendingAIBlock.id, fallbackAIBlock);
 
-          setBlocks((prev) => prev.map((block) => (
-            block.id === pendingAIBlock.id ? fallbackAIBlock : block
-          )));
-
-          void WorkflowStorage.saveMessages(fallbackBlocks, currentSessionIdForSync);
-          void HistoryStorage.saveWorkflowData(currentSessionIdForSync, fallbackBlocks);
+          setBlocks((prev) => replaceBlockById(prev, pendingAIBlock.id, fallbackAIBlock));
+          persistSessionBlocks(currentSessionIdForSync, fallbackBlocks);
         }
       })();
       return;
@@ -495,8 +550,7 @@ export default function WorkflowScreen({
     ));
     setBlocks(fallbackBlocks);
     if (currentSessionIdForSync) {
-      void WorkflowStorage.saveMessages(fallbackBlocks, currentSessionIdForSync);
-      void HistoryStorage.saveWorkflowData(currentSessionIdForSync, fallbackBlocks);
+      persistSessionBlocks(currentSessionIdForSync, fallbackBlocks);
     }
   }, [
     blocks,
@@ -506,7 +560,10 @@ export default function WorkflowScreen({
     mode,
     onHistoryChanged,
     onSessionChange,
+    persistSessionBlocks,
     requestBackendAIBlock,
+    replaceBlockById,
+    uploadAttachmentsForSubmission,
   ]);
 
   const hasRecordedAudioPreview = mode === 'recording' && !!recordedAudioPreview?.audioUri;

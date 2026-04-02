@@ -4,11 +4,11 @@ import {
   uploadAudio,
   uploadFile,
 } from '@/api/workflow-api';
-import type { WorkflowAttachment } from '@/constants/workflow_type';
+import type { WorkflowAttachment, WorkflowFileRef } from '@/constants/workflow_type';
 import { WorkflowLocalFileStorage } from './Workflow_upload_local_file';
 
 // 后端文件上传服务 / 负责将本地文件上传到后端并返回文件 URL/ID / 包含状态更新和错误处理
-export async function uploadAttachmentToBackend(attachment: WorkflowAttachment): Promise<string> {
+export async function uploadAttachmentToBackend(attachment: WorkflowAttachment): Promise<WorkflowFileRef> {
   const fileEntry = await WorkflowLocalFileStorage.getFile(attachment.id);
   if (!fileEntry) throw new Error('File not found');
 
@@ -22,17 +22,13 @@ export async function uploadAttachmentToBackend(attachment: WorkflowAttachment):
         type: fileEntry.mimeType,
       },
     });
-    const fileUrl =
-      result.fileRef.url ??
-      result.fileRef.path ??
-      attachment.localPath;
-
-    if (!fileUrl) {
-      throw new Error('File upload response missing file url/path');
+    const fileRef = result.fileRef;
+    if (!fileRef?.fileName) {
+      throw new Error('File upload response missing fileRef');
     }
 
     await WorkflowLocalFileStorage.updateStatus(attachment.id, 'success');
-    return fileUrl;
+    return fileRef;
   } catch (error) {
     await WorkflowLocalFileStorage.updateStatus(attachment.id, 'error');
     throw error;

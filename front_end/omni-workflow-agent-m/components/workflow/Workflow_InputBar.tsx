@@ -13,6 +13,7 @@ import type {
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { pickWorkflowCameraImage } from '@/services/workflow/Workflow_Camera';
 import { createWorkflowUploadService } from '@/services/workflow/Workflow_Upload';
+import { uploadAttachmentToBackend } from '@/services/workflow/Workflow_Upload_Backend';
 import { pickWorkflowUploadFile } from '@/services/workflow/Workflow_upload_file';
 
 interface WorkflowInputBarProps {
@@ -281,11 +282,38 @@ export function WorkflowInputBar({
     onAttachmentsChange?.(attachments.filter(a => a.id !== id));
   };
 
-  const handleRetryUpload = (id: string) => {
-    const updated = attachments.map(a =>
-      a.id === id ? { ...a, uploadStatus: 'uploading' as const } : a
+  const handleRetryUpload = async (id: string) => {
+    const target = attachments.find((attachment) => attachment.id === id);
+    if (!target) {
+      return;
+    }
+
+    onAttachmentsChange?.(
+      attachments.map((attachment) =>
+        attachment.id === id
+          ? { ...attachment, uploadStatus: 'uploading' as const }
+          : attachment
+      )
     );
-    onAttachmentsChange?.(updated);
+
+    try {
+      const fileRef = await uploadAttachmentToBackend(target);
+      onAttachmentsChange?.(
+        attachments.map((attachment) =>
+          attachment.id === id
+            ? { ...attachment, uploadStatus: 'success' as const, fileRef }
+            : attachment
+        )
+      );
+    } catch {
+      onAttachmentsChange?.(
+        attachments.map((attachment) =>
+          attachment.id === id
+            ? { ...attachment, uploadStatus: 'error' as const }
+            : attachment
+        )
+      );
+    }
   };
 
   // 文件上传处理函数 / 待优化

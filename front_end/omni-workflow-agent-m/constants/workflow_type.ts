@@ -27,6 +27,7 @@ export interface WorkflowAttachment {
   mimeType: string;
   localPath: string;
   thumbnailUri?: string;
+  fileRef?: WorkflowFileRef;   // 上传成功后关联的文件引用
   uploadStatus: 'pending' | 'uploading' | 'success' | 'error';
   uploadProgress?: number;
 }

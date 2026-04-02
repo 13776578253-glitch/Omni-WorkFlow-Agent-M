@@ -452,7 +452,11 @@ export function WorkflowMessageItem({ message, onUpdate, onPresentationStateChan
               {message.attachments.map((att) => (
                 <View key={att.id} style={styles.messageAttachmentItem}>
                   {att.type === 'image' ? (
-                    <Image source={{ uri: att.thumbnailUri || att.localPath }} style={styles.messageAttachmentThumbnail} contentFit="cover" />
+                    <Image
+                      source={{ uri: att.thumbnailUri || att.fileRef?.url || att.localPath }}
+                      style={styles.messageAttachmentThumbnail}
+                      contentFit="cover"
+                    />
                   ) : (
                     <View style={styles.messageFileThumbnail}>
                       <Ionicons name="document-outline" size={32} color="#666" />
@@ -577,4 +581,3 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 });
-
