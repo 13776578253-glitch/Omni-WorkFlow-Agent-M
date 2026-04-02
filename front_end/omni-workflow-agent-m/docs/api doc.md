@@ -325,24 +325,49 @@
 #### 20. Workflow 文件上传（新增）
 - 接口地址：`POST /workflow/file/upload`
 - 用途：上传 workflow 附件文件，返回 `fileRef`
+- 请求类型：`multipart/form-data`
 - 请求参数：
   | 字段 | 类型 | 说明 |
   |------|------|------|
-  | file | multipart/form-data | 文件体，包含 `uri/name/type` |
+  | file | multipart/form-data | 文件二进制表单项；前端会以 `{ uri, name, type }` 形式组装上传 |
   | sessionId | string | 可选；与 history `id` 等价 |
   | id | string | 可选；与 `sessionId` 双兼容 |
 - 响应参数：
   | 字段 | 类型 | 说明 |
   |------|------|------|
   | fileRef | object | `{ url?, path?, mimeType?, fileName }` |
+- 后端解析说明：
+  - 接口上传标准 `multipart/form-data` 文件。
+  - 前端传入的 `uri/name/type` 只是客户端构造表单文件项时使用的元信息：
+    - `uri`：客户端本地文件路径，仅前端可见，后端不会直接收到这个路径
+    - `name`：上传文件名，例如 `report.pdf`
+    - `type`：MIME 类型，例如 `application/pdf`、`image/jpeg`
+  - 后端收到 multipart 请求中的 `file` 文件字段，需从该字段读取：
+    - 文件二进制流 / bytes
+    - 文件名 `fileName`
+    - MIME 类型 `mimeType`
+  - 后端处理流程建议：
+    1. 从 `file` 字段读取二进制流
+    2. 结合 `name` 和 `type` 识别文件类型，按普通文档/图片文件处理
+    3. 保存到本地磁盘、对象存储或文件服务
+    4. 生成统一文件引用 `fileRef`
+- `fileRef` 约定：
+  - `url`：后端返回的下载 / 预览地址
+  - `path`：后端内部存储路径或资源路径
+  - `mimeType`：最终识别后的 MIME 类型
+  - `fileName`：最终保存的文件名
+- 说明：
+  - `POST /workflow/file/upload` 的职责只是上传并返回 `fileRef`
+  - 若要把文件作为一次用户输入参与 workflow，需要再调用 `POST /workflow/input`，并把该 `fileRef` 放入请求体
 
 #### 21. 音频上传（新增）
 - 接口地址：`POST /workflow/audio/upload`
 - 用途：上传录音文件，供短录音转写或长时录音任务使用
+- 请求类型：`multipart/form-data`
 - 请求参数：
   | 字段 | 类型 | 说明 |
   |------|------|------|
-  | file | multipart/form-data | 音频文件 |
+  | file | multipart/form-data | 音频二进制表单项；前端会以 `{ uri, name, type }` 形式组装上传 |
   | durationMs | number | 音频时长（可选） |
   | sessionId | string | 可选；与 history `id` 等价 |
   | id | string | 可选；与 `sessionId` 双兼容 |
@@ -351,6 +376,24 @@
   |------|------|------|
   | remoteAudioId | string | 音频资源标识 |
   | url | string | 可选；可下载 / 预览 URL |
+- 后端解析说明：
+  - 该接口同样是标准 `multipart/form-data` 上传，后端从 `file` 文件字段读取音频二进制流。
+  - 前端不会把“音频内容转成 JSON”发送；后端接收到的就是原始音频文件，例如 `m4a`、`mp3`、`wav`。
+  - 后端处理流程建议：
+    1. 从 multipart 的 `file` 字段读取音频文件流或临时文件
+    2. 按文件名和 MIME 类型识别音频格式，例如 `audio/m4a`、`audio/mpeg`、`audio/wav`
+    3. 原样保存为标准音频文件，不要求前端额外转码
+    4. 若转写引擎只支持固定格式，可在后端保存后统一转码
+    5. 为该音频资源生成唯一 `remoteAudioId`
+    6. 可选返回可播放的远程 `url`
+  - `durationMs` 为前端采集得到的时长，仅作为辅助元数据；后端也可以在保存后自行重新计算真实时长。
+  - “转成标准音频文件”的职责在后端：
+    - 若上传的原文件已是可接受格式，可直接保存
+    - 若业务链路要求统一为 `wav`/`mp3`/`m4a`，应由后端在落盘后转码
+- 说明：
+  - `POST /workflow/audio/upload` 只负责上传并返回音频资源引用
+  - 短录音后续应调用 `POST /workflow/audio/transcript`
+  - 长时录音后续应调用 `POST /workflow/audio/long-form`
 
 #### 22. 短录音转写（新增）
 - 接口地址：`POST /workflow/audio/transcript`

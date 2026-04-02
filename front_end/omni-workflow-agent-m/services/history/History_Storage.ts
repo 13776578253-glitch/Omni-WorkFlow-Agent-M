@@ -17,6 +17,10 @@ export interface HistorySession {
   };
 }
 
+interface AddSessionOptions {
+  skipRemoteCreate?: boolean;
+}
+
 // 模拟数据 / 空值填充数据 / 测试
 const MOCK_SESSIONS: HistorySession[] = [
   {
@@ -132,14 +136,19 @@ export async function saveSessions(sessions: HistorySession[]): Promise<void> {
   await writeRaw(sessions);
 }
 
-export async function addSession(session: HistorySession): Promise<HistorySession[]> {
+export async function addSession(
+  session: HistorySession,
+  options?: AddSessionOptions
+): Promise<HistorySession[]> {
   const sessions = await loadSessions();
   const updated = [session, ...sessions];
   await writeRaw(updated);
 
   // 如果已登录，同步到服务器
   const userId = await getUserId();
-  if (userId) {
+  
+  // 注意：创建会话需要服务器生成 ID，因此只能在服务器创建后再本地添加；如果本地先添加了一个临时 ID 的会话，后续又从服务器获取了一个正式 ID 的会话，就会出现重复数据。因此这里选择直接调用服务器接口创建会话，由服务器返回完整的会话数据（包含 ID），然后再更新本地数据。
+  if (userId && !options?.skipRemoteCreate) {
     try {
       await historyApi.createSession(userId, session.title, session.previewText);
     } catch {

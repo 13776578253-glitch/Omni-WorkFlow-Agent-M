@@ -1,13 +1,13 @@
 ﻿// app/(main)/workflow.tsx
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { QuickActionNames, QuickActionPrompts, UserDataState } from '@/constants/type';
-// tyye 类型待处理
 import type {
   WorkflowAttachment,
   WorkflowBlock,
@@ -15,17 +15,24 @@ import type {
   WorkflowRecordedAudioPreview,
   WorkflowRecordingSession,
 } from '@/constants/workflow_type';
+
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 import { WorkflowRecordingOverlay } from '@/components/ui/workflow-recording-overlay';
 import { WorkflowContentArea, type WorkflowContentAreaRef } from '@/components/workflow/Workflow_ContentArea';
+import { MARKDOWN_MOCK_DATA } from '@/components/workflow/Workflow_Context_bin/Workflow_Context_Data';
 import { selectThoughtChain } from '@/components/workflow/Workflow_Context_bin/Workflow_Status_Reminder_Data';
 import { WorkflowInputBar } from '@/components/workflow/Workflow_InputBar';
 import { WorkflowQuickActions, type QuickActionKey } from '@/components/workflow/Workflow_QuickActions';
 import { TOP_AREA_EXPANDED_HEIGHT, WorkflowTopArea } from '@/components/workflow/Workflow_Top_Area';
 
-// 待处理
-import { MARKDOWN_MOCK_DATA } from '@/components/workflow/Workflow_Context_bin/Workflow_Context_Data';
+import {
+  generate as generateWorkflowToBackend,
+  getSession as getWorkflowSession,
+  submitInput as submitWorkflowInputToBackend,
+  type WorkflowGenerateResponse,
+} from '@/api/workflow-api';
+
 import * as HistoryStorage from '@/services/history/History_Storage';
 import { SessionManager } from '@/services/workflow/Session_Manager';
 import { WorkflowStorage } from '@/services/workflow/Workflow_Storage';
@@ -41,13 +48,14 @@ interface WorkflowScreenProps {
   pendingExternalSubmitToken?: number;
 }
 
-// 测试
+// 工作流主界面组件，包含顶部信息区、内容区、输入区和录音覆盖层
 type ActiveWorkflowMode = Exclude<WorkflowMode, 'welcome'>;
 const RECORD_DOT_COUNT = 30;  // 波形振幅
 const TOP_AREA_OFFSET = 100;
 
 // 测试 / 存储键名
 const USER_DATA_STORAGE_KEY = '@omni_workflow_user_data_v1';
+const AUTH_STORAGE_KEY = '@omni_workflow_user_auth_v1';
 
 // 快捷操作 默认 名称
 const DEFAULT_QUICK_ACTION_NAMES: QuickActionNames = { 
@@ -67,6 +75,19 @@ function detectModeFromInput(text: string): ActiveWorkflowMode {
   return value.includes('1') || recordingKeywords.some((word) => value.includes(word)) ? 'recording' : 'document';
 }
 
+// 测试 / 获取已登录用户 ID / 待处理：实际登录状态管理、错误处理等
+async function getLoggedInUserId(): Promise<string | null> {
+  try {
+    const raw = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.isLoggedIn && parsed?.userId ? String(parsed.userId) : null;
+  } catch {
+    return null;
+  }
+}
+
+// 测试 / 获取用户偏好设置 / 待处理：实际 API 调用、错误处理、数据结构等
 export default function WorkflowScreen({
   currentSessionId,
   onHistoryChanged,
@@ -168,6 +189,32 @@ export default function WorkflowScreen({
         setBlocks(stored ?? []);
         setMode(stored && stored.length > 0 ? 'document' : 'welcome');
         loadedSessionIdRef.current = currentSessionId;
+
+        // 本地优先，后端详情静默补齐 / 仅在本地为空时覆盖，避免影响当前交互流畅度。
+        if (!stored || stored.length === 0) {
+          const userId = await getLoggedInUserId();
+          if (userId) {
+            void (async () => {
+              try {
+                const remoteSession = await getWorkflowSession(currentSessionId);
+                if (!remoteSession.blocks || remoteSession.blocks.length === 0) {
+                  return;
+                }
+
+                if (loadedSessionIdRef.current !== currentSessionId) {
+                  return;
+                }
+
+                setBlocks(remoteSession.blocks);
+                setMode(remoteSession.blocks.length > 0 ? 'document' : 'welcome');
+                await WorkflowStorage.saveMessages(remoteSession.blocks, currentSessionId);
+                await HistoryStorage.saveWorkflowData(currentSessionId, remoteSession.blocks);
+              } catch {
+                // 静默失败，继续使用本地缓存
+              }
+            })();
+          }
+        }
       } else {
         setBlocks([]);
         setMode('welcome');
@@ -288,6 +335,66 @@ export default function WorkflowScreen({
     } as WorkflowBlock;
   }, []);
 
+  //构建 AI 块（使用后端响应数据） 
+  const buildPendingAIBlock = useCallback((sourceBlockId: string, userContent: string): WorkflowBlock => ({
+    id: `ai-pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    role: 'ai',
+    content: '',
+    createdAt: Date.now(),
+    sourceBlockId,
+    status: 'pending',
+    thoughtChain: selectThoughtChain(userContent.trim()),
+    thoughtChainAnimationPlayed: true,
+    messageAnimationPlayed: true,
+    editedByUser: false,
+  }), []);
+
+  const buildBackendAIBlock = useCallback((
+    response: WorkflowGenerateResponse,
+    userContent: string
+  ): WorkflowBlock => ({
+    id: response.blockId || `ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    role: 'ai',
+    content: response.content ?? '',
+    createdAt: Date.now(),
+    sourceBlockId: response.sourceBlockId,
+    status: response.status ?? 'done',
+    thoughtChain: selectThoughtChain(userContent.trim()),
+    thoughtChainAnimationPlayed: false,
+    messageAnimationPlayed: false,
+    editedByUser: false,
+  }), []);
+
+  // 请求后端生成 AI 块 / 待处理：错误处理、性能优化、请求取消等
+  const requestBackendAIBlock = useCallback(async (params: {
+    sessionId: string;
+    text: string;
+    blocks: WorkflowBlock[];
+    userBlockId: string;
+  }): Promise<WorkflowBlock> => {
+    const submitResponse = await submitWorkflowInputToBackend({
+      text: params.text,
+      blocks: params.blocks,
+      sessionId: params.sessionId,
+      id: params.sessionId,
+    });
+
+    if (submitResponse.aiBlock) {
+      return buildBackendAIBlock(submitResponse.aiBlock, params.text);
+    }
+
+    const generateResponse = await generateWorkflowToBackend({
+      blocks: params.blocks,
+      action: 'append_after',
+      afterBlockId: params.userBlockId,
+      sessionId: params.sessionId,
+      id: params.sessionId,
+    });
+
+    return buildBackendAIBlock(generateResponse, params.text);
+  }, [buildBackendAIBlock]);
+
+  // 提交用户输入以生成 AI 响应 / 测试逻辑 / 待处理：错误处理、性能优化、请求取消、输入验证等
   const submitWorkflowInput = useCallback(async (rawText: string, submitAttachments: WorkflowAttachment[] = []) => {
     const trimmed = rawText.trim();
     if (!trimmed && submitAttachments.length === 0) return;
@@ -302,32 +409,105 @@ export default function WorkflowScreen({
       createdAt: Date.now(),
     };
 
-    const aiMessageCount = blocks.filter(m => m.role === 'ai').length;
-    const aiMsg = buildMockAIBlock(trimmed, userMsg.id, aiMessageCount);
-
-    const nextBlocks = [...blocks, userMsg, aiMsg];
+    // 乐观更新：立即在界面上添加用户消息和一个待生成的 AI 消息，提升交互流畅度；后续再根据后端响应替换 AI 消息内容。
+    const pendingAIBlock = buildPendingAIBlock(userMsg.id, trimmed);
+    const optimisticBlocks = [...blocks, userMsg, pendingAIBlock];
 
     let sessionId = currentSessionId;
     if (!sessionId) {
       sessionId = `session-${Date.now()}`;
-      await SessionManager.setCurrentSessionId(sessionId);
-      await HistoryStorage.addSession({
+      loadedSessionIdRef.current = sessionId;
+      onSessionChange(sessionId);
+      void SessionManager.setCurrentSessionId(sessionId);
+      void HistoryStorage.addSession({
         id: sessionId,
         title: '未命名对话',
         createdAt: Date.now(),
         isPinned: false,
-      });
-      await WorkflowStorage.saveMessages(nextBlocks, sessionId);
-      await HistoryStorage.saveWorkflowData(sessionId, nextBlocks);
-      loadedSessionIdRef.current = sessionId;
-      onSessionChange(sessionId);
+        previewText: trimmed || undefined,
+      }, { skipRemoteCreate: true });
       onHistoryChanged();
     }
 
-    setBlocks(nextBlocks);
+    setBlocks(optimisticBlocks);
     setInputText('');
     setPendingAttachments([]);
-  }, [blocks, buildMockAIBlock, currentSessionId, mode, onHistoryChanged, onSessionChange]);
+
+    if (sessionId) {
+      void WorkflowStorage.saveMessages(optimisticBlocks, sessionId);
+      void HistoryStorage.saveWorkflowData(sessionId, optimisticBlocks);
+    }
+
+    const currentSessionIdForSync = sessionId;
+    const hasOnlyTextPayload = submitAttachments.length === 0;
+
+    // 后端静默同步：不阻塞前端交互；失败时回退 mock。
+    if (currentSessionIdForSync && trimmed && hasOnlyTextPayload) {
+      void (async () => {
+        const userId = await getLoggedInUserId();
+        const aiMessageCount = blocks.filter(m => m.role === 'ai').length;
+
+        try {
+          if (!userId) {
+            throw new Error('User is not logged in');
+          }
+
+          const backendAIBlock = await requestBackendAIBlock({
+            sessionId: currentSessionIdForSync,
+            text: trimmed,
+            blocks,
+            userBlockId: userMsg.id,
+          });
+
+          setBlocks((prev) => prev.map((block) => (
+            block.id === pendingAIBlock.id ? backendAIBlock : block
+          )));
+
+          void WorkflowStorage.saveMessages(
+            optimisticBlocks.map((block) => (block.id === pendingAIBlock.id ? backendAIBlock : block)),
+            currentSessionIdForSync
+          );
+          void HistoryStorage.saveWorkflowData(
+            currentSessionIdForSync,
+            optimisticBlocks.map((block) => (block.id === pendingAIBlock.id ? backendAIBlock : block))
+          );
+        } catch {
+          const fallbackAIBlock = buildMockAIBlock(trimmed, userMsg.id, aiMessageCount);
+          const fallbackBlocks = optimisticBlocks.map((block) => (
+            block.id === pendingAIBlock.id ? fallbackAIBlock : block
+          ));
+
+          setBlocks((prev) => prev.map((block) => (
+            block.id === pendingAIBlock.id ? fallbackAIBlock : block
+          )));
+
+          void WorkflowStorage.saveMessages(fallbackBlocks, currentSessionIdForSync);
+          void HistoryStorage.saveWorkflowData(currentSessionIdForSync, fallbackBlocks);
+        }
+      })();
+      return;
+    }
+
+    const aiMessageCount = blocks.filter(m => m.role === 'ai').length;
+    const fallbackAIBlock = buildMockAIBlock(trimmed, userMsg.id, aiMessageCount);
+    const fallbackBlocks = optimisticBlocks.map((block) => (
+      block.id === pendingAIBlock.id ? fallbackAIBlock : block
+    ));
+    setBlocks(fallbackBlocks);
+    if (currentSessionIdForSync) {
+      void WorkflowStorage.saveMessages(fallbackBlocks, currentSessionIdForSync);
+      void HistoryStorage.saveWorkflowData(currentSessionIdForSync, fallbackBlocks);
+    }
+  }, [
+    blocks,
+    buildMockAIBlock,
+    buildPendingAIBlock,
+    currentSessionId,
+    mode,
+    onHistoryChanged,
+    onSessionChange,
+    requestBackendAIBlock,
+  ]);
 
   const hasRecordedAudioPreview = mode === 'recording' && !!recordedAudioPreview?.audioUri;
   const hasRecordingTopArea = mode === 'recording';
@@ -390,23 +570,69 @@ export default function WorkflowScreen({
         (candidate, index) => index > blockIndex && candidate.role === 'ai' && candidate.sourceBlockId === block.id
       );
 
-      const aiSequenceIndex = linkedAiIndex >= 0
-        ? Math.max(0, blocks.slice(0, linkedAiIndex + 1).filter((candidate) => candidate.role === 'ai').length - 1)
-        : blocks.filter((candidate) => candidate.role === 'ai').length;
-
-      const regeneratedAIBlock = buildMockAIBlock(newContent, block.id, aiSequenceIndex);
       const nextBlocks = [...blocks];
       nextBlocks[blockIndex] = updatedUserBlock;
+      const pendingRegeneratedAIBlock = buildPendingAIBlock(block.id, newContent);
 
       if (linkedAiIndex >= 0) {
-        nextBlocks.splice(linkedAiIndex, 1, regeneratedAIBlock);
+        nextBlocks.splice(linkedAiIndex, 1, pendingRegeneratedAIBlock);
       } else {
-        nextBlocks.splice(blockIndex + 1, 0, regeneratedAIBlock);
+        nextBlocks.splice(blockIndex + 1, 0, pendingRegeneratedAIBlock);
       }
 
       setBlocks(nextBlocks);
+
+      if (!currentSessionId) {
+        const aiSequenceIndex = linkedAiIndex >= 0
+          ? Math.max(0, blocks.slice(0, linkedAiIndex + 1).filter((candidate) => candidate.role === 'ai').length - 1)
+          : blocks.filter((candidate) => candidate.role === 'ai').length;
+        const fallbackAIBlock = buildMockAIBlock(newContent, block.id, aiSequenceIndex);
+        setBlocks((prev) => prev.map((candidate) => (
+          candidate.id === pendingRegeneratedAIBlock.id ? fallbackAIBlock : candidate
+        )));
+        return;
+      }
+
+      void (async () => {
+        const aiSequenceIndex = linkedAiIndex >= 0
+          ? Math.max(0, blocks.slice(0, linkedAiIndex + 1).filter((candidate) => candidate.role === 'ai').length - 1)
+          : blocks.filter((candidate) => candidate.role === 'ai').length;
+
+        try {
+          const userId = await getLoggedInUserId();
+          if (!userId) {
+            throw new Error('User is not logged in');
+          }
+
+          const blocksForGenerate = nextBlocks.filter((candidate) => candidate.id !== pendingRegeneratedAIBlock.id);
+          const backendAIBlock = await generateWorkflowToBackend({
+            blocks: blocksForGenerate,
+            action: 'append_after',
+            afterBlockId: block.id,
+            sessionId: currentSessionId,
+            id: currentSessionId,
+          });
+
+          const hydratedAIBlock = buildBackendAIBlock(backendAIBlock, newContent);
+          setBlocks((prev) => prev.map((candidate) => (
+            candidate.id === pendingRegeneratedAIBlock.id ? hydratedAIBlock : candidate
+          )));
+        } catch {
+          const fallbackAIBlock = buildMockAIBlock(newContent, block.id, aiSequenceIndex);
+          setBlocks((prev) => prev.map((candidate) => (
+            candidate.id === pendingRegeneratedAIBlock.id ? fallbackAIBlock : candidate
+          )));
+        }
+      })();
     }
-  }, [blocks, buildMockAIBlock, editableUserBlockId]);
+  }, [
+    blocks,
+    buildBackendAIBlock,
+    buildMockAIBlock,
+    buildPendingAIBlock,
+    currentSessionId,
+    editableUserBlockId,
+  ]);
 
   // 演示状态变更 事件 / 待处理：实际生成状态、错误处理、动画控制等
   const handlePresentationStateChange = useCallback((id: string, patch: Partial<WorkflowBlock>) => {
