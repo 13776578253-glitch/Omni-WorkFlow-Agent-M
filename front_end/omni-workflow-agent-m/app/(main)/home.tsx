@@ -1,5 +1,6 @@
 ﻿// app/(main)/user.tsx
 import { BlurView } from 'expo-blur';
+
 import React, { useCallback, useState } from 'react';
 import { Dimensions, StyleSheet } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -9,9 +10,9 @@ import { useThemeContext } from '@/constants/Theme-Context';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 import { HomeContent } from '@/components/home/Home_Content';
-import { HomeRecord } from '@/components/home/Home_Record';
 import { useBlurOpacityStyle } from '@/components/home/Home_Content_bin/Home_Content_Animations';
 import HomePortal from '@/components/home/Home_Portal';
+import { HomeRecord } from '@/components/home/Home_Record';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
@@ -54,6 +55,13 @@ export default function HomeScreen({ onDrawerStateChange, onStartWorkflowFromHom
     onDrawerStateChange?.(false);
     setIsHomeRecordingActive(false);
     onStartWorkflowFromHome?.(transcriptText);
+  }, [onDrawerStateChange, onStartWorkflowFromHome]);
+
+  // 处理能力项点击事件，调用回调函数并传递能力 ID 和对应的提示文本
+  const handleHomeCapabilitySelect = useCallback((_capabilityId: string, promptText: string) => {
+    onDrawerStateChange?.(false);
+    setIsHomeRecordingActive(false);
+    onStartWorkflowFromHome?.(promptText);
   }, [onDrawerStateChange, onStartWorkflowFromHome]);
 
   const gesture = Gesture.Pan()
@@ -216,6 +224,7 @@ export default function HomeScreen({ onDrawerStateChange, onStartWorkflowFromHom
             {/* 顶层 模块 */}
             <HomeContent
               translateY={translateY}
+              onCapabilitySelect={handleHomeCapabilitySelect}
               recordSlot={
                 <HomeRecord
                   cardBg={cardColor}

@@ -2,6 +2,10 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import {
+  HOME_CAPABILITY_PROMPTS,
+  type HomeCapabilityPromptKey,
+} from '@/components/home/Home_Content_bin/Home_Content_Message_Prompt';
 import { useThemeContext } from '@/constants/Theme-Context';
 import { Colors } from '@/constants/theme';
 
@@ -21,7 +25,11 @@ const CAPABILITY_ITEMS: CapabilityItem[] = [
   { id: 'customize', title: '工作流定制', subtitle: '自动化整个工作流程', iconName: 'add', iconColor: '#007bff' },
 ];
 
-export function HomeContentMessage() {
+interface HomeContentMessageProps {
+  onCapabilitySelect?: (capabilityId: string, prompt: string) => void;
+}
+
+export function HomeContentMessage({ onCapabilitySelect }: HomeContentMessageProps) {
   const { effectiveColorScheme } = useThemeContext();
   const isDark = effectiveColorScheme === 'dark';
   const themeColors = Colors[effectiveColorScheme];
@@ -32,6 +40,13 @@ export function HomeContentMessage() {
   const titleColor = isDark ? '#F1F3F8' : '#3E3E41';
   const subtitleColor = isDark ? '#AEB3BF' : '#8E8E92';
   const defaultIconColor = isDark ? '#E4E8F1' : '#474748';
+  // 处理能力项点击事件，调用回调函数并传递能力 ID 和对应的提示文本
+  const handleCapabilityPress = (item: CapabilityItem) => {
+    const prompt =
+      HOME_CAPABILITY_PROMPTS[item.id as HomeCapabilityPromptKey] ??
+      `${item.title}\n${item.subtitle}`;
+    onCapabilitySelect?.(item.id, prompt);
+  };
 
   return (
     <ScrollView
@@ -44,7 +59,8 @@ export function HomeContentMessage() {
           key={item.id}
           accessibilityRole="button"
           android_ripple={{ color: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}
-          onPress={() => {}}
+          // 点击时传递能力 ID 和对应的提示文本
+          onPress={() => handleCapabilityPress(item)}
           style={({ pressed }) => [styles.rowCard, { backgroundColor: rowCardBg }, pressed && styles.rowPressed]}>
           <View style={[styles.iconFrame, { backgroundColor: iconFrameBg }]}>
             <View style={[styles.iconFill, { backgroundColor: iconFillBg }]}>

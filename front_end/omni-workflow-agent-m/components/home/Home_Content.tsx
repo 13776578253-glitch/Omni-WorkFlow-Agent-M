@@ -18,9 +18,10 @@ const userName = "绝望的cpp";
 interface HomeContentProps {
   translateY: SharedValue<number>;
   recordSlot?: React.ReactNode;
+  onCapabilitySelect?: (capabilityId: string, prompt: string) => void;
 }
 
-export function HomeContent({ translateY, recordSlot }: HomeContentProps) {
+export function HomeContent({ translateY, recordSlot, onCapabilitySelect }: HomeContentProps) {
   // Keep prop for upcoming gesture-linked animation work.
   void translateY;
 
@@ -63,7 +64,7 @@ export function HomeContent({ translateY, recordSlot }: HomeContentProps) {
               <Text style={[styles.heroSubtitle, { color: subtitleColor }]}>↓尝试使用下方的快捷功能</Text>
             </View>
             
-            <HomeContentMessage />
+            <HomeContentMessage onCapabilitySelect={onCapabilitySelect} />
             <Text style={[styles.heroSubtitle, { color: subtitleColor }]}>               ↓ 长按悬钮告诉 AI 需要做什么</Text>
           </View>
 
