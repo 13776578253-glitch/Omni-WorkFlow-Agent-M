@@ -7,7 +7,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Keyboard, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import type { QuickActionNames, QuickActionPrompts, UserDataState } from '@/constants/type';
+import type { PresetMode, QuickActionNames, QuickActionPrompts, UserDataState } from '@/constants/type';
 import type {
   WorkflowAttachment,
   WorkflowBlock,
@@ -69,6 +69,14 @@ const DEFAULT_QUICK_ACTION_PROMPTS: QuickActionPrompts = {
 // 快捷操作 默认 提示文本
   solt1: '', solt2: '', solt3: '', solt4: '',
 };
+// 默认预设模式和提示文本
+const DEFAULT_PRESET_MODE: PresetMode = 'custom';
+const DEFAULT_PRESET_PROMPTS: UserDataState['presetPrompts'] = {
+  custom: '',
+  concise: '请输出简洁版本，先结论后要点，尽量控制在 3-5 条。',
+  formal: '请使用正式、专业、可复用的表达，输出分段清晰的结果。',
+};
+const DEFAULT_MEMORY_CONTENT = '偏好中文输出；先总结结论，再给执行步骤；尽量结构化。';
 
 // 测试 / 工作流模式 检测切换
 function detectModeFromInput(text: string): ActiveWorkflowMode {
@@ -112,6 +120,10 @@ export default function WorkflowScreen({
 
   const [quickActionNames, setQuickActionNames] = useState<QuickActionNames>(DEFAULT_QUICK_ACTION_NAMES);
   const [quickActionPrompts, setQuickActionPrompts] = useState<QuickActionPrompts>(DEFAULT_QUICK_ACTION_PROMPTS);
+  // 预设模式和提示文本
+  const [presetMode, setPresetMode] = useState<PresetMode>(DEFAULT_PRESET_MODE);
+  const [presetPrompts, setPresetPrompts] = useState<UserDataState['presetPrompts']>(DEFAULT_PRESET_PROMPTS);
+  const [memoryContent, setMemoryContent] = useState(DEFAULT_MEMORY_CONTENT);
   // 快捷按钮状态 / UI 样式
   const [activeQuickActionKey, setActiveQuickActionKey] = useState<QuickActionKey | null>(null);
 
@@ -164,16 +176,25 @@ export default function WorkflowScreen({
     try {
       const raw = await AsyncStorage.getItem(USER_DATA_STORAGE_KEY);
       if (!raw) {
+        setPresetMode(DEFAULT_PRESET_MODE);
+        setPresetPrompts(DEFAULT_PRESET_PROMPTS);
         setQuickActionNames(DEFAULT_QUICK_ACTION_NAMES);
         setQuickActionPrompts(DEFAULT_QUICK_ACTION_PROMPTS);
+        setMemoryContent(DEFAULT_MEMORY_CONTENT);
         return;
       }
       const parsed = JSON.parse(raw) as Partial<UserDataState>;
+      setPresetMode(parsed.presetMode ?? DEFAULT_PRESET_MODE);
+      setPresetPrompts({ ...DEFAULT_PRESET_PROMPTS, ...parsed.presetPrompts });
       setQuickActionNames({ ...DEFAULT_QUICK_ACTION_NAMES, ...parsed.quickActionNames });
       setQuickActionPrompts({ ...DEFAULT_QUICK_ACTION_PROMPTS, ...parsed.quickActionPrompts });
+      setMemoryContent(parsed.memoryContent ?? DEFAULT_MEMORY_CONTENT);
     } catch {
+      setPresetMode(DEFAULT_PRESET_MODE);
+      setPresetPrompts(DEFAULT_PRESET_PROMPTS);
       setQuickActionNames(DEFAULT_QUICK_ACTION_NAMES);
       setQuickActionPrompts(DEFAULT_QUICK_ACTION_PROMPTS);
+      setMemoryContent(DEFAULT_MEMORY_CONTENT);
     }
   }, []);
 
@@ -410,6 +431,33 @@ export default function WorkflowScreen({
     };
   }, []);
 
+  // 工作流块类型定义
+  const buildEnhancedFirstTurnText = useCallback((rawText: string) => {
+    const normalizedRawText = rawText.trim();
+    const presetPrompt = presetPrompts[presetMode]?.trim() ?? '';
+    const quickActionPrompt = activeQuickActionKey
+      ? (quickActionPrompts[activeQuickActionKey]?.trim() ?? '')
+      : '';
+    const normalizedMemoryContent = memoryContent.trim();
+
+    const systemSections = [
+      presetPrompt ? `预设指令：\n${presetPrompt}` : '',
+      quickActionPrompt ? `快捷指令：\n${quickActionPrompt}` : '',
+      normalizedMemoryContent ? `长期记忆：\n${normalizedMemoryContent}` : '',
+    ].filter(Boolean);
+
+    if (systemSections.length === 0) {
+      return normalizedRawText;
+    }
+
+    return [
+      '[系统偏好]',
+      ...systemSections,
+      '[用户输入]',
+      normalizedRawText,
+    ].join('\n\n');
+  }, [activeQuickActionKey, memoryContent, presetMode, presetPrompts, quickActionPrompts]);
+
   // 请求后端生成 AI 块 / 待处理：错误处理、性能优化、请求取消等
   const requestBackendAIBlock = useCallback(async (params: {
     sessionId: string;
@@ -447,6 +495,8 @@ export default function WorkflowScreen({
     if (!trimmed && submitAttachments.length === 0) return;
     const nextMode = detectModeFromInput(trimmed);
     if (mode === 'welcome') setMode(nextMode);
+    const isFirstTurn = blocks.length === 0;
+    const backendText = isFirstTurn ? buildEnhancedFirstTurnText(trimmed) : trimmed;
 
     const userMsg: WorkflowBlock = {
       id: `user-${Date.now()}`,
@@ -519,7 +569,8 @@ export default function WorkflowScreen({
 
           const backendAIBlock = await requestBackendAIBlock({
             sessionId: currentSessionIdForSync,
-            text: trimmed,
+            // 首轮输入时，后端需要完整的系统指令和用户输入来生成更准确的响应；非首轮则直接使用用户输入文本。
+            text: backendText,
             fileRef: primaryFileRef,
             blocks: backendContextBlocks,
             userBlockId: userMsg.id,
@@ -555,6 +606,7 @@ export default function WorkflowScreen({
   }, [
     blocks,
     buildMockAIBlock,
+    buildEnhancedFirstTurnText,  // 首轮输入增强文本构建
     buildPendingAIBlock,
     currentSessionId,
     mode,
