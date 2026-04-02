@@ -8,7 +8,8 @@ import { Colors } from '@/constants/theme';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 const { width, height } = Dimensions.get('window');
-const BUTTON_CENTER_OFFSET = 344;    // 录音按钮高度（下移，避免遮挡内容）
+const BUTTON_CENTER_OFFSET = 344;    
+const RECORD_SLOT_WIDTH = 260;
 const WEEKDAY_LABEL = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 const USERNAME_CHIP_BLUE = '#007bff';
 
@@ -192,7 +193,8 @@ const styles = StyleSheet.create({
   ringAnchor: {
     position: 'absolute',
     left: '50%',
-    marginLeft: -26,
+    width: RECORD_SLOT_WIDTH,
+    marginLeft: -(RECORD_SLOT_WIDTH / 2),
     top: '48.8%',
     alignItems: 'center',
   },

@@ -23,6 +23,7 @@ interface HomeRecordProps {
 }
 
 const RECORD_DOT_COUNT = 30;
+const SLOT_WIDTH = 260;
 
 export function HomeRecord({
   cardBg,
@@ -186,7 +187,7 @@ export function HomeRecord({
       longPressStartedRef.current = true;
       void startPressRecord();
       updateSlideCancelState(lastTouchXRef.current, lastTouchYRef.current);
-    }, 180);
+    }, 120);
   };
 
   const handlePressMove = (event: GestureResponderEvent) => {
@@ -261,24 +262,24 @@ export function HomeRecord({
   );
 
   return (
-    <View {...panResponder.panHandlers}>
+    <View style={styles.slotRoot} {...panResponder.panHandlers}>
       {!isPressRecording ? (
         <>
-        <Pressable
-          accessibilityRole="button"
-          android_ripple={{ color: 'rgba(124,124,132,0.18)', radius: 30 }}
-          style={({ pressed }) => [
-            styles.ringButtonOuter,
-            { backgroundColor: pressed ? ringPressedColor : ringColor },
-          ]}
-        >
-          <View style={[styles.ringButtonInner, { backgroundColor: cardBg }]} />
-        </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            android_ripple={{ color: 'rgba(124,124,132,0.18)', radius: 30 }}
+            style={({ pressed }) => [
+              styles.ringButtonOuter,
+              { backgroundColor: pressed ? ringPressedColor : ringColor },
+            ]}
+          >
+            <View style={[styles.ringButtonInner, { backgroundColor: cardBg }]} />
+          </Pressable>
 
-        <View style={styles.pullHint} pointerEvents="none">
-          <View style={[styles.chevronStroke, styles.chevronLeft, { backgroundColor: subtitleColor }]} />
-          <View style={[styles.chevronStroke, styles.chevronRight, { backgroundColor: subtitleColor }]} />
-        </View>
+          <View style={styles.pullHint} pointerEvents="none">
+            <View style={[styles.chevronStroke, styles.chevronLeft, { backgroundColor: subtitleColor }]} />
+            <View style={[styles.chevronStroke, styles.chevronRight, { backgroundColor: subtitleColor }]} />
+          </View>
         </>
       ) : (
         <View style={styles.recordingContainer} pointerEvents="none">
@@ -311,6 +312,11 @@ export function HomeRecord({
 }
 
 const styles = StyleSheet.create({
+  slotRoot: {
+    width: SLOT_WIDTH,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   ringButtonOuter: {
     width: 52,
     height: 52,
@@ -327,6 +333,7 @@ const styles = StyleSheet.create({
     marginTop: 17,
     width: 20,
     height: 12,
+    alignSelf: 'center',
     position: 'relative',
   },
   chevronStroke: {
@@ -345,10 +352,11 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '-34deg' }],
   },
   recordingContainer: {
-    width: 240,
+    width: SLOT_WIDTH,
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 10,
+    transform: [{ translateY: -34 }],
   },
   recordingHint: {
     fontSize: 15,
