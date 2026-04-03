@@ -4,6 +4,7 @@ import PagerView from 'react-native-pager-view';
 import { useSharedValue } from 'react-native-reanimated';
 
 import { TopNavBar } from '@/components/core/top-navbar';
+import { WorkflowShareSheet } from '@/components/workflow/Workflow_Share_Sheet';
 
 import { Colors } from '@/constants/theme';
 import { useThemeContext } from '@/constants/Theme-Context';
@@ -32,6 +33,7 @@ export default function MainLayout() {
   const [workflowResetToken, setWorkflowResetToken] = useState(0);
   const [pendingWorkflowInput, setPendingWorkflowInput] = useState<string | null>(null);
   const [pendingWorkflowSubmitToken, setPendingWorkflowSubmitToken] = useState(0);
+  const [workflowShareSheetVisible, setWorkflowShareSheetVisible] = useState(false);
   const ENABLE_PAGER_SWIPE = false;
 
   const topNavRef = useRef<any>(null);
@@ -169,23 +171,17 @@ export default function MainLayout() {
       Alert.alert('无法分享', '当前还没有可分享的会话。');
       return;
     }
+    setWorkflowShareSheetVisible(true);
+  }, [currentWorkflowSessionId]);
 
-    Alert.alert('分享会话', '选择要分享的内容类型', [
-      {
-        text: '最终结果',
-        onPress: () => {
-          void handleWorkflowShareByType('final_result');
-        },
-      },
-      {
-        text: '语义会话',
-        onPress: () => {
-          void handleWorkflowShareByType('session_semantic');
-        },
-      },
-      { text: '取消', style: 'cancel' },
-    ]);
-  }, [currentWorkflowSessionId, handleWorkflowShareByType]);
+  const handleWorkflowShareSheetClose = useCallback(() => {
+    setWorkflowShareSheetVisible(false);
+  }, []);
+
+  const handleWorkflowShareSheetSelect = useCallback((shareType: WorkflowShareType) => {
+    setWorkflowShareSheetVisible(false);
+    void handleWorkflowShareByType(shareType);
+  }, [handleWorkflowShareByType]);
 
   const tabs = [
     { name: '首页', key: 'home' },
@@ -244,6 +240,13 @@ export default function MainLayout() {
         onSearchSubmit={setSearchQuery}
         onNewWorkflowPress={handleNewWorkflow}
         onWorkflowSharePress={currentWorkflowSessionId ? handleWorkflowSharePress : undefined}
+      />
+
+      {/* 工作流分享 */}
+      <WorkflowShareSheet
+        visible={workflowShareSheetVisible}
+        onClose={handleWorkflowShareSheetClose}
+        onSelect={handleWorkflowShareSheetSelect}
       />
     </View>
   );

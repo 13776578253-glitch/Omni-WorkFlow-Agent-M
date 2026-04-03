@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
@@ -7,10 +7,11 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useThemeContext } from '@/constants/Theme-Context';
 import { Colors } from '@/constants/theme';
+import type { WorkflowShareType } from '@/constants/workflow_share';
 
 import type { HistorySession } from '@/services/history/History_Storage';
 
-const SLIDE_OFFSET = 400; // 确保 移出屏幕
+const SLIDE_OFFSET = 400;
 
 interface HistoryActionSheetProps {
   session: HistorySession | null;
@@ -19,7 +20,7 @@ interface HistoryActionSheetProps {
   onDelete: (session: HistorySession) => void;
   onRename: (session: HistorySession) => void;
   onTogglePin: (session: HistorySession) => void;
-  onShare: (session: HistorySession) => void;
+  onShareSelect: (session: HistorySession, shareType: WorkflowShareType) => void;
 }
 
 export default function History_ActionSheet({
@@ -29,16 +30,16 @@ export default function History_ActionSheet({
   onDelete,
   onRename,
   onTogglePin,
-  onShare,
+  onShareSelect,
 }: HistoryActionSheetProps) {
   const { effectiveColorScheme } = useThemeContext();
   const isDark = effectiveColorScheme === 'dark';
   const themeColors = Colors[effectiveColorScheme];
 
   const translateY = useSharedValue(SLIDE_OFFSET);
-  const closingRef = useRef(false); // 动画锁：防止重复触发关闭
+  const closingRef = useRef(false);
+  const [viewMode, setViewMode] = useState<'actions' | 'share'>('actions');
 
-  // 滑入动画
   const animateIn = useCallback(() => {
     closingRef.current = false;
     translateY.value = SLIDE_OFFSET;
@@ -48,7 +49,6 @@ export default function History_ActionSheet({
     });
   }, [translateY]);
 
-  // 滑出动画 / 回调 onClose
   const animateOut = useCallback((done: () => void) => {
     if (closingRef.current) return;
     closingRef.current = true;
@@ -64,22 +64,23 @@ export default function History_ActionSheet({
   const handleClose = useCallback(() => {
     animateOut(() => {
       closingRef.current = false;
+      setViewMode('actions');
       onClose();
     });
   }, [animateOut, onClose]);
 
   useEffect(() => {
-    if (visible) animateIn();
-  }, [visible, animateIn]);
+    if (visible) {
+      setViewMode('actions');
+      animateIn();
+    }
+  }, [animateIn, visible]);
 
-  // 拖拽下滑关闭手势 
   const panGesture = Gesture.Pan()
     .onUpdate((e) => {
-      // 仅允许向下拖动，且 translateY 不为负
       translateY.value = Math.max(0, e.translationY);
     })
     .onEnd((e) => {
-      // 超过阈值或快速下滑关闭 / 否则回弹
       if (e.translationY > 80 || e.velocityY > 500) {
         translateY.value = withTiming(
           SLIDE_OFFSET,
@@ -89,7 +90,6 @@ export default function History_ActionSheet({
           }
         );
       } else {
-        // 回弹到初始位置
         translateY.value = withSpring(0, { damping: 40, stiffness: 400, mass: 0.6 });
       }
     });
@@ -100,10 +100,15 @@ export default function History_ActionSheet({
 
   if (!session) return null;
 
-  // 主题色 / 测试
   const cardBg = isDark ? '#1C1C1E' : '#FFFFFF';
   const handleColor = isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.18)';
   const separatorColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)';
+  const cancelBackground = isDark ? '#2C2C2E' : '#F5F5F5';
+
+  const handleShareTypeSelect = (shareType: WorkflowShareType) => {
+    onShareSelect(session, shareType);
+    handleClose();
+  };
 
   return (
     <Modal
@@ -114,78 +119,112 @@ export default function History_ActionSheet({
       onRequestClose={handleClose}
     >
       <GestureHandlerRootView style={styles.rootView}>
-        {/* 背景遮罩 / Pressable 点击关闭 */}
         <Pressable style={styles.overlay} onPress={handleClose} />
 
-        {/* Sheet 主体 / GestureDetector 拖拽接管 */}
         <GestureDetector gesture={panGesture}>
-        <Animated.View style={[styles.sheet, { backgroundColor: cardBg }, sheetStyle]}>
+          <Animated.View style={[styles.sheet, { backgroundColor: cardBg }, sheetStyle]}>
+            <View style={styles.handleWrap}>
+              <View style={[styles.handle, { backgroundColor: handleColor }]} />
+            </View>
 
-          {/* 拖动把手 */}
-          <View style={styles.handleWrap}>
-            <View style={[styles.handle, { backgroundColor: handleColor }]} />
-          </View>
+            {viewMode === 'actions' ? (
+              <>
+                <Text style={[styles.sessionTitle, { color: themeColors.icon }]} numberOfLines={1}>
+                  {session.title}
+                </Text>
 
-          {/* Session 标题预览 */}
-          <Text style={[styles.sessionTitle, { color: themeColors.icon }]} numberOfLines={1}>
-            {session.title}
-          </Text>
+                <TouchableOpacity
+                  style={styles.actionRow}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    onDelete(session);
+                    handleClose();
+                  }}
+                >
+                  <Ionicons name="trash-outline" size={20} color="#FF3B30" style={styles.actionIcon} />
+                  <Text style={[styles.actionLabel, { color: '#FF3B30' }]}>删除</Text>
+                </TouchableOpacity>
 
-          {/* 删除 */}
-          <TouchableOpacity
-            style={styles.actionRow}
-            activeOpacity={0.7}
-            onPress={() => { onDelete(session); handleClose(); }}
-          >
-            <Ionicons name="trash-outline" size={20} color="#FF3B30" style={styles.actionIcon} />
-            <Text style={[styles.actionLabel, { color: '#FF3B30' }]}>删除</Text>
-          </TouchableOpacity>
+                <View style={[styles.separator, { backgroundColor: separatorColor }]} />
+                <TouchableOpacity
+                  style={styles.actionRow}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    setViewMode('share');
+                  }}
+                >
+                  <Ionicons name="share-social-outline" size={20} color={themeColors.text} style={styles.actionIcon} />
+                  <Text style={[styles.actionLabel, { color: themeColors.text }]}>分享</Text>
+                </TouchableOpacity>
 
-          {/* 分享 */}
-          <View style={[styles.separator, { backgroundColor: separatorColor }]} />
-          <TouchableOpacity
-            style={styles.actionRow}
-            activeOpacity={0.7}
-            onPress={() => { onShare(session); handleClose(); }}
-          >
-            <Ionicons name="share-social-outline" size={20} color={themeColors.text} style={styles.actionIcon} />
-            <Text style={[styles.actionLabel, { color: themeColors.text }]}>分享</Text>
-          </TouchableOpacity>
+                <View style={[styles.separator, { backgroundColor: separatorColor }]} />
+                <TouchableOpacity
+                  style={styles.actionRow}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    onRename(session);
+                    handleClose();
+                  }}
+                >
+                  <Ionicons name="pencil-outline" size={20} color={themeColors.text} style={styles.actionIcon} />
+                  <Text style={[styles.actionLabel, { color: themeColors.text }]}>重命名</Text>
+                </TouchableOpacity>
 
-          {/* 重命名 */}
-          <View style={[styles.separator, { backgroundColor: separatorColor }]} />
-          <TouchableOpacity
-            style={styles.actionRow}
-            activeOpacity={0.7}
-            onPress={() => { onRename(session); handleClose(); }}
-          >
-            <Ionicons name="pencil-outline" size={20} color={themeColors.text} style={styles.actionIcon} />
-            <Text style={[styles.actionLabel, { color: themeColors.text }]}>重命名</Text>
-          </TouchableOpacity>
+                <View style={[styles.separator, { backgroundColor: separatorColor }]} />
+                <TouchableOpacity
+                  style={styles.actionRow}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    onTogglePin(session);
+                    handleClose();
+                  }}
+                >
+                  <Ionicons
+                    name={session.isPinned ? 'arrow-down' : 'arrow-up'}
+                    size={20}
+                    color={themeColors.text}
+                    style={styles.actionIcon}
+                  />
+                  <Text style={[styles.actionLabel, { color: themeColors.text }]}>
+                    {session.isPinned ? '取消置顶' : '置顶'}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.shareTitle, { color: themeColors.icon }]}>分享笔记</Text>
 
-          <View style={[styles.separator, { backgroundColor: separatorColor }]} />
+                <TouchableOpacity
+                  activeOpacity={0.6}
+                  style={styles.shareActionButton}
+                  onPress={() => handleShareTypeSelect('final_result')}
+                >
+                  <Text style={[styles.shareActionText, { color: themeColors.text }]}>文档分享</Text>
+                </TouchableOpacity>
 
-          {/* 置顶 */}
-          <TouchableOpacity
-            style={styles.actionRow}
-            activeOpacity={0.7}
-            onPress={() => { onTogglePin(session); handleClose(); }}
-          >
-            <Ionicons
-              name={session.isPinned ? 'arrow-down' : 'arrow-up'}
-              size={20}
-              color={themeColors.text}
-              style={styles.actionIcon}
-            />
-            <Text style={[styles.actionLabel, { color: themeColors.text }]}>
-              {session.isPinned ? '取消置顶' : '置顶'}
-            </Text>
-          </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.6}
+                  style={styles.shareActionButton}
+                  onPress={() => handleShareTypeSelect('session_semantic')}
+                >
+                  <Text style={[styles.shareActionText, { color: themeColors.text }]}>语义分享</Text>
+                </TouchableOpacity>
 
-          {/* 底部 安全区 */}
-          <View style={styles.bottomSafe} />
-        </Animated.View>
-      </GestureDetector>
+                <TouchableOpacity
+                  activeOpacity={0.75}
+                  style={[styles.cancelShareButton, { backgroundColor: cancelBackground }]}
+                  onPress={() => {
+                    setViewMode('actions');
+                  }}
+                >
+                  <Text style={[styles.cancelShareText, { color: themeColors.text }]}>取消</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            <View style={styles.bottomSafe} />
+          </Animated.View>
+        </GestureDetector>
       </GestureHandlerRootView>
     </Modal>
   );
@@ -220,6 +259,13 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 10,
   },
+  shareTitle: {
+    textAlign: 'center',
+    fontSize: 14,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    marginBottom: 16,
+  },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -237,6 +283,26 @@ const styles = StyleSheet.create({
   separator: {
     height: StyleSheet.hairlineWidth,
     marginHorizontal: 20,
+  },
+  shareActionButton: {
+    width: '100%',
+    paddingVertical: 16,
+  },
+  shareActionText: {
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '400',
+  },
+  cancelShareButton: {
+    marginTop: 16,
+    marginHorizontal: 16,
+    borderRadius: 24,
+    paddingVertical: 16,
+  },
+  cancelShareText: {
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '500',
   },
   bottomSafe: {
     height: 44,

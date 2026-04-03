@@ -114,24 +114,6 @@ export default function HistoryScreen({ onOpenSession, refreshToken = 0, searchQ
     }
   };
 
-  const handleShare = (session: HistorySession) => {
-    Alert.alert('分享会话', '选择要分享的内容类型', [
-      {
-        text: '最终结果',
-        onPress: () => {
-          void handleShareByType(session, 'final_result');
-        },
-      },
-      {
-        text: '语义会话',
-        onPress: () => {
-          void handleShareByType(session, 'session_semantic');
-        },
-      },
-      { text: '取消', style: 'cancel' },
-    ]);
-  };
-
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <History_List
@@ -150,7 +132,9 @@ export default function HistoryScreen({ onOpenSession, refreshToken = 0, searchQ
         onDelete={handleDelete}
         onRename={handleRename}
         onTogglePin={handleTogglePin}
-        onShare={handleShare}
+        onShareSelect={(session, shareType) => {
+          void handleShareByType(session, shareType);
+        }}
       />
 
       {/* 加载指示器 */}
