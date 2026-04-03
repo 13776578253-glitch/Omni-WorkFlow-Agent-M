@@ -1,13 +1,16 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Keyboard, Platform, StyleSheet, View } from 'react-native';
+import { Alert, Keyboard, Platform, StyleSheet, View } from 'react-native';
 import PagerView from 'react-native-pager-view';
 import { useSharedValue } from 'react-native-reanimated';
 
 import { TopNavBar } from '@/components/core/top-navbar';
-import { Colors } from '@/constants/theme';
 
+import { Colors } from '@/constants/theme';
 import { useThemeContext } from '@/constants/Theme-Context';
+import type { WorkflowShareType } from '@/constants/workflow_share';
+
 import { SessionManager } from '@/services/workflow/Session_Manager';
+import { shareWorkflowSessionPayload } from '@/services/workflow/Workflow_Share_Builder';
 
 import HistoryScreen from './history';
 import HomeScreen from './home';
@@ -144,6 +147,46 @@ export default function MainLayout() {
     pagerRef.current?.setPage(1);
   }, []);
 
+  // 处理分享会话事件，根据用户选择的分享类型调用对应的分享函数
+  const handleWorkflowShareByType = useCallback(async (shareType: WorkflowShareType) => {
+    if (!currentWorkflowSessionId) {
+      Alert.alert('无法分享', '当前还没有可分享的会话。');
+      return;
+    }
+
+    try {
+      await shareWorkflowSessionPayload({
+        sessionId: currentWorkflowSessionId,
+        shareType,
+      });
+    } catch {
+      Alert.alert('分享失败', '暂时无法导出这个会话，请稍后重试。');
+    }
+  }, [currentWorkflowSessionId]);
+
+  const handleWorkflowSharePress = useCallback(() => {
+    if (!currentWorkflowSessionId) {
+      Alert.alert('无法分享', '当前还没有可分享的会话。');
+      return;
+    }
+
+    Alert.alert('分享会话', '选择要分享的内容类型', [
+      {
+        text: '最终结果',
+        onPress: () => {
+          void handleWorkflowShareByType('final_result');
+        },
+      },
+      {
+        text: '语义会话',
+        onPress: () => {
+          void handleWorkflowShareByType('session_semantic');
+        },
+      },
+      { text: '取消', style: 'cancel' },
+    ]);
+  }, [currentWorkflowSessionId, handleWorkflowShareByType]);
+
   const tabs = [
     { name: '首页', key: 'home' },
     { name: '工作流', key: 'workflow' },
@@ -200,6 +243,7 @@ export default function MainLayout() {
         containerRef={topNavRef}
         onSearchSubmit={setSearchQuery}
         onNewWorkflowPress={handleNewWorkflow}
+        onWorkflowSharePress={currentWorkflowSessionId ? handleWorkflowSharePress : undefined}
       />
     </View>
   );

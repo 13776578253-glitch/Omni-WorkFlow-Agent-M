@@ -19,6 +19,7 @@ interface HistoryActionSheetProps {
   onDelete: (session: HistorySession) => void;
   onRename: (session: HistorySession) => void;
   onTogglePin: (session: HistorySession) => void;
+  onShare: (session: HistorySession) => void;
 }
 
 export default function History_ActionSheet({
@@ -28,6 +29,7 @@ export default function History_ActionSheet({
   onDelete,
   onRename,
   onTogglePin,
+  onShare,
 }: HistoryActionSheetProps) {
   const { effectiveColorScheme } = useThemeContext();
   const isDark = effectiveColorScheme === 'dark';
@@ -139,9 +141,19 @@ export default function History_ActionSheet({
             <Text style={[styles.actionLabel, { color: '#FF3B30' }]}>删除</Text>
           </TouchableOpacity>
 
+          {/* 分享 */}
           <View style={[styles.separator, { backgroundColor: separatorColor }]} />
+          <TouchableOpacity
+            style={styles.actionRow}
+            activeOpacity={0.7}
+            onPress={() => { onShare(session); handleClose(); }}
+          >
+            <Ionicons name="share-social-outline" size={20} color={themeColors.text} style={styles.actionIcon} />
+            <Text style={[styles.actionLabel, { color: themeColors.text }]}>分享</Text>
+          </TouchableOpacity>
 
           {/* 重命名 */}
+          <View style={[styles.separator, { backgroundColor: separatorColor }]} />
           <TouchableOpacity
             style={styles.actionRow}
             activeOpacity={0.7}

@@ -29,6 +29,7 @@ interface TopNavBarProps {
   containerRef?: React.Ref<any>;            // 容器引用
   onSearchSubmit?: (query: string) => void; // 搜索提交回调
   onNewWorkflowPress?: () => void;          // 新建 workflow 回调
+  onWorkflowSharePress?: () => void;        // workflow 分享回调
 }
 
 // 定义 AnimatedTabItem 子组件 类型
@@ -68,6 +69,7 @@ export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress,
   containerRef,
   onSearchSubmit,
   onNewWorkflowPress,         // 新增 workflow 按钮回调
+  onWorkflowSharePress,
 }: TopNavBarProps) => {
   // const LOG_TAG = '[KB-Compensate-TopNav]';
   const router = useRouter();
@@ -140,32 +142,33 @@ export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress,
         style={[styles.container, { backgroundColor: navBackgroundColor }]}
       > 
         <View style={styles.safeContent}>
-          {isHistoryActive ? (
-            <TouchableOpacity
-              style={[styles.iconButton, styles.leftIconButton]}
-              onPress={() => onTabPress(1)}
-              activeOpacity={0.7}
-            >
-              <SymbolView
-                name="chevron.left"
-                size={20}
-                tintColor={themeColors.text}
-                fallback={<Ionicons name="chevron-back" size={22} color={themeColors.text} />}
-              />
-            </TouchableOpacity>
-          ) : isWorkflowActive ? (
-            // 新建 workflow 按钮 / 仅在 Workflow Tab 激活时显示
-            <TouchableOpacity
-              style={[styles.iconButton, styles.leftIconButton]}
-              onPress={onNewWorkflowPress}
-              activeOpacity={0.7}
-            >
-            {/* 按钮 */}
-            <MaterialCommunityIcons name="square-edit-outline" size={24} color={themeColors.text} />
-            </TouchableOpacity>
-          ) : (
-            <View style={[styles.iconButton, styles.leftIconButton]} />
-          )}
+          <View style={styles.sideSlot}>
+            {isHistoryActive ? (
+              <TouchableOpacity
+                style={[styles.iconButton, styles.leftIconButton]}
+                onPress={() => onTabPress(1)}
+                activeOpacity={0.7}
+              >
+                <SymbolView
+                  name="chevron.left"
+                  size={20}
+                  tintColor={themeColors.text}
+                  fallback={<Ionicons name="chevron-back" size={22} color={themeColors.text} />}
+                />
+              </TouchableOpacity>
+            ) : isWorkflowActive ? (
+              // 新建 workflow 按钮 / 仅在 Workflow Tab 激活时显示
+              <TouchableOpacity
+                style={[styles.iconButton, styles.leftIconButton]}
+                onPress={onNewWorkflowPress}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons name="square-edit-outline" size={24} color={themeColors.text} />
+              </TouchableOpacity>
+            ) : (
+              <View style={[styles.iconButton, styles.leftIconButton]} />
+            )}
+          </View>
 
           <View style={styles.navWrapper}>
             <Animated.View style={[styles.tabsRow, { width: navWidth }, tabsContainerStyle]}>
@@ -210,18 +213,30 @@ export const TopNavBar = ({ tabs, scrollOffset, position, onTabPress,
             </Animated.View>
           </View>
           
-          {/* 用户菜单 */}
-          <TouchableOpacity
-            style={[styles.iconButton, styles.rightIconButton]}
-            onPress={() => router.push('/user' as any)}
-            activeOpacity={0.7}
-          >
-            <SymbolView
-              name="line.3.horizontal"
-              size={22}
-              fallback={<Ionicons name="menu" size={24} color={themeColors.text} />}
-            />
-          </TouchableOpacity>
+          {/* 右侧操作按钮：Workflow 页显示分享，其他页显示菜单 */}
+          <View style={[styles.sideSlot, styles.rightActions]}>
+            {isWorkflowActive && onWorkflowSharePress ? (
+              <TouchableOpacity
+                style={[styles.iconButton, styles.rightIconButton]}
+                onPress={onWorkflowSharePress}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="share-social-outline" size={22} color={themeColors.text} />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.iconButton, styles.rightIconButton]}
+                onPress={() => router.push('/user' as any)}
+                activeOpacity={0.7}
+              >
+                <SymbolView
+                  name="line.3.horizontal"
+                  size={22}
+                  fallback={<Ionicons name="menu" size={24} color={themeColors.text} />}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </BlurView>
     </View>
@@ -283,11 +298,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  sideSlot: {
+    width: 88,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   leftIconButton: {
     marginRight: 8,
   },
   rightIconButton: {
-    marginLeft: 8,
+    marginLeft: 2,
+  },
+  rightActions: {
+    justifyContent: 'flex-end',
   },
   searchContainer: {
     position: 'absolute',

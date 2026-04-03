@@ -1,16 +1,19 @@
 // app/(main)/history.tsx
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
 
 import { useThemeContext } from '@/constants/Theme-Context';
 import { Colors } from '@/constants/theme';
+
+import type { WorkflowShareType } from '@/constants/workflow_share';
 
 import History_ActionSheet from '@/components/history/History_ActionSheet';
 import History_List from '@/components/history/History_List';
 
 import { deleteSession, loadSessions, renameSession, togglePin, type HistorySession } from '@/services/history/History_Storage';
 import { SessionManager } from '@/services/workflow/Session_Manager';
+import { shareWorkflowSessionPayload } from '@/services/workflow/Workflow_Share_Builder';
 
 interface HistoryScreenProps {
   onOpenSession?: (sessionId: string) => Promise<void> | void;
@@ -39,6 +42,7 @@ export default function HistoryScreen({ onOpenSession, refreshToken = 0, searchQ
     void loadSessions().then(setSessions);
   }, [refreshToken]);
 
+  // 搜索过滤 + 置顶排序
   const filtered = sessions
     .filter((s) => {
       if (!searchQuery) return true;
@@ -98,6 +102,36 @@ export default function HistoryScreen({ onOpenSession, refreshToken = 0, searchQ
     setSessions(updated);
   };
 
+  // 分享会话：提供分享选项，调用分享服务 / 测试 / 待修改
+  const handleShareByType = async (session: HistorySession, shareType: WorkflowShareType) => {
+    try {
+      await shareWorkflowSessionPayload({
+        sessionId: session.id,
+        shareType,
+      });
+    } catch {
+      Alert.alert('分享失败', '暂时无法导出这个会话，请稍后重试。');
+    }
+  };
+
+  const handleShare = (session: HistorySession) => {
+    Alert.alert('分享会话', '选择要分享的内容类型', [
+      {
+        text: '最终结果',
+        onPress: () => {
+          void handleShareByType(session, 'final_result');
+        },
+      },
+      {
+        text: '语义会话',
+        onPress: () => {
+          void handleShareByType(session, 'session_semantic');
+        },
+      },
+      { text: '取消', style: 'cancel' },
+    ]);
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <History_List
@@ -116,6 +150,7 @@ export default function HistoryScreen({ onOpenSession, refreshToken = 0, searchQ
         onDelete={handleDelete}
         onRename={handleRename}
         onTogglePin={handleTogglePin}
+        onShare={handleShare}
       />
 
       {/* 加载指示器 */}
