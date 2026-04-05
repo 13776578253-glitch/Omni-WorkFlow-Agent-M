@@ -1,12 +1,25 @@
-import uvicorn, os
-from fastapi import FastAPI
+import logging
+import uvicorn
+from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from pathlib import Path
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
-from routers.auth_router import router as auth_router
+try:
+    from .routers.auth_router import router as auth_router
+    from .routers.history_router import router as history_router
+    from .routers.portal_router import router as portal_router
+    from .routers.user_router import router as user_router
+    from .routers.workflow_router import router as workflow_router
+except ImportError:
+    from app.routers.auth_router import router as auth_router
+    from app.routers.history_router import router as history_router
+    from app.routers.portal_router import router as portal_router
+    from app.routers.user_router import router as user_router
+    from app.routers.workflow_router import router as workflow_router
 
 app = FastAPI()
+logger = logging.getLogger(__name__)
 
 origins = [
     "http://localhost:5173",
@@ -25,14 +38,62 @@ app.add_middleware(
     allow_headers=["*"],         # 允许所有请求头
 )
 
-app.include_router(auth_router, prefix="/auth", tags=["auth"])
+api_router = APIRouter(prefix="/api")
+api_router.include_router(auth_router, prefix="/auth", tags=["auth"])
+api_router.include_router(history_router, prefix="/history", tags=["history"])
+api_router.include_router(portal_router, prefix="/portal", tags=["portal"])
+api_router.include_router(user_router, prefix="/user", tags=["user"])
+api_router.include_router(workflow_router, prefix="/workflow", tags=["workflow"])
+app.include_router(api_router)
 
-BASE_DIR = Path(__file__).parent.parent
-# app.mount("/music_player/front_end", StaticFiles(directory=BASE_DIR / "front_end", html=True), name="front_end")
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(_: Request, exc: HTTPException) -> JSONResponse:
+    details = exc.detail if isinstance(exc.detail, dict) else None
+    message = exc.detail.get("message") if isinstance(exc.detail, dict) else str(exc.detail)
+    code = exc.detail.get("code") if isinstance(exc.detail, dict) else f"ERR_HTTP_{exc.status_code}"
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "code": code,
+            "message": message,
+            "data": None,
+            **({"details": details} if details else {}),
+        },
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(_: Request, exc: RequestValidationError) -> JSONResponse:
+    return JSONResponse(
+        status_code=422,
+        content={
+            "code": "ERR_VALIDATION",
+            "message": "request validation failed",
+            "data": None,
+            "details": {"errors": exc.errors()},
+        },
+    )
+
+
+@app.exception_handler(Exception)
+async def unexpected_exception_handler(_: Request, exc: Exception) -> JSONResponse:
+    logger.exception("Unhandled server error", exc_info=exc)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "code": "ERR_INTERNAL",
+            "message": "internal server error",
+            "data": None,
+        },
+    )
 
 
 if __name__ == "__main__":
-    from core.logger import setup_logging
+    try:
+        from .core.logger import setup_logging
+    except ImportError:
+        from app.core.logger import setup_logging
     setup_logging()
     uvicorn.run(app, host="0.0.0.0", port=8000)
     
