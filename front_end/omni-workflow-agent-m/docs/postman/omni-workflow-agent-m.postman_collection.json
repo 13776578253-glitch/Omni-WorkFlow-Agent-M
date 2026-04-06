@@ -1,0 +1,232 @@
+{
+  "info": {
+    "_postman_id": "b6b84d6d-7d8b-48db-b8b8-omni-workflow-agent-m",
+    "name": "Omni WorkFlow Agent M Demo Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "课程交付版接口验通 Collection。用于截图、联调演示和手工回归，不纳入自动化执行链路。"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000/api"
+    },
+    {
+      "key": "userId",
+      "value": "1001"
+    },
+    {
+      "key": "sessionId",
+      "value": "mock-1"
+    },
+    {
+      "key": "taskId",
+      "value": "long-task-demo"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Send Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"13800000000\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/code/send"
+          }
+        },
+        {
+          "name": "Login With Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"13800000000\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login_2"
+          }
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"13900000000\",\n  \"password\": \"abcdef\",\n  \"name\": \"Demo User\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Preferences",
+      "item": [
+        {
+          "name": "Get Preferences",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/user/preferences?id={{userId}}"
+          }
+        },
+        {
+          "name": "Save Preferences",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{userId}}\",\n  \"presetMode\": \"formal\",\n  \"presetPrompts\": {\n    \"custom\": \"c1\",\n    \"concise\": \"c2\",\n    \"formal\": \"c3\"\n  },\n  \"quickActionNames\": {\n    \"solt1\": \"n1\",\n    \"solt2\": \"n2\",\n    \"solt3\": \"n3\",\n    \"solt4\": \"n4\"\n  },\n  \"quickActionPrompts\": {\n    \"solt1\": \"p1\",\n    \"solt2\": \"p2\",\n    \"solt3\": \"p3\",\n    \"solt4\": \"p4\"\n  },\n  \"memoryContent\": \"remember me\"\n}"
+            },
+            "url": "{{baseUrl}}/user/preferences"
+          }
+        }
+      ]
+    },
+    {
+      "name": "History",
+      "item": [
+        {
+          "name": "Get Sessions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/history/sessions?id={{userId}}"
+          }
+        },
+        {
+          "name": "Create Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"title\": \"新的历史会话\",\n  \"previewText\": \"新的预览文本\"\n}"
+            },
+            "url": "{{baseUrl}}/history/sessions"
+          }
+        },
+        {
+          "name": "Rename Session",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"newTitle\": \"重命名后的历史会话\"\n}"
+            },
+            "url": "{{baseUrl}}/history/sessions/{{sessionId}}/title"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Workflow",
+      "item": [
+        {
+          "name": "Get Workflow Session",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/workflow/sessions/{{sessionId}}"
+          }
+        },
+        {
+          "name": "Submit Workflow Input",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"id\": \"{{sessionId}}\",\n  \"text\": \"请帮我整理会议内容\",\n  \"blocks\": []\n}"
+            },
+            "url": "{{baseUrl}}/workflow/input"
+          }
+        },
+        {
+          "name": "Generate Workflow Block",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"id\": \"{{sessionId}}\",\n  \"blocks\": [],\n  \"action\": \"regenerate_from_first\"\n}"
+            },
+            "url": "{{baseUrl}}/workflow/generate"
+          }
+        },
+        {
+          "name": "Upload Workflow File",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "sessionId",
+                  "value": "{{sessionId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "id",
+                  "value": "{{sessionId}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/workflow/file/upload"
+          }
+        }
+      ]
+    }
+  ]
+}
