@@ -6,12 +6,14 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 try:
+    from .core.config import get_all_data_source_strategies
     from .routers.auth_router import router as auth_router
     from .routers.history_router import router as history_router
     from .routers.portal_router import router as portal_router
     from .routers.user_router import router as user_router
     from .routers.workflow_router import router as workflow_router
 except ImportError:
+    from app.core.config import get_all_data_source_strategies
     from app.routers.auth_router import router as auth_router
     from app.routers.history_router import router as history_router
     from app.routers.portal_router import router as portal_router
@@ -45,6 +47,11 @@ api_router.include_router(portal_router, prefix="/portal", tags=["portal"])
 api_router.include_router(user_router, prefix="/user", tags=["user"])
 api_router.include_router(workflow_router, prefix="/workflow", tags=["workflow"])
 app.include_router(api_router)
+
+
+@app.on_event("startup")
+async def log_runtime_configuration() -> None:
+    logger.info("Data source strategies: %s", get_all_data_source_strategies())
 
 
 @app.exception_handler(HTTPException)

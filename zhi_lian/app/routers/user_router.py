@@ -3,11 +3,11 @@ from fastapi import APIRouter, HTTPException, Query
 try:
     from .schemas import auth_schemas as AS
     from .schemas.common_schemas import error_detail, success_response
-    from ..services.mock_store import mock_store
+    from ..services.auth_preferences_service import AuthPreferencesService
 except ImportError:
     from app.routers.schemas import auth_schemas as AS
     from app.routers.schemas.common_schemas import error_detail, success_response
-    from app.services.mock_store import mock_store
+    from app.services.auth_preferences_service import AuthPreferencesService
 
 
 router = APIRouter()
@@ -15,7 +15,7 @@ router = APIRouter()
 
 @router.get("/preferences")
 async def get_preferences(id: str = Query(...)) -> dict:
-    preferences = mock_store.get_preferences(id)
+    preferences = await AuthPreferencesService.get_preferences(id)
     if not preferences:
         raise HTTPException(
             status_code=404,
@@ -27,7 +27,7 @@ async def get_preferences(id: str = Query(...)) -> dict:
 
 @router.post("/preferences")
 async def save_preferences(data: AS.UserPreferencesPayload) -> dict:
-    saved = mock_store.save_preferences(
+    saved = await AuthPreferencesService.save_preferences(
         data.id,
         {
             "presetMode": data.presetMode,

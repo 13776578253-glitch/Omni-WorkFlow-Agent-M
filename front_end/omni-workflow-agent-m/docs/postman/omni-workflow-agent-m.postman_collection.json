@@ -3,7 +3,7 @@
     "_postman_id": "b6b84d6d-7d8b-48db-b8b8-omni-workflow-agent-m",
     "name": "Omni WorkFlow Agent M Demo Collection",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "课程交付版接口验通 Collection。用于截图、联调演示和手工回归，不纳入自动化执行链路。"
+    "description": "接口验通 Collection。用于截图、联调演示和手工回归，不纳入自动化执行链路。"
   },
   "variable": [
     {
