@@ -2,8 +2,8 @@ import React from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 // import { SafeAreaView } from 'react-native-safe-area-context'; // 软件头部区域 组件  // 暂时 废弃
 
-import { Ionicons } from '@expo/vector-icons';
-import * as Linking from 'expo-linking'; // link 组件 -需要内嵌网站替代
+import { Image } from 'expo-image';
+import * as Linking from 'expo-linking'; // link 组件 / 废弃
 import { router } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
@@ -20,6 +20,8 @@ export default function UserScreen() {
   const cardColor = useThemeColor({ light: '#FFF', dark: '#1C1C1E' }, 'background');
   // const textColor = useThemeColor({}, 'text');
 
+  const avatarSource = require('@/assets/images/d783ee9d37e3215e04a3ea467118a0ed.png');
+
   return (
     <ThemedView style={[styles.container, { backgroundColor }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -27,9 +29,9 @@ export default function UserScreen() {
         {/* 顶部个人名片 */}
         <View style={styles.simpleProfile}>
           <View style={[styles.avatarCircle, { backgroundColor: '#E5E5EA' }]}>
-            <Ionicons name="person" size={35} color="#8E8E93" />
+            <Image source={avatarSource} style={styles.avatarImage} contentFit="cover" />
           </View>
-          <ThemedText style={styles.userName}>Test User</ThemedText>   
+          <ThemedText style={styles.userName}>cpp</ThemedText>   
           {/* 待修改同步 */}
         </View>
 
@@ -162,11 +164,14 @@ const styles = StyleSheet.create({
     paddingVertical: 30,
   },
   avatarCircle: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    overflow: 'hidden',
+    marginBottom: 14,
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
 });

@@ -8,7 +8,7 @@ interface AuthValidationProps {
   phone: string;
   nickname: string;
   method: 'code' | 'password';
-  onCompleteLogin: (payload: { phone: string; nickname: string; password?: string }) => void | Promise<void>;
+  onCompleteLogin: (payload: { phone: string; nickname: string; password?: string; code?: string }) => void | Promise<void>;
   onForgotPassword: () => void;
 }
 
@@ -47,7 +47,12 @@ export function AuthValidation({
   }, [countdown, method]);
 
   const completeLogin = async () => {
-    await onCompleteLogin({ phone, nickname, password: method === 'password' ? password : undefined });
+    await onCompleteLogin({
+      phone,
+      nickname,
+      password: method === 'password' ? password : undefined,
+      code: method === 'code' ? code : undefined,
+    });
   };
 
   const handleVerifyCode = async () => {

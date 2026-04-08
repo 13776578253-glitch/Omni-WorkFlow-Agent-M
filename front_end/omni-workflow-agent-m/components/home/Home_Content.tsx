@@ -13,7 +13,8 @@ const RECORD_SLOT_WIDTH = 260;
 const WEEKDAY_LABEL = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 const USERNAME_CHIP_BLUE = '#007bff';
 
-const userName = "绝望的cpp";
+// 临时固定用户名
+const userName = "cpp";
 
 interface HomeContentProps {
   translateY: SharedValue<number>;
@@ -37,7 +38,7 @@ export function HomeContent({ translateY, recordSlot, onCapabilitySelect }: Home
 
   const now = new Date();
   const weekdayText = WEEKDAY_LABEL[now.getDay()];
-  const weatherText = '晴 24°C';
+  const weatherText = '阴 22°C';
 
   return (
     <View style={styles.container}>

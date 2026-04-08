@@ -11,11 +11,20 @@ import { AuthRegister } from '@/components/user/auth/register';
 import { AuthValidation } from '@/components/user/auth/validation';
 import { KeyboardAwareScroll } from '@/components/user/personal/Keyboard_Aware_Scroll';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import * as authApi from '@/api/auth-api';
 
 const STORAGE_KEY = '@omni_workflow_user_data_v1';
 const AUTH_STORAGE_KEY = '@omni_workflow_user_auth_v1';
 const AUTH_LINK_KEY = '@omni_workflow_user_data_v1_auth_link';
+const DEMO_AUTH_USERS_KEY = '@omni_workflow_demo_auth_users_v1';
+
+// 固定验证码 / 测试账号
+const DEMO_VERIFICATION_CODE = '147653';
+const ADMIN_ACCOUNT = {
+  id: 'admin-001',
+  nickname: 'cpp',
+  phone: '17768288913',
+  password: '1141128',
+} as const;
 
 type AuthMode = 'login' | 'register' | 'forgot' | 'validation';
 
@@ -30,6 +39,61 @@ interface PendingValidation {
   phone: string;
   nickname: string;
   method: 'code' | 'password';
+}
+
+// 本地认证逻辑
+interface DemoAuthUser {
+  id: string;
+  nickname: string;
+  phone: string;
+  password: string;
+}
+
+function normalizePhone(phone: string): string {
+  return phone.replace(/\D/g, '');
+}
+
+function createDemoUserId(): string {
+  return `cpp`;
+}
+
+async function readDemoUsers(): Promise<DemoAuthUser[]> {
+  try {
+    const raw = await AsyncStorage.getItem(DEMO_AUTH_USERS_KEY);
+    const parsed = raw ? (JSON.parse(raw) as DemoAuthUser[]) : [];
+    const users = Array.isArray(parsed) ? parsed : [];
+    const hasAdmin = users.some((user) => normalizePhone(user.phone) === ADMIN_ACCOUNT.phone);
+
+    if (hasAdmin) {
+      return users;
+    }
+
+    return [ADMIN_ACCOUNT, ...users];
+  } catch {
+    return [ADMIN_ACCOUNT];
+  }
+}
+
+// 写入用户列表，包含新增或更新单个用户的逻辑
+async function writeDemoUsers(users: DemoAuthUser[]): Promise<void> {
+  await AsyncStorage.setItem(DEMO_AUTH_USERS_KEY, JSON.stringify(users));
+}
+
+// 根据手机号查找用户，返回 undefined 表示未找到
+async function findDemoUserByPhone(phone: string): Promise<DemoAuthUser | undefined> {
+  const users = await readDemoUsers();
+  const normalizedPhone = normalizePhone(phone);
+  return users.find((user) => normalizePhone(user.phone) === normalizedPhone);
+}
+
+// 保存用户信息，若手机号已存在则更新用户信息，否则新增用户
+async function saveDemoUser(nextUser: DemoAuthUser): Promise<void> {
+  const users = await readDemoUsers();
+  const normalizedPhone = normalizePhone(nextUser.phone);
+  const nextUsers = users.some((user) => normalizePhone(user.phone) === normalizedPhone)
+    ? users.map((user) => (normalizePhone(user.phone) === normalizedPhone ? nextUser : user))
+    : [nextUser, ...users];
+  await writeDemoUsers(nextUsers);
 }
 
 export default function AuthScreen() {
@@ -95,13 +159,14 @@ export default function AuthScreen() {
 
   const handleSendCode = useCallback(async (phone: string) => {
     if (countdown > 0) return;
-    try {
-      const result = await authApi.sendCode(phone);
-      setCountdown(60);
-      Alert.alert('验证码已发送', `验证码：${result.requestId}\n\n请查收手机 ${phone} 的短信`);
-    } catch (error) {
-      Alert.alert('发送失败', error instanceof Error ? error.message : '请稍后重试。');
+    const normalizedPhone = normalizePhone(phone);
+    if (normalizedPhone.length !== 11) {
+      Alert.alert('发送失败', '请输入 11 位手机号。');
+      return;
     }
+
+    setCountdown(60);
+    Alert.alert('验证码已发送');
   }, [countdown]);
 
   const switchToLogin = useCallback(() => {
@@ -112,6 +177,9 @@ export default function AuthScreen() {
 
   const handleLoginSubmit = useCallback(
     async (payload: { variant: 'phone'; phone: string; nickname: string; code: string; method: 'code' | 'password' }) => {
+      if (payload.method === 'code') {
+        await handleSendCode(payload.phone);
+      }
       setPendingValidation({
         phone: payload.phone,
         method: payload.method,
@@ -119,20 +187,31 @@ export default function AuthScreen() {
       });
       setAuthMode('validation');
     },
-    []
+    [handleSendCode]
   );
 
   const handleValidationComplete = useCallback(
-    async (payload: { phone: string; nickname: string; password?: string }) => {
+    async (payload: { phone: string; nickname: string; password?: string; code?: string }) => {
       try {
-        const result = pendingValidation?.method === 'code'
-          ? await authApi.loginWithCode(payload.phone)
-          : await authApi.loginWithPassword(payload.phone, payload.password || '');
+        const normalizedPhone = normalizePhone(payload.phone);
+        const user = await findDemoUserByPhone(normalizedPhone);
+
+        if (pendingValidation?.method === 'code') {
+          if (payload.code !== DEMO_VERIFICATION_CODE) {
+            throw new Error('验证码错误，请输入 147653。');
+          }
+        } else if (!user || user.password !== (payload.password || '')) {
+          throw new Error('手机号或密码错误。');
+        }
+
+        if (!user) {
+          throw new Error('账号不存在，请先注册。');
+        }
 
         const nextState: AuthState = {
           isLoggedIn: true,
-          nickname: result.user.name,
-          phone: payload.phone,
+          nickname: user.nickname,
+          phone: normalizedPhone,
           updatedAt: Date.now(),
         };
         await saveAuthState(nextState);
@@ -151,11 +230,27 @@ export default function AuthScreen() {
   const handleRegisterSubmit = useCallback(
     async (payload: { nickname: string; password: string; phone: string; code: string }) => {
       try {
-        await authApi.register(payload.nickname, payload.password, payload.phone, payload.code);
+        const normalizedPhone = normalizePhone(payload.phone);
+        if (payload.code !== DEMO_VERIFICATION_CODE) {
+          throw new Error('验证码错误，请输入 147653。');
+        }
+
+        const existingUser = await findDemoUserByPhone(normalizedPhone);
+        if (existingUser) {
+          throw new Error('该手机号已注册。');
+        }
+
+        await saveDemoUser({
+          id: createDemoUserId(),
+          nickname: payload.nickname,
+          phone: normalizedPhone,
+          password: payload.password,
+        });
+
         const nextState: AuthState = {
           isLoggedIn: false,
           nickname: payload.nickname,
-          phone: payload.phone,
+          phone: normalizedPhone,
           updatedAt: Date.now(),
         };
         await saveAuthState(nextState);
@@ -172,7 +267,6 @@ export default function AuthScreen() {
 
   const handleLogout = useCallback(async () => {
     try {
-      await authApi.logout();
       const nextState: AuthState = {
         isLoggedIn: false,
         nickname: '',
@@ -193,7 +287,21 @@ export default function AuthScreen() {
   const handleForgotSubmit = useCallback(
     async (payload: { phone: string; code: string; newPassword: string }) => {
       try {
-        await authApi.resetPassword(payload.phone, payload.code, payload.newPassword);
+        const normalizedPhone = normalizePhone(payload.phone);
+        if (payload.code !== DEMO_VERIFICATION_CODE) {
+          throw new Error('验证码错误，请输入 147653。');
+        }
+
+        const existingUser = await findDemoUserByPhone(normalizedPhone);
+        if (!existingUser) {
+          throw new Error('账号不存在，请先注册。');
+        }
+
+        await saveDemoUser({
+          ...existingUser,
+          password: payload.newPassword,
+        });
+
         Alert.alert('修改成功', '请重新登录。');
         switchToLogin();
       } catch (error) {
