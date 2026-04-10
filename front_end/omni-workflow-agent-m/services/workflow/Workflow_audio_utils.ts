@@ -1,5 +1,5 @@
 export const DEFAULT_LONG_AUDIO_PROMPT =
-  '请整理这段长时录音的完整内容，提取重点并生成后续工作流结果。';
+  '请整理这段长时录音的完整内容，转写并生成概要。';
 
 const AUDIO_EXTENSIONS = new Set(['m4a', 'mp3', 'wav', 'aac', 'ogg', 'webm']);
 

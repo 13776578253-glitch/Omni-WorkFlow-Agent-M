@@ -821,6 +821,7 @@ export default function WorkflowScreen({
     setIsSubmittingLongAudio(true);
     setBlocks(optimisticBlocks);
     setInputText('');
+    setPendingAttachments((prev) => prev.filter((attachment) => attachment.localPath !== pendingLongAudioInput.audioUri));
 
     if (sessionId) {
       persistSessionBlocks(sessionId, optimisticBlocks);
@@ -1171,6 +1172,23 @@ export default function WorkflowScreen({
     longAudioRequestTokenRef.current = Date.now();
     setIsSubmittingLongAudio(false);
     setPendingLongAudioInput(audioInput);
+    setPendingAttachments((prev) => {
+      if (prev.some((attachment) => attachment.localPath === audioInput.audioUri)) {
+        return prev;
+      }
+
+      return [
+        ...prev,
+        {
+          id: `audio-attachment-${Date.now()}`,
+          type: 'file',
+          fileName: audioInput.fileName || `long-audio-${Date.now()}.m4a`,
+          mimeType: audioInput.mimeType || 'audio/m4a',
+          localPath: audioInput.audioUri,
+          uploadStatus: 'pending',
+        },
+      ];
+    });
     setRecordedAudioPreview({
       audioUri: audioInput.audioUri,
       durationMs: audioInput.durationMs,
@@ -1184,11 +1202,12 @@ export default function WorkflowScreen({
   const handleClearRecordedAudioPreview = useCallback(() => {
     longAudioRequestTokenRef.current = Date.now();
     setIsSubmittingLongAudio(false);
+    setPendingAttachments((prev) => prev.filter((attachment) => attachment.localPath !== pendingLongAudioInput?.audioUri));
     setRecordedAudioPreview(null);
     setPendingLongAudioInput(null);
     setInputText('');
     setMode(blocks.length > 0 ? 'document' : 'welcome');
-  }, [blocks.length]);
+  }, [blocks.length, pendingLongAudioInput?.audioUri]);
 
   // 滚动到底部
   const handleScrollToBottom = useCallback(() => {

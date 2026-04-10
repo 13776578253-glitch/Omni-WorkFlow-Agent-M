@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -27,6 +27,21 @@ export const TOP_AREA_COMPACT_HEIGHT = 62;          // 紧凑状态高度
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
+}
+
+// 简单的音频数据采样函数，将原始音频数据压缩为指定数量的柱状图数据
+function sampleWaveformBars(audioData: number[], count: number) {
+  if (audioData.length <= count) {
+    return audioData;
+  }
+
+  return Array.from({ length: count }).map((_, index) => {
+    const start = Math.floor((index / count) * audioData.length);
+    const end = Math.floor(((index + 1) / count) * audioData.length);
+    const slice = audioData.slice(start, Math.max(start + 1, end));
+    const peak = slice.reduce((max, value) => Math.max(max, value), 0);
+    return peak;
+  });
 }
 
 export function WorkflowTopArea({
@@ -96,6 +111,9 @@ export function WorkflowTopArea({
     extrapolate: 'clamp',
   });
 
+  // 采样音频数据用于紧凑模式的波形图展示，根据当前时间动态高亮已播放部分
+  const compactWaveData = useMemo(() => sampleWaveformBars(audioData, 30), [audioData]);
+
   useEffect(() => {
     if (forcedCompact && !isCompact) {
       animateTo(true);
@@ -152,10 +170,10 @@ export function WorkflowTopArea({
 
           {/* 波形图 - 简单展示部分数据 */}
           <View style={styles.compactWaveRow}>
-             {!isLoading && audioData.slice(0, 30).map((h: number, index: number) => {
+             {!isLoading && compactWaveData.map((h: number, index: number) => {
                // 简单模拟进度：根据当前时间比例计算高亮
                const progressRatio = totalTime > 0 ? currentTime / totalTime : 0;
-               const highlightIndex = Math.floor(progressRatio * 30); 
+               const highlightIndex = Math.floor(progressRatio * compactWaveData.length); 
                const isPlayed = index <= highlightIndex;
                
                return (
