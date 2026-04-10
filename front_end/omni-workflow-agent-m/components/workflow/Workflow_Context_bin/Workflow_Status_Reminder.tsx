@@ -18,6 +18,7 @@ export function WorkflowStatusReminder({ thoughtChain, hasPlayed = false, onAnim
   const shouldAnimate = !hasPlayed;
   const [visibleSteps, setVisibleSteps] = useState(shouldAnimate ? 0 : thoughtChain.steps.length);
   const [showLoading, setShowLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState('正在生成...');
   const startedRef = useRef(false);
   const completedRef = useRef(false);
   const onAnimationStartRef = useRef(onAnimationStart);
@@ -34,6 +35,7 @@ export function WorkflowStatusReminder({ thoughtChain, hasPlayed = false, onAnim
     if (!shouldAnimate) {
       setVisibleSteps(thoughtChain.steps.length);
       setShowLoading(false);
+      setLoadingText('正在生成...');
       startedRef.current = true;
       completedRef.current = true;
       return;
@@ -48,17 +50,32 @@ export function WorkflowStatusReminder({ thoughtChain, hasPlayed = false, onAnim
     completedRef.current = false;
     setVisibleSteps(0);
     setShowLoading(false);
+    setLoadingText('正在生成...');
 
     startedRef.current = true;
     onAnimationStartRef.current?.();
 
     thoughtChain.steps.forEach((step, i) => {
       const prevStep = i > 0 ? thoughtChain.steps[i - 1] : null;
+      const explicitDelay = typeof prevStep?.waitAfterMs === 'number' ? prevStep.waitAfterMs : null;
 
-      if (prevStep?.type === 'command') {
+      if (explicitDelay && explicitDelay > 0) {
+        timers.push(setTimeout(() => {
+          setLoadingText(prevStep?.loadingText || '正在处理中，请稍候...');
+          setShowLoading(true);
+        }, cumulativeDelay));
+        cumulativeDelay += explicitDelay;
+        timers.push(setTimeout(() => {
+          setShowLoading(false);
+          setVisibleSteps(i + 1);
+        }, cumulativeDelay));
+      } else if (prevStep?.type === 'command') {
         const randomDelay = 3000 + Math.random() * 3000;
 
-        timers.push(setTimeout(() => setShowLoading(true), cumulativeDelay));
+        timers.push(setTimeout(() => {
+          setLoadingText(prevStep?.loadingText || '正在生成...');
+          setShowLoading(true);
+        }, cumulativeDelay));
         cumulativeDelay += randomDelay;
         timers.push(setTimeout(() => {
           setShowLoading(false);
@@ -87,7 +104,7 @@ export function WorkflowStatusReminder({ thoughtChain, hasPlayed = false, onAnim
         if (i >= visibleSteps) return null;
         return <StepItem key={step.id} step={step} shouldAnimate={shouldAnimate} />;
       })}
-      {showLoading && <LoadingIndicator />}
+      {showLoading && <LoadingIndicator text={loadingText} />}
     </View>
   );
 }
@@ -158,13 +175,13 @@ function TypewriterText({
 }
 
 // 加载指示器组件，显示正在生成的状态
-function LoadingIndicator() {
+function LoadingIndicator({ text }: { text: string }) {
   const textColor = useThemeColor({}, 'text');
 
   return (
     <View style={styles.loadingRow}>
       <ActivityIndicator size="small" color={textColor + '60'} />
-      <Text style={[styles.loadingText, { color: textColor + '60' }]}>正在生成...</Text>
+      <Text style={[styles.loadingText, { color: textColor + '60' }]}>{text}</Text>
     </View>
   );     
 }

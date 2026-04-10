@@ -4,6 +4,7 @@ import {
   HOME_SCHEDULE_PROMPT,
   hasSchedulePlanFileAttachment,
   isOrganizeDocumentMockScenario,
+  isPptReportMockScenario,
   isSchedulePlanMockScenario,
 } from '@/components/workflow/Workflow_Context_bin/Workflow_Context_Data';
 
@@ -221,6 +222,35 @@ export const THOUGHT_CHAINS: Record<string, ThoughtChain> = {
       },
     ],
   },
+  ppt_report: {
+    id: 'chain-ppt-report',
+    category: 'summary',
+    steps: [
+      {
+        id: 'ppt1',
+        type: 'summary',
+        text: '已接收音频文件，正在执行转写并校对时间轴片段。',
+        status: 'completed',
+        icon: 'mic-outline',
+        waitAfterMs: 20000,
+        loadingText: '音频内容较长，正在持续转写并校对时间戳，请稍候...',
+      },
+      {
+        id: 'ppt2',
+        type: 'summary',
+        text: '已完成转写初稿，正在抽取主题、方法和适合汇报展示的核心观点。',
+        status: 'completed',
+        icon: 'list-outline',
+      },
+      {
+        id: 'ppt3',
+        type: 'summary',
+        text: '正在生成 PPT 演示文稿并整理可下载附件，准备输出最终结果。',
+        status: 'completed',
+        icon: 'easel-outline',
+      },
+    ],
+  },
 };
 
 export function selectThoughtChain(
@@ -228,6 +258,10 @@ export function selectThoughtChain(
   attachments: WorkflowAttachment[] = []
 ): ThoughtChain {
   const input = userInput.toLowerCase();
+
+  if (isPptReportMockScenario(userInput)) {
+    return THOUGHT_CHAINS.ppt_report;
+  }
 
   if (hasSchedulePlanFileAttachment(attachments)) {
     return THOUGHT_CHAINS.schedule_plan_file;

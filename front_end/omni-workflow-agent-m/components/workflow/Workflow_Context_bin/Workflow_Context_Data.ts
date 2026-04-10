@@ -6,6 +6,9 @@ export const HOME_SCHEDULE_REPLY ='好的，请上传您需要总结的文档和
 export const ORGANIZE_DOC_PROMPT = '好的，帮我整理';
 export const ORGANIZE_DOC_REPLY = '好的，整理文档如下';
 export const ORGANIZE_DOC_ATTACHMENT_FILE_NAME = '移动端智能工作流助手项目排期规划任务表.md';
+export const PPT_REPORT_PROMPT = '基于转写结果生成一份PPT汇报';
+export const PPT_REPORT_REPLY = '好的，我已收到您的音频文件。我将先为您转写音频内容并生成概要，随后为您制作一份 PPT 演示文稿。现在开始处理。';
+export const PPT_REPORT_ATTACHMENT_FILE_NAME = '音乐推荐系统：算法与特征工程深度解析.pptx';
 export const SCHEDULE_PLAN_FILE_KEYWORD = '排期规划';
 export const SCHEDULE_PLAN_ACKNOWLEDGEMENT = '收到，我已经看到了您上传的“排期规划.txt”文件。我将立即阅读文件内容，并为您制定详细的任务排期表。请稍候。';
 export const SCHEDULE_PLAN_RESULT_MARKDOWN = [
@@ -61,11 +64,60 @@ export const SCHEDULE_PLAN_RESULT_MARKDOWN = [
   '',
   '需要我将生成内容打包成文档输出吗？',
 ].join('\n');
+export const PPT_REPORT_RESULT_MARKDOWN = [
+  PPT_REPORT_REPLY,
+  '',
+  '我已经为您完成了音频转写、内容提炼以及 PPT 汇报材料的整理，相关结果如下。',
+  '',
+  '## 处理结果',
+  '',
+  '- 已完成音频转写与时间轴整理。',
+  '- 已提炼适合汇报展示的核心主题、方法说明与结论要点。',
+  '- 已生成可继续浏览、分享的 PPT 演示文稿附件。',
+  '',
+  '## 转写内容',
+  '',
+  '[00:00.0 - 00:10.0] 你提到这些特征,你提到个人特征和公共特征,这些特征你是怎么去分类和处理的?',
+  '[00:10.0 - 00:18.0] 不是四种数据吗?正数据,强负数据,弱负数据,还有一个模糊数据。',
+  '[00:18.0 - 00:38.0] 正数据对应的就是用户特别喜欢的判定条件,比如说那些完整播放率来判定的,',
+  '[00:38.0 - 00:45.0] 就是能确定用户确实喜欢这首歌的那种数据。',
+  '[00:45.0 - 00:53.0] 强负就是用户一定不喜欢这首歌,比如说他多次跳过了,或者是一般不听了。',
+  '[00:53.0 - 01:01.0] 模糊数据就是那种无法判别是否喜欢的那些数据。',
+  '[01:01.0 - 01:18.0] 弱负就是没有被听过的那些歌也要进行训练,因为得让决策数学习到这个值。',
+  '[01:18.0 - 01:28.0] 就得让决策数有这个分值,不然遇到这种数据的话,他会预测不了。',
+  '[01:28.0 - 01:32.0] 就分这四种数据进行预测。',
+  '[01:32.0 - 01:50.0] 这四种数据提取是分用户籍信息,还有一个是全局歌曲状态信息,还有播放历史的聚合信息。',
+  '[01:50.0 - 01:57.0] 对,三类信息源,刚刚说的是四种分类,然后这是三类信息源。',
+  '[01:57.0 - 02:02.0] 就从这三类信息源提取出来,然后分成四种类型,然后再喂给决策数。',
+  '[02:02.0 - 02:11.0] 然后就训练完决策数之后,可以在后端训练。',
+  '[02:11.0 - 02:18.0] 这是ABR数的,我刚刚看ABR数。',
+  '[02:18.0 - 02:30.0] 决策数的训练,反正它是可以在后端手动训练,但是没有做管理员的那种可视化训练。',
+  '[02:30.0 - 02:39.0] 对,现在还没做那玩意儿,现在先是在后端训练的,反正强调服务器运行的后端训练也可以的。',
+  '[02:39.0 - 02:59.0] 然后就是热门推荐,热门推荐的是这些歌单,这些歌单就是按播放量和那个环播率筛选出来的。',
+  '[03:00.0 - 03:16.0] 就是点进去会有这些歌曲信息,这边可以点添加或不添加,然后可以,可能可以的。',
+  '[03:16.0 - 03:23.0] 它播放五秒之后会自动记录历史数据,然后歌单信息。',
+  '',
+  '## 概要信息',
+  '',
+  '转写文稿围绕音乐推荐系统中的特征工程与模型训练流程展开，适合整理为一份方法说明型汇报。核心要点如下：',
+  '',
+  '- **数据分层方式**：讨论中将训练样本拆分为正数据、强负数据、弱负数据和模糊数据，其中弱负数据被特别强调，用于避免模型在未播放样本上的预测能力不足。',
+  '- **特征来源结构**：特征主要来自三类信息源，包括用户侧信息、全局歌曲状态信息，以及播放历史的聚合行为数据。',
+  '- **模型训练逻辑**：当前方案以决策树为核心，在后端完成训练与更新，暂未建设管理员可视化训练界面。',
+  '- **推荐结果生成**：热门推荐部分主要依据播放量和环播率筛选歌单，再结合歌曲信息与历史行为形成最终推荐展示。',
+  '',
+  'PPT 讲稿已挂载到附件中，您可以根据需要进行调整和补充：',
+].join('\n');
 
 function normalizeAttachmentName(fileName?: string | null) {
   if (!fileName) return '';
   const withoutExtension = fileName.replace(/\.[^.]+$/, '');
   return withoutExtension.replace(/[\s_\-()（）【】\[\].,，。]/g, '').toLowerCase();
+}
+
+function normalizeScenarioText(text?: string | null) {
+  if (!text) return '';
+  return text.replace(/[\s_\-()（）【】\[\].,，。:：!！?？]/g, '').toLowerCase();
 }
 
 export function hasSchedulePlanFileAttachment(attachments: WorkflowAttachment[] = []) {
@@ -77,6 +129,10 @@ export function hasSchedulePlanFileAttachment(attachments: WorkflowAttachment[] 
 
 export function isOrganizeDocumentMockScenario(userContent: string) {
   return userContent.trim().includes(ORGANIZE_DOC_PROMPT);
+}
+
+export function isPptReportMockScenario(userContent: string) {
+  return normalizeScenarioText(userContent).includes(normalizeScenarioText(PPT_REPORT_PROMPT));
 }
 
 // 目前存在问题 
@@ -133,6 +189,16 @@ export function selectMockMarkdownBlock(
   attachments: WorkflowAttachment[] = []
 ): WorkflowBlock {
   const trimmedContent = userContent.trim();
+
+  if (isPptReportMockScenario(trimmedContent)) {
+    return {
+      id: 'mock-ppt-report',
+      role: 'ai',
+      content: PPT_REPORT_RESULT_MARKDOWN,
+      createdAt: Date.now(),
+      sourceBlockId: 'mock-ppt-report-source',
+    };
+  }
 
   if (trimmedContent.includes(HOME_SCHEDULE_PROMPT)) {
     return {

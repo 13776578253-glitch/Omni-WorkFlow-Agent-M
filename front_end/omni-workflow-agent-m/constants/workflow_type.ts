@@ -71,6 +71,8 @@ export interface ThoughtStep {
   type: 'command' | 'summary' | 'text';
   icon?: string;
   timestamp?: number;
+  waitAfterMs?: number;
+  loadingText?: string;
 }
 
 // 思维链

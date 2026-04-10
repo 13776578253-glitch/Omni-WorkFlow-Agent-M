@@ -280,6 +280,15 @@ export function WorkflowMessageItem({ message, onUpdate, onPresentationStateChan
   const hasThoughtChain = !isUser && 'thoughtChain' in message && !!message.thoughtChain;
   const shouldAnimateThoughtChain = !isUser && hasThoughtChain && !thoughtChainPlayed && message.editedByUser !== true;
   const shouldAnimateMessage = !isUser && !messageAnimationPlayed && message.editedByUser !== true;
+  const [hasCompletedMessageAnimation, setHasCompletedMessageAnimation] = useState(
+    isUser || message.editedByUser === true || !shouldAnimateMessage || messageAnimationPlayed
+  );
+  const canRevealAttachments =
+    isUser ||
+    message.editedByUser === true ||
+    !shouldAnimateMessage ||
+    messageAnimationPlayed ||
+    hasCompletedMessageAnimation;
   const [hasCompletedThoughtChain, setHasCompletedThoughtChain] = useState(
     isUser || !hasThoughtChain || !shouldAnimateThoughtChain
   );
@@ -294,11 +303,15 @@ export function WorkflowMessageItem({ message, onUpdate, onPresentationStateChan
     setCanRevealMessage(
       isUser || message.editedByUser === true || !shouldAnimateMessage || !hasThoughtChain
     );
+    setHasCompletedMessageAnimation(
+      isUser || message.editedByUser === true || !shouldAnimateMessage || messageAnimationPlayed
+    );
     messageStartReportedRef.current = false;
   }, [
     hasThoughtChain,
     isUser,
     message.editedByUser,
+    messageAnimationPlayed,
     message.id,
     shouldAnimateMessage,
     shouldAnimateThoughtChain,
@@ -419,6 +432,7 @@ export function WorkflowMessageItem({ message, onUpdate, onPresentationStateChan
   }, [isUser, message.id, onPresentationStateChange, shouldAnimateMessage]);
 
   const handleMessageAnimationComplete = useCallback(() => {
+    setHasCompletedMessageAnimation(true);
     if (isUser || !shouldAnimateMessage) return;
     onPresentationStateChange?.(message.id, { messageAnimationPlayed: true });
   }, [isUser, message.id, onPresentationStateChange, shouldAnimateMessage]);
@@ -484,7 +498,7 @@ export function WorkflowMessageItem({ message, onUpdate, onPresentationStateChan
             </TouchableOpacity>
           )}
 
-          {'attachments' in message && message.attachments && message.attachments.length > 0 ? (
+          {'attachments' in message && message.attachments && message.attachments.length > 0 && canRevealAttachments ? (
             <WorkflowMessageAttachments attachments={message.attachments} />
           ) : null}
         </View>

@@ -27,6 +27,8 @@ import { WorkflowRecordingOverlay } from '@/components/ui/workflow-recording-ove
 import { WorkflowContentArea, type WorkflowContentAreaRef } from '@/components/workflow/Workflow_ContentArea';
 import {
   isOrganizeDocumentMockScenario,
+  isPptReportMockScenario,
+  PPT_REPORT_ATTACHMENT_FILE_NAME,
   selectMockMarkdownBlock,
 } from '@/components/workflow/Workflow_Context_bin/Workflow_Context_Data';
 import { buildLongAudioMockAIBlock } from '@/components/workflow/Workflow_Context_bin/Workflow_Long_Audio_Mock';
@@ -71,6 +73,7 @@ const RECORD_DOT_COUNT = 30;  // 波形振幅
 const TOP_AREA_OFFSET = 100;
 const MOCK_EXPORT_DIR = `${FileSystemLegacy.documentDirectory}workflow_mock_exports/`;
 const ORGANIZE_DOC_WORD_MODULE = require('../../assets/docs/project_schedule_plan.docx');
+const PPT_REPORT_MODULE = require('../../assets/docs/music_recommendation_feature_engineering_report.pptx');
 
 // 测试 / 存储键名
 const USER_DATA_STORAGE_KEY = '@omni_workflow_user_data_v1';
@@ -125,6 +128,27 @@ async function prepareBundledWordAttachment(): Promise<string | null> {
     }
 
     const exportPath = `${MOCK_EXPORT_DIR}${Date.now()}_项目排期规划与任务表.docx`;
+    await FileSystemLegacy.copyAsync({
+      from: sourceUri,
+      to: exportPath,
+    });
+    return exportPath;
+  } catch {
+    return null;
+  }
+}
+
+async function prepareBundledPptAttachment(): Promise<string | null> {
+  try {
+    await ensureMockExportDir();
+    const asset = Asset.fromModule(PPT_REPORT_MODULE);
+    await asset.downloadAsync();
+    const sourceUri = asset.localUri ?? asset.uri;
+    if (!sourceUri) {
+      return null;
+    }
+
+    const exportPath = `${MOCK_EXPORT_DIR}${Date.now()}_music_recommendation_feature_engineering_report.pptx`;
     await FileSystemLegacy.copyAsync({
       from: sourceUri,
       to: exportPath,
@@ -420,29 +444,54 @@ export default function WorkflowScreen({
     block: WorkflowBlock,
     userContent: string
   ): Promise<WorkflowBlock> => {
-    if (block.role !== 'ai' || !isOrganizeDocumentMockScenario(userContent)) {
+    if (block.role !== 'ai') {
       return block;
     }
 
     try {
-      const exportPath = await prepareBundledWordAttachment();
-      if (!exportPath) {
-        return block;
+      if (isOrganizeDocumentMockScenario(userContent)) {
+        const exportPath = await prepareBundledWordAttachment();
+        if (!exportPath) {
+          return block;
+        }
+
+        return {
+          ...block,
+          attachments: [
+            {
+              id: `mock-attachment-${Date.now()}`,
+              type: 'file',
+              fileName: '项目排期规划与任务表.docx',
+              mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+              localPath: exportPath,
+              uploadStatus: 'success',
+            },
+          ],
+        };
       }
 
-      return {
-        ...block,
-        attachments: [
-          {
-            id: `mock-attachment-${Date.now()}`,
-            type: 'file',
-            fileName: '项目排期规划与任务表.docx',
-            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            localPath: exportPath,
-            uploadStatus: 'success',
-          },
-        ],
-      };
+      if (isPptReportMockScenario(userContent)) {
+        const exportPath = await prepareBundledPptAttachment();
+        if (!exportPath) {
+          return block;
+        }
+
+        return {
+          ...block,
+          attachments: [
+            {
+              id: `mock-attachment-${Date.now()}`,
+              type: 'file',
+              fileName: PPT_REPORT_ATTACHMENT_FILE_NAME,
+              mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+              localPath: exportPath,
+              uploadStatus: 'success',
+            },
+          ],
+        };
+      }
+
+      return block;
     } catch {
       return block;
     }
@@ -630,6 +679,21 @@ export default function WorkflowScreen({
     }
 
     const currentSessionIdForSync = sessionId;
+
+    if (isPptReportMockScenario(trimmed)) {
+      const pptMockAIBlock = await attachLocalMockExportIfNeeded(
+        buildMockAIBlock(trimmed, userMsg.id, blocks.filter((m) => m.role === 'ai').length, submitAttachments),
+        trimmed
+      );
+      const pptMockBlocks = optimisticBlocks.map((block) => (
+        block.id === pendingAIBlock.id ? pptMockAIBlock : block
+      ));
+      setBlocks(pptMockBlocks);
+      if (currentSessionIdForSync) {
+        persistSessionBlocks(currentSessionIdForSync, pptMockBlocks);
+      }
+      return;
+    }
 
     // 后端静默同步：不阻塞前端交互；失败时回退 mock。
     if (currentSessionIdForSync) {
@@ -827,6 +891,21 @@ export default function WorkflowScreen({
       persistSessionBlocks(sessionId, optimisticBlocks);
     }
 
+    if (isPptReportMockScenario(promptText)) {
+      const aiMessageCount = blocks.filter((block) => block.role === 'ai').length;
+      void (async () => {
+        const mockAIBlock = await attachLocalMockExportIfNeeded(
+          buildMockAIBlock(promptText, userBlockId, aiMessageCount),
+          promptText
+        );
+        const nextBlocks = replaceBlockById(optimisticBlocks, pendingLongAudioAIBlockId, mockAIBlock);
+        setBlocks((prev) => replaceBlockById(prev, pendingLongAudioAIBlockId, mockAIBlock));
+        persistSessionBlocks(sessionId, nextBlocks);
+        setIsSubmittingLongAudio(false);
+      })();
+      return true;
+    }
+
     void (async () => {
       try {
         let remoteAudioId = pendingLongAudioInput.remoteAudioId ?? null;
@@ -983,6 +1062,22 @@ export default function WorkflowScreen({
       setBlocks(nextBlocks);
 
       if (!currentSessionId) {
+        const aiSequenceIndex = linkedAiIndex >= 0
+          ? Math.max(0, blocks.slice(0, linkedAiIndex + 1).filter((candidate) => candidate.role === 'ai').length - 1)
+          : blocks.filter((candidate) => candidate.role === 'ai').length;
+        void (async () => {
+          const fallbackAIBlock = await attachLocalMockExportIfNeeded(
+            buildMockAIBlock(newContent, block.id, aiSequenceIndex),
+            newContent
+          );
+          setBlocks((prev) => prev.map((candidate) => (
+            candidate.id === pendingRegeneratedAIBlock.id ? fallbackAIBlock : candidate
+          )));
+        })();
+        return;
+      }
+
+      if (isPptReportMockScenario(newContent)) {
         const aiSequenceIndex = linkedAiIndex >= 0
           ? Math.max(0, blocks.slice(0, linkedAiIndex + 1).filter((candidate) => candidate.role === 'ai').length - 1)
           : blocks.filter((candidate) => candidate.role === 'ai').length;
