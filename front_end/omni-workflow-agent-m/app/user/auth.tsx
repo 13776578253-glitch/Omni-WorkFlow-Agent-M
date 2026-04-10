@@ -11,6 +11,7 @@ import { AuthRegister } from '@/components/user/auth/register';
 import { AuthValidation } from '@/components/user/auth/validation';
 import { KeyboardAwareScroll } from '@/components/user/personal/Keyboard_Aware_Scroll';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { demoUserConfig } from '@/services/auth/Demo_User';
 
 const STORAGE_KEY = '@omni_workflow_user_data_v1';
 const AUTH_STORAGE_KEY = '@omni_workflow_user_auth_v1';
@@ -20,9 +21,9 @@ const DEMO_AUTH_USERS_KEY = '@omni_workflow_demo_auth_users_v1';
 // 固定验证码 / 测试账号
 const DEMO_VERIFICATION_CODE = '147653';
 const ADMIN_ACCOUNT = {
-  id: 'admin-001',
-  nickname: 'cpp',
-  phone: '17768288913',
+  id: demoUserConfig.userId,
+  nickname: demoUserConfig.nickname,
+  phone: demoUserConfig.phone,
   password: '1141128',
 } as const;
 
@@ -30,6 +31,7 @@ type AuthMode = 'login' | 'register' | 'forgot' | 'validation';
 
 interface AuthState {
   isLoggedIn: boolean;
+  userId?: string;
   nickname: string;
   phone: string;
   updatedAt: number;
@@ -54,7 +56,7 @@ function normalizePhone(phone: string): string {
 }
 
 function createDemoUserId(): string {
-  return `cpp`;
+  return demoUserConfig.userId;
 }
 
 async function readDemoUsers(): Promise<DemoAuthUser[]> {
@@ -133,6 +135,7 @@ export default function AuthScreen() {
             const parsed = JSON.parse(raw) as Partial<AuthState>;
             const nextState: AuthState = {
               isLoggedIn: !!parsed.isLoggedIn,
+              userId: parsed.userId ? String(parsed.userId) : undefined,
               nickname: parsed.nickname ?? '',
               phone: parsed.phone ?? '',
               updatedAt: parsed.updatedAt ?? Date.now(),
@@ -210,6 +213,7 @@ export default function AuthScreen() {
 
         const nextState: AuthState = {
           isLoggedIn: true,
+          userId: user.id,
           nickname: user.nickname,
           phone: normalizedPhone,
           updatedAt: Date.now(),
@@ -240,8 +244,9 @@ export default function AuthScreen() {
           throw new Error('该手机号已注册。');
         }
 
+        const createdUserId = createDemoUserId();
         await saveDemoUser({
-          id: createDemoUserId(),
+          id: createdUserId,
           nickname: payload.nickname,
           phone: normalizedPhone,
           password: payload.password,
@@ -249,6 +254,7 @@ export default function AuthScreen() {
 
         const nextState: AuthState = {
           isLoggedIn: false,
+          userId: createdUserId,
           nickname: payload.nickname,
           phone: normalizedPhone,
           updatedAt: Date.now(),
@@ -269,6 +275,7 @@ export default function AuthScreen() {
     try {
       const nextState: AuthState = {
         isLoggedIn: false,
+        userId: undefined,
         nickname: '',
         phone: '',
         updatedAt: Date.now(),

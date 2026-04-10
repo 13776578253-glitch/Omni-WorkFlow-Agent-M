@@ -15,29 +15,42 @@ interface WorkflowStatusReminderProps {
 
 // 工作流状态提醒组件，展示思维链的执行步骤和状态
 export function WorkflowStatusReminder({ thoughtChain, hasPlayed = false, onAnimationStart, onComplete }: WorkflowStatusReminderProps) {
-  const [shouldAnimate] = useState(!hasPlayed);
+  const shouldAnimate = !hasPlayed;
   const [visibleSteps, setVisibleSteps] = useState(shouldAnimate ? 0 : thoughtChain.steps.length);
   const [showLoading, setShowLoading] = useState(false);
   const startedRef = useRef(false);
   const completedRef = useRef(false);
+  const onAnimationStartRef = useRef(onAnimationStart);
+  const onCompleteRef = useRef(onComplete);
 
   const borderLeftColor = useThemeColor({ light: '#0a7ea4', dark: '#60A5FA' }, 'tint');
+
+  useEffect(() => {
+    onAnimationStartRef.current = onAnimationStart;
+    onCompleteRef.current = onComplete;
+  }, [onAnimationStart, onComplete]);
 
   useEffect(() => {
     if (!shouldAnimate) {
       setVisibleSteps(thoughtChain.steps.length);
       setShowLoading(false);
+      startedRef.current = true;
+      completedRef.current = true;
+      return;
+    }
+
+    if (startedRef.current) {
       return;
     }
 
     const timers: ReturnType<typeof setTimeout>[] = [];
     let cumulativeDelay = 0;
     completedRef.current = false;
+    setVisibleSteps(0);
+    setShowLoading(false);
 
-    if (!startedRef.current) {
-      startedRef.current = true;
-      onAnimationStart?.();
-    }
+    startedRef.current = true;
+    onAnimationStartRef.current?.();
 
     thoughtChain.steps.forEach((step, i) => {
       const prevStep = i > 0 ? thoughtChain.steps[i - 1] : null;
@@ -61,12 +74,12 @@ export function WorkflowStatusReminder({ thoughtChain, hasPlayed = false, onAnim
       setShowLoading(false);
       if (!completedRef.current) {
         completedRef.current = true;
-        onComplete?.();
+        onCompleteRef.current?.();
       }
     }, cumulativeDelay + 50));
 
     return () => timers.forEach(clearTimeout);
-  }, [onAnimationStart, onComplete, shouldAnimate, thoughtChain]);
+  }, [shouldAnimate, thoughtChain]);
 
   return (
     <View style={[styles.container, { borderLeftColor }]}>
@@ -133,7 +146,7 @@ function TypewriterText({
       } else {
         clearInterval(timer);
       }
-    }, 40);
+    }, 58);
     return () => clearInterval(timer);
   }, [shouldAnimate, text]);
 

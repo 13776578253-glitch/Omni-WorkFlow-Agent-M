@@ -121,12 +121,16 @@ function shouldUseSystemShareForLocalAttachment(attachment: WorkflowAttachment):
 
   return (
     fileName.endsWith('.pdf') ||
+    fileName.endsWith('.txt') ||
+    fileName.endsWith('.md') ||
     fileName.endsWith('.ppt') ||
     fileName.endsWith('.pptx') ||
     fileName.endsWith('.doc') ||
     fileName.endsWith('.docx') ||
     fileName.endsWith('.xls') ||
     fileName.endsWith('.xlsx') ||
+    mimeType.includes('text/plain') ||
+    mimeType.includes('text/markdown') ||
     mimeType.includes('pdf') ||
     mimeType.includes('powerpoint') ||
     mimeType.includes('word') ||

@@ -1,4 +1,11 @@
 import type { ThoughtChain } from '@/constants/workflow_type';
+import type { WorkflowAttachment } from '@/constants/workflow_type';
+import {
+  HOME_SCHEDULE_PROMPT,
+  hasSchedulePlanFileAttachment,
+  isOrganizeDocumentMockScenario,
+  isSchedulePlanMockScenario,
+} from '@/components/workflow/Workflow_Context_bin/Workflow_Context_Data';
 
 // 测试
 export const THOUGHT_CHAINS: Record<string, ThoughtChain> = {
@@ -120,10 +127,123 @@ export const THOUGHT_CHAINS: Record<string, ThoughtChain> = {
       { id: 'g4', type: 'summary', text: '正在生成回复内容。', status: 'completed', icon: 'create-outline' },
     ],
   },
+  schedule_upload: {
+    id: 'chain-schedule-upload',
+    category: 'summary',
+    steps: [
+      {
+        id: 'su1',
+        type: 'summary',
+        text: '已识别当前需求为排期规划与任务表整理。',
+        status: 'completed',
+        icon: 'calendar-outline',
+      },
+      {
+        id: 'su2',
+        type: 'command',
+        text: '正在检查是否已提供可解析的文档和图片材料...',
+        status: 'completed',
+        icon: 'terminal-outline',
+      },
+      {
+        id: 'su3',
+        type: 'text',
+        text: '当前更适合先收集上传材料，再进入结构化排期生成。',
+        status: 'completed',
+      },
+      {
+        id: 'su4',
+        type: 'summary',
+        text: '已准备好在收到材料后继续输出排期规划和任务表。',
+        status: 'completed',
+        icon: 'create-outline',
+      },
+    ],
+  },
+  schedule_plan_file: {
+    id: 'chain-schedule-plan-file',
+    category: 'summary',
+    steps: [
+      {
+        id: 'spf1',
+        type: 'summary',
+        text: '已接收并读取「排期规划.txt」项目背景文件，正在提取其中的任务目标、阶段安排和交付要求。',
+        status: 'completed',
+        icon: 'document-text-outline',
+      },
+      {
+        id: 'spf2',
+        type: 'command',
+        text: '已同步检查上传图片内容，识别为项目功能模块图；与文档撰写相关性较低，但仍纳入整体信息整理与交叉参考。',
+        status: 'completed',
+        icon: 'image-outline',
+      },
+      {
+        id: 'spf3',
+        type: 'summary',
+        text: '正在梳理项目内容并拆解任务清单，已生成阶段目标、关键任务、依赖关系和风险项分析笔记。',
+        status: 'completed',
+        icon: 'list-outline',
+      },
+      {
+        id: 'spf4',
+        type: 'command',
+        text: '正在基于梳理结果撰写排期规划与任务表文档，并统一整理为适合演示与验收的输出结构。',
+        status: 'completed',
+        icon: 'create-outline',
+      },
+      {
+        id: 'spf5',
+        type: 'summary',
+        text: '已读取用户长期记忆与使用习惯，正在结合偏好中文输出、先结论后步骤、尽量结构化等习惯优化文档表达。',
+        status: 'completed',
+        icon: 'person-outline',
+      },
+      {
+        id: 'spf6',
+        type: 'summary',
+        text: '最终成果已整理为「移动端智能工作流助手项目排期规划与任务表」，当前可直接交付，并支持继续导出为文档版本。',
+        status: 'completed',
+        icon: 'checkmark-circle-outline',
+      },
+    ],
+  },
+  organize_doc_export: {
+    id: 'chain-organize-doc-export',
+    category: 'summary',
+    steps: [
+      {
+        id: 'ode1',
+        type: 'summary',
+        text: '正在整理排期内容并生成可直接查看与分享的文档附件。',
+        status: 'completed',
+        icon: 'document-attach-outline',
+      },
+    ],
+  },
 };
 
-export function selectThoughtChain(userInput: string): ThoughtChain {
+export function selectThoughtChain(
+  userInput: string,
+  attachments: WorkflowAttachment[] = []
+): ThoughtChain {
   const input = userInput.toLowerCase();
+
+  if (hasSchedulePlanFileAttachment(attachments)) {
+    return THOUGHT_CHAINS.schedule_plan_file;
+  }
+
+  if (isOrganizeDocumentMockScenario(userInput)) {
+    return THOUGHT_CHAINS.organize_doc_export;
+  }
+
+  if (input.includes(HOME_SCHEDULE_PROMPT.toLowerCase())) {
+    return THOUGHT_CHAINS.schedule_upload;
+  }
+
+  if (isSchedulePlanMockScenario(userInput, attachments)) {
+    return THOUGHT_CHAINS.schedule_plan_file;
+  }
 
   if (input.includes('总结') || input.includes('摘要') || input.includes('概括')) {
     return THOUGHT_CHAINS.summary;

@@ -51,7 +51,212 @@ interface WorkflowMessageItemProps {
   onPresentationStateChange?: (id: string, patch: Partial<WorkflowBlock>) => void;
   canEdit?: boolean;
 }
-      
+
+type MarkdownAlign = 'left' | 'right';
+
+interface MarkdownBlockChunk {
+  type: 'paragraph' | 'heading' | 'list' | 'blockquote' | 'code' | 'mermaid' | 'other';
+  content: string;
+}
+
+function detectMarkdownLineType(line: string): MarkdownBlockChunk['type'] | null {
+  if (!line) return null;
+  if (line.startsWith('```mermaid')) return 'mermaid';
+  if (line.startsWith('```')) return 'code';
+  if (/^#{1,6}\s/.test(line)) return 'heading';
+  if (/^>\s?/.test(line)) return 'blockquote';
+  if (/^([-*+]|\d+\.)\s/.test(line)) return 'list';
+  return 'paragraph';
+}
+
+function detectMarkdownBlockType(text: string): MarkdownBlockChunk['type'] {
+  const firstLine = text.split('\n')[0]?.trim() ?? '';
+  return detectMarkdownLineType(firstLine) ?? 'other';
+}
+
+function splitMarkdownBlocks(content: string): MarkdownBlockChunk[] {
+  const lines = content.split('\n');
+  const blocks: MarkdownBlockChunk[] = [];
+  let buffer: string[] = [];
+  let inCodeFence = false;
+
+  const flushBuffer = () => {
+    if (buffer.length === 0) return;
+    const text = buffer.join('\n').trim();
+    buffer = [];
+    if (!text) return;
+    blocks.push({
+      type: detectMarkdownBlockType(text),
+      content: text,
+    });
+  };
+
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    const isFenceLine = trimmed.startsWith('```');
+
+    if (isFenceLine) {
+      if (inCodeFence) {
+        buffer.push(line);
+        inCodeFence = false;
+        flushBuffer();
+      } else {
+        flushBuffer();
+        buffer = [line];
+        inCodeFence = true;
+      }
+      return;
+    }
+
+    if (inCodeFence) {
+      buffer.push(line);
+      return;
+    }
+
+    if (trimmed === '') {
+      flushBuffer();
+      return;
+    }
+
+    const lineType = detectMarkdownLineType(trimmed);
+    const currentType = buffer.length > 0 ? detectMarkdownLineType(buffer[0].trim()) : null;
+    const shouldStartNewBlock =
+      buffer.length > 0 &&
+      ((lineType !== currentType && (lineType === 'heading' || currentType === 'heading')) ||
+        (currentType !== 'list' && lineType === 'list') ||
+        (currentType !== 'blockquote' && lineType === 'blockquote'));
+
+    if (shouldStartNewBlock) {
+      flushBuffer();
+    }
+
+    buffer.push(line);
+  });
+
+  flushBuffer();
+  return blocks;
+}
+
+function AnimatedTypewriterText({ text, textColor, align }: { text: string; textColor: string; align: MarkdownAlign }) {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [fadeAnim]);
+
+  return (
+    <Animated.View style={{ opacity: fadeAnim }}>
+      <Text style={[styles.progressiveParagraph, { color: textColor, textAlign: align }]}>{text}</Text>
+    </Animated.View>
+  );
+}
+
+interface ProgressiveMarkdownMessageProps {
+  content: string;
+  align: MarkdownAlign;
+  textColor: string;
+  onAnimationStart?: () => void;
+  onAnimationComplete?: () => void;
+}
+
+function ProgressiveMarkdownMessage({
+  content,
+  align,
+  textColor,
+  onAnimationStart,
+  onAnimationComplete,
+}: ProgressiveMarkdownMessageProps) {
+  const blocks = useMemo(() => splitMarkdownBlocks(content), [content]);
+  const [visibleBlockCount, setVisibleBlockCount] = useState(0);
+  const [activeText, setActiveText] = useState('');
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const startedRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+
+    if (!startedRef.current) {
+      startedRef.current = true;
+      onAnimationStart?.();
+    }
+
+    if (blocks.length === 0) {
+      setVisibleBlockCount(0);
+      setActiveIndex(null);
+      setActiveText('');
+      return () => {
+        mountedRef.current = false;
+      };
+    }
+
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let charTimer: ReturnType<typeof setInterval> | null = null;
+
+    const revealNextBlock = (index: number) => {
+      if (!mountedRef.current || index >= blocks.length) {
+        setActiveIndex(null);
+        setActiveText('');
+        onAnimationComplete?.();
+        return;
+      }
+
+      const block = blocks[index];
+
+      if (block.type === 'paragraph') {
+        setActiveIndex(index);
+        setActiveText('');
+        let cursor = 0;
+        charTimer = setInterval(() => {
+          cursor += 1;
+          if (!mountedRef.current) return;
+
+          setActiveText(block.content.slice(0, cursor));
+          if (cursor >= block.content.length) {
+            if (charTimer) {
+              clearInterval(charTimer);
+              charTimer = null;
+            }
+            setVisibleBlockCount(index + 1);
+            setActiveIndex(null);
+            timer = setTimeout(() => revealNextBlock(index + 1), 280);
+          }
+        }, 48);
+        return;
+      }
+
+      setVisibleBlockCount(index + 1);
+      setActiveIndex(null);
+      setActiveText('');
+      timer = setTimeout(() => revealNextBlock(index + 1), 320);
+    };
+
+    revealNextBlock(0);
+
+    return () => {
+      mountedRef.current = false;
+      if (timer) clearTimeout(timer);
+      if (charTimer) clearInterval(charTimer);
+    };
+  }, [blocks, onAnimationComplete, onAnimationStart]);
+
+  const visibleMarkdown = blocks.slice(0, visibleBlockCount).map((block) => block.content).join('\n\n');
+  const activeBlock = activeIndex !== null ? blocks[activeIndex] : null;
+
+  return (
+    <View>
+      {visibleMarkdown ? <WorkflowMarkdownRenderer content={visibleMarkdown} align={align} /> : null}
+      {activeBlock?.type === 'paragraph' && activeText ? (
+        <AnimatedTypewriterText text={activeText} textColor={textColor} align={align} />
+      ) : null}
+    </View>
+  );
+}
+
 export function WorkflowMessageItem({ message, onUpdate, onPresentationStateChange, canEdit = true }: WorkflowMessageItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const isUser = message.role === 'user';
@@ -73,27 +278,31 @@ export function WorkflowMessageItem({ message, onUpdate, onPresentationStateChan
   const thoughtChainPlayed = isAIBlock(message) ? message.thoughtChainAnimationPlayed ?? true : true;
   const messageAnimationPlayed = isAIBlock(message) ? message.messageAnimationPlayed ?? true : true;
   const hasThoughtChain = !isUser && 'thoughtChain' in message && !!message.thoughtChain;
-  // 思维链动画状态
-  const [shouldAnimateThoughtChain, setShouldAnimateThoughtChain] = useState(!isUser && !thoughtChainPlayed);
-  const [shouldAnimateMessage, setShouldAnimateMessage] = useState(!isUser && !messageAnimationPlayed);
+  const shouldAnimateThoughtChain = !isUser && hasThoughtChain && !thoughtChainPlayed && message.editedByUser !== true;
+  const shouldAnimateMessage = !isUser && !messageAnimationPlayed && message.editedByUser !== true;
+  const [hasCompletedThoughtChain, setHasCompletedThoughtChain] = useState(
+    isUser || !hasThoughtChain || !shouldAnimateThoughtChain
+  );
   const [canRevealMessage, setCanRevealMessage] = useState(
     isUser || message.editedByUser === true || !shouldAnimateMessage || !hasThoughtChain
   );
   const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messageStartReportedRef = useRef(false);
 
-  // 思维链动画处理
   useEffect(() => {
-    const nextShouldAnimateThoughtChain = !isUser && !thoughtChainPlayed && message.editedByUser !== true;
-    const nextShouldAnimateMessage = !isUser && !messageAnimationPlayed && message.editedByUser !== true;
-
-    setShouldAnimateThoughtChain(nextShouldAnimateThoughtChain);
-    setShouldAnimateMessage(nextShouldAnimateMessage);
+    setHasCompletedThoughtChain(isUser || !hasThoughtChain || !shouldAnimateThoughtChain);
     setCanRevealMessage(
-      isUser || message.editedByUser === true || !nextShouldAnimateMessage || !hasThoughtChain
+      isUser || message.editedByUser === true || !shouldAnimateMessage || !hasThoughtChain
     );
     messageStartReportedRef.current = false;
-  }, [hasThoughtChain, isUser, message.editedByUser, message.id]);
+  }, [
+    hasThoughtChain,
+    isUser,
+    message.editedByUser,
+    message.id,
+    shouldAnimateMessage,
+    shouldAnimateThoughtChain,
+  ]);
 
   // 编辑处理 首问锁定时禁止编辑
   const handleEdit = () => {
@@ -114,7 +323,6 @@ export function WorkflowMessageItem({ message, onUpdate, onPresentationStateChan
     setIsEditing(false);
   };
 
-  // 思维链动画效果
   useEffect(() => {
     if (revealTimerRef.current) {
       clearTimeout(revealTimerRef.current);
@@ -143,10 +351,20 @@ export function WorkflowMessageItem({ message, onUpdate, onPresentationStateChan
       };
     }
 
-    if (!hasThoughtChain || !shouldAnimateThoughtChain) {
+    if (hasThoughtChain && shouldAnimateThoughtChain && !hasCompletedThoughtChain) {
+      setCanRevealMessage(false);
+      return () => {
+        if (revealTimerRef.current) {
+          clearTimeout(revealTimerRef.current);
+          revealTimerRef.current = null;
+        }
+      };
+    }
+
+    if (!hasThoughtChain || !shouldAnimateThoughtChain || hasCompletedThoughtChain) {
       revealTimerRef.current = setTimeout(() => {
         setCanRevealMessage(true);
-      }, 1000);
+      }, 180);
       return () => {
         if (revealTimerRef.current) {
           clearTimeout(revealTimerRef.current);
@@ -163,14 +381,24 @@ export function WorkflowMessageItem({ message, onUpdate, onPresentationStateChan
         revealTimerRef.current = null;
       }
     };
-  }, [hasThoughtChain, isUser, message.editedByUser, message.id, shouldAnimateMessage, shouldAnimateThoughtChain]);
+  }, [
+    hasCompletedThoughtChain,
+    hasThoughtChain,
+    isUser,
+    message.editedByUser,
+    message.id,
+    shouldAnimateMessage,
+    shouldAnimateThoughtChain,
+  ]);
 
   const handleThoughtChainAnimationStart = useCallback(() => {
     if (isUser || !shouldAnimateThoughtChain) return;
-    onPresentationStateChange?.(message.id, { thoughtChainAnimationPlayed: true });
-  }, [isUser, message.id, onPresentationStateChange, shouldAnimateThoughtChain]);
+  }, [isUser, shouldAnimateThoughtChain]);
 
   const handleThoughtChainComplete = useCallback(() => {
+    setHasCompletedThoughtChain(true);
+    onPresentationStateChange?.(message.id, { thoughtChainAnimationPlayed: true });
+
     if (!shouldAnimateMessage) {
       setCanRevealMessage(true);
       return;
@@ -182,218 +410,18 @@ export function WorkflowMessageItem({ message, onUpdate, onPresentationStateChan
 
     revealTimerRef.current = setTimeout(() => {
       setCanRevealMessage(true);
-    }, 1000);
-  }, [shouldAnimateMessage]);
+    }, 180);
+  }, [message.id, onPresentationStateChange, shouldAnimateMessage]);
 
-  // 消息动画开始回调
   const handleMessageAnimationStart = useCallback(() => {
     if (isUser || !shouldAnimateMessage || messageStartReportedRef.current) return;
     messageStartReportedRef.current = true;
-    onPresentationStateChange?.(message.id, { messageAnimationPlayed: true });
   }, [isUser, message.id, onPresentationStateChange, shouldAnimateMessage]);
 
-  // 逐字显示文本组件
-  type MarkdownAlign = 'left' | 'right';
-
-  interface ProgressiveMarkdownMessageProps {
-    content: string;
-    align: MarkdownAlign;
-    textColor: string;
-    onAnimationStart?: () => void;
-  }
-
-  function ProgressiveMarkdownMessage({ content, align, textColor, onAnimationStart }: ProgressiveMarkdownMessageProps) {
-    const blocks = useMemo(() => splitMarkdownBlocks(content), [content]);
-    const [visibleBlockCount, setVisibleBlockCount] = useState(0);
-    const [activeText, setActiveText] = useState('');
-    const [activeIndex, setActiveIndex] = useState<number | null>(null);
-    const startedRef = useRef(false);
-    const mountedRef = useRef(true);
-
-    useEffect(() => {
-      mountedRef.current = true;
-
-      if (!startedRef.current) {
-        startedRef.current = true;
-        onAnimationStart?.();
-      }
-
-      if (blocks.length === 0) {
-        setVisibleBlockCount(0);
-        setActiveIndex(null);
-        setActiveText('');
-        return () => {
-          mountedRef.current = false;
-        };
-      }
-
-      let timer: ReturnType<typeof setTimeout> | null = null;
-      let charTimer: ReturnType<typeof setInterval> | null = null;
-
-      // 递归显示块内容，段落块逐字显示，其他块直接显示
-      const revealNextBlock = (index: number) => {
-        if (!mountedRef.current || index >= blocks.length) {
-          setActiveIndex(null);
-          setActiveText('');
-          return;
-        }
-
-        const block = blocks[index];
-
-        if (block.type === 'paragraph') {
-          setActiveIndex(index);
-          setActiveText('');
-          let cursor = 0;
-          charTimer = setInterval(() => {
-            cursor += 1;
-            if (!mountedRef.current) return;
-
-            setActiveText(block.content.slice(0, cursor));
-            if (cursor >= block.content.length) {
-              if (charTimer) {
-                clearInterval(charTimer);
-                charTimer = null;
-              }
-              setVisibleBlockCount(index + 1);
-              setActiveIndex(null);
-              timer = setTimeout(() => revealNextBlock(index + 1), 180);
-            }
-          }, 28);
-          return;
-        }
-
-        setVisibleBlockCount(index + 1);
-        setActiveIndex(null);
-        setActiveText('');
-        timer = setTimeout(() => revealNextBlock(index + 1), 220);
-      };
-
-      revealNextBlock(0);
-
-      return () => {
-        mountedRef.current = false;
-        if (timer) clearTimeout(timer);
-        if (charTimer) clearInterval(charTimer);
-      };
-    }, [blocks, onAnimationStart]);
-
-    const visibleMarkdown = blocks.slice(0, visibleBlockCount).map((block) => block.content).join('\n\n');
-    const activeBlock = activeIndex !== null ? blocks[activeIndex] : null;
-
-    return (
-      <View>
-        {visibleMarkdown ? <WorkflowMarkdownRenderer content={visibleMarkdown} align={align} /> : null}
-        {activeBlock?.type === 'paragraph' && activeText ? (
-          <AnimatedTypewriterText text={activeText} textColor={textColor} align={align} />
-        ) : null}
-      </View>
-    );
-  }
-
-  // 思维链组件
-  function AnimatedTypewriterText({ text, textColor, align }: { text: string; textColor: string; align: MarkdownAlign }) {
-    const fadeAnim = useRef(new Animated.Value(0)).current;
-
-    useEffect(() => {
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
-    }, [fadeAnim]);
-
-    return (
-      <Animated.View style={{ opacity: fadeAnim }}>
-        <Text style={[styles.progressiveParagraph, { color: textColor, textAlign: align }]}>{text}</Text>
-      </Animated.View>
-    );
-  }
-
-  // Markdown 块类型定义和解析函数
-  interface MarkdownBlockChunk {
-    type: 'paragraph' | 'heading' | 'list' | 'blockquote' | 'code' | 'mermaid' | 'other';
-    content: string;
-  }
-
-  function splitMarkdownBlocks(content: string): MarkdownBlockChunk[] {
-    const lines = content.split('\n');
-    const blocks: MarkdownBlockChunk[] = [];
-    let buffer: string[] = [];
-    let inCodeFence = false;
-
-    const flushBuffer = () => {
-      if (buffer.length === 0) return;
-      const text = buffer.join('\n').trim();
-      buffer = [];
-      if (!text) return;
-      blocks.push({
-        type: detectMarkdownBlockType(text),
-        content: text,
-      });
-    };
-
-    lines.forEach((line) => {
-      const trimmed = line.trim();
-      const isFenceLine = trimmed.startsWith('```');
-
-      if (isFenceLine) {
-        if (inCodeFence) {
-          buffer.push(line);
-          inCodeFence = false;
-          flushBuffer();
-        } else {
-          flushBuffer();
-          buffer = [line];
-          inCodeFence = true;
-        }
-        return;
-      }
-
-      if (inCodeFence) {
-        buffer.push(line);
-        return;
-      }
-
-      if (trimmed === '') {
-        flushBuffer();
-        return;
-      }
-
-      const lineType = detectMarkdownLineType(trimmed);
-      const currentType = buffer.length > 0 ? detectMarkdownLineType(buffer[0].trim()) : null;
-      const shouldStartNewBlock =
-        buffer.length > 0 &&
-        ((lineType !== currentType && (lineType === 'heading' || currentType === 'heading')) ||
-          (currentType !== 'list' && lineType === 'list') ||
-          (currentType !== 'blockquote' && lineType === 'blockquote'));
-
-      if (shouldStartNewBlock) {
-        flushBuffer();
-      }
-
-      buffer.push(line);
-    });
-
-    flushBuffer();
-    return blocks;
-  }
-
-  // 测试用例：逐字显示文本组件
-  // 已定位 4 个核心章节：项目背景、技术选型、开发进度、后续计划。
-  function detectMarkdownLineType(line: string): MarkdownBlockChunk['type'] | null {
-    if (!line) return null;
-    if (line.startsWith('```mermaid')) return 'mermaid';
-    if (line.startsWith('```')) return 'code';
-    if (/^#{1,6}\s/.test(line)) return 'heading';
-    if (/^>\s?/.test(line)) return 'blockquote';
-    if (/^([-*+]|\d+\.)\s/.test(line)) return 'list';
-    return 'paragraph';
-  }
-
-  function detectMarkdownBlockType(text: string): MarkdownBlockChunk['type'] {
-    const firstLine = text.split('\n')[0]?.trim() ?? '';
-    return detectMarkdownLineType(firstLine) ?? 'other';
-  }
+  const handleMessageAnimationComplete = useCallback(() => {
+    if (isUser || !shouldAnimateMessage) return;
+    onPresentationStateChange?.(message.id, { messageAnimationPlayed: true });
+  }, [isUser, message.id, onPresentationStateChange, shouldAnimateMessage]);
 
   return (
     <View style={styles.outerContainer}>
@@ -450,6 +478,7 @@ export function WorkflowMessageItem({ message, onUpdate, onPresentationStateChan
                   align={isUser ? 'right' : 'left'}
                   textColor={textColor}
                   onAnimationStart={handleMessageAnimationStart}
+                  onAnimationComplete={handleMessageAnimationComplete}
                 />
               ) : null}
             </TouchableOpacity>

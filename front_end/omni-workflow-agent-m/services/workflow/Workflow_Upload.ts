@@ -25,9 +25,9 @@ const RECORDING_DIR = `${FileSystem.documentDirectory}workflow_recordings/`;
 
 // 录音上传服务类 
 const MOCK_TRANSCRIPTS: Record<WorkflowRecordingSource, string> = {
-  'home-press': '帮我整理今天这段首页录音的重点，并直接开始新的工作流处理。',
+  'home-press': '帮我整理这份排期规划和任务表，结合我上传的文件。',    
   'workflow-press': '请把这段按住说话的内容整理成结构化任务清单，并继续生成后续结果。',
-  'workflow-long-form': '请整理这段长时录音的完整内容，提取重点并生成后续工作流结果。',
+  'workflow-long-form': '请整理这段长时录音的完整内容，提取重点并生成概要。',
 };
 const MAX_REASONABLE_RECORDING_DURATION_MS = 12 * 60 * 60 * 1000;
 

@@ -10,6 +10,7 @@ import { QuickActionFoldCard } from '@/components/user/personal/Quick_Action_Fol
 import { SettingItem } from '@/components/user/Setting_Item';
 import { SettingSection } from '@/components/user/Setting_section';
 import * as personalApi from '@/api/personal-api';
+import { getEffectiveUserIdFromAuthState } from '@/services/auth/Demo_User';
 // import { QUICK_ACTIONS } from '@/components/workflow/Workflow_QuickActions';
 
 
@@ -107,9 +108,10 @@ export default function UserDataScreen() {
         const authRaw = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
         if (authRaw) {
           const authState = JSON.parse(authRaw);
-          if (authState.isLoggedIn && authState.userId) {
+          const effectiveUserId = getEffectiveUserIdFromAuthState(authState);
+          if (effectiveUserId) {
             try {
-              const serverData = await personalApi.getUserPreferences(authState.userId);
+              const serverData = await personalApi.getUserPreferences(effectiveUserId);
               setState((prev) => ({
                 ...prev,
                 ...serverData,
@@ -219,9 +221,10 @@ export default function UserDataScreen() {
       const authRaw = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
       if (authRaw) {
         const authState = JSON.parse(authRaw);
-        if (authState.isLoggedIn && authState.userId) {
+        const effectiveUserId = getEffectiveUserIdFromAuthState(authState);
+        if (effectiveUserId) {
           try {
-            await personalApi.saveUserPreferences(authState.userId, state);
+            await personalApi.saveUserPreferences(effectiveUserId, state);
           } catch {
             // 静默失败，不影响用户体验
           }

@@ -1,6 +1,7 @@
 import * as historyApi from '@/api/history-api';
 import type { WorkflowBlock } from '@/constants/workflow_type';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getEffectiveUserId } from '@/services/auth/Demo_User';
 
 const STORAGE_KEY = '@omni_history_sessions_v1';
 const AUTH_STORAGE_KEY = '@omni_workflow_user_auth_v1';
@@ -87,18 +88,7 @@ async function writeRaw(sessions: HistorySession[]): Promise<void> {
 
 // 获取当前登录用户ID
 async function getUserId(): Promise<string | null> {
-  try {
-    const authRaw = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
-    if (authRaw) {
-      const authState = JSON.parse(authRaw);
-      if (authState.isLoggedIn && authState.userId) {
-        return authState.userId;
-      }
-    }
-  } catch {
-    // 静默失败
-  }
-  return null;
+  return getEffectiveUserId();
 }
 
 // 公共 API

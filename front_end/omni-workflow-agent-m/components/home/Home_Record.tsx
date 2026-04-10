@@ -126,8 +126,9 @@ export function HomeRecord({
     }
   };
 
+  // 结束录音流程，参数表示用户是选择发送还是取消
   const finalizePressRecord = async (action: 'send' | 'cancel') => {
-    const fallbackTranscript = '帮我整理今天这段首页录音的重点，并直接开始新的工作流处理。';
+    const fallbackTranscript = '帮我整理这份排期规划和任务表，结合我上传的文件。';
     setIsSlideCancelPreview(false);
     setIsPressRecording(false);
     const current = recordingSessionRef.current;

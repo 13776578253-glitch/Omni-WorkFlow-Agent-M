@@ -1,8 +1,11 @@
 ﻿// app/(main)/workflow.tsx
 import { Ionicons } from '@expo/vector-icons';
+import { Asset } from 'expo-asset';
 import * as Haptics from 'expo-haptics';
+import * as FileSystemLegacy from 'expo-file-system/legacy';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,7 +25,10 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 
 import { WorkflowRecordingOverlay } from '@/components/ui/workflow-recording-overlay';
 import { WorkflowContentArea, type WorkflowContentAreaRef } from '@/components/workflow/Workflow_ContentArea';
-import { MARKDOWN_MOCK_DATA } from '@/components/workflow/Workflow_Context_bin/Workflow_Context_Data';
+import {
+  isOrganizeDocumentMockScenario,
+  selectMockMarkdownBlock,
+} from '@/components/workflow/Workflow_Context_bin/Workflow_Context_Data';
 import { buildLongAudioMockAIBlock } from '@/components/workflow/Workflow_Context_bin/Workflow_Long_Audio_Mock';
 import { selectThoughtChain } from '@/components/workflow/Workflow_Context_bin/Workflow_Status_Reminder_Data';
 import { WorkflowInputBar } from '@/components/workflow/Workflow_InputBar';
@@ -47,6 +53,7 @@ import {
   uploadAttachmentToBackend,
   uploadWorkflowAudioToBackend,
 } from '@/services/workflow/Workflow_Upload_Backend';
+import { getEffectiveUserId } from '@/services/auth/Demo_User';
 
 interface WorkflowScreenProps {
   currentSessionId: string | null;
@@ -62,6 +69,8 @@ interface WorkflowScreenProps {
 type ActiveWorkflowMode = Exclude<WorkflowMode, 'welcome'>;
 const RECORD_DOT_COUNT = 30;  // 波形振幅
 const TOP_AREA_OFFSET = 100;
+const MOCK_EXPORT_DIR = `${FileSystemLegacy.documentDirectory}workflow_mock_exports/`;
+const ORGANIZE_DOC_WORD_MODULE = require('../../assets/docs/project_schedule_plan.docx');
 
 // 测试 / 存储键名
 const USER_DATA_STORAGE_KEY = '@omni_workflow_user_data_v1';
@@ -95,11 +104,32 @@ function detectModeFromInput(text: string): ActiveWorkflowMode {
 
 // 测试 / 获取已登录用户 ID / 待处理：实际登录状态管理、错误处理等
 async function getLoggedInUserId(): Promise<string | null> {
+  return getEffectiveUserId();
+}
+
+async function ensureMockExportDir() {
+  const dirInfo = await FileSystemLegacy.getInfoAsync(MOCK_EXPORT_DIR);
+  if (!dirInfo.exists) {
+    await FileSystemLegacy.makeDirectoryAsync(MOCK_EXPORT_DIR, { intermediates: true });
+  }
+}
+
+async function prepareBundledWordAttachment(): Promise<string | null> {
   try {
-    const raw = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed?.isLoggedIn && parsed?.userId ? String(parsed.userId) : null;
+    await ensureMockExportDir();
+    const asset = Asset.fromModule(ORGANIZE_DOC_WORD_MODULE);
+    await asset.downloadAsync();
+    const sourceUri = asset.localUri ?? asset.uri;
+    if (!sourceUri) {
+      return null;
+    }
+
+    const exportPath = `${MOCK_EXPORT_DIR}${Date.now()}_项目排期规划与任务表.docx`;
+    await FileSystemLegacy.copyAsync({
+      from: sourceUri,
+      to: exportPath,
+    });
+    return exportPath;
   } catch {
     return null;
   }
@@ -211,10 +241,18 @@ export default function WorkflowScreen({
     }
   }, []);
 
-  // 测试 / 快捷操作名称加载
+  // 页面初次加载时读取一次个性化配置。
   useEffect(() => {
     void loadQuickActionNames();
   }, [loadQuickActionNames]);
+
+  // 从个性化设置页返回后，Workflow 页面通常不会卸载重建，
+  // 因此需要在重新获得焦点时主动同步最新的快捷指令与预设词。
+  useFocusEffect(
+    useCallback(() => {
+      void loadQuickActionNames();
+    }, [loadQuickActionNames])
+  );
   
   // 加载会话数据 / 测试逻辑 / 待优化：节流、去重、增量加载等
   useEffect(() => {
@@ -358,9 +396,14 @@ export default function WorkflowScreen({
   }, [blocks]);
 
   // 测试 / 构建 AI 块（使用循环的 mock 数据和简单的思维链选择逻辑） / 待处理：实际生成内容、思维链构建规则、性能优化等
-  const buildMockAIBlock = useCallback((userContent: string, sourceBlockId: string, aiSequenceIndex: number): WorkflowBlock => {
-    const mockData = MARKDOWN_MOCK_DATA[aiSequenceIndex % MARKDOWN_MOCK_DATA.length];
-    const thoughtChain = selectThoughtChain(userContent.trim());
+  const buildMockAIBlock = useCallback((
+    userContent: string,
+    sourceBlockId: string,
+    aiSequenceIndex: number,
+    attachments: WorkflowAttachment[] = []
+  ): WorkflowBlock => {
+    const mockData = selectMockMarkdownBlock(userContent, aiSequenceIndex, attachments);
+    const thoughtChain = selectThoughtChain(userContent.trim(), attachments);
 
     return {
       ...mockData,
@@ -373,15 +416,51 @@ export default function WorkflowScreen({
     } as WorkflowBlock;
   }, []);
 
+  const attachLocalMockExportIfNeeded = useCallback(async (
+    block: WorkflowBlock,
+    userContent: string
+  ): Promise<WorkflowBlock> => {
+    if (block.role !== 'ai' || !isOrganizeDocumentMockScenario(userContent)) {
+      return block;
+    }
+
+    try {
+      const exportPath = await prepareBundledWordAttachment();
+      if (!exportPath) {
+        return block;
+      }
+
+      return {
+        ...block,
+        attachments: [
+          {
+            id: `mock-attachment-${Date.now()}`,
+            type: 'file',
+            fileName: '项目排期规划与任务表.docx',
+            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            localPath: exportPath,
+            uploadStatus: 'success',
+          },
+        ],
+      };
+    } catch {
+      return block;
+    }
+  }, []);
+
   //构建 AI 块（使用后端响应数据） 
-  const buildPendingAIBlock = useCallback((sourceBlockId: string, userContent: string): WorkflowBlock => ({
+  const buildPendingAIBlock = useCallback((
+    sourceBlockId: string,
+    userContent: string,
+    attachments: WorkflowAttachment[] = []
+  ): WorkflowBlock => ({
     id: `ai-pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     role: 'ai',
     content: '',
     createdAt: Date.now(),
     sourceBlockId,
     status: 'pending',
-    thoughtChain: selectThoughtChain(userContent.trim()),
+    thoughtChain: selectThoughtChain(userContent.trim(), attachments),
     thoughtChainAnimationPlayed: true,
     messageAnimationPlayed: true,
     editedByUser: false,
@@ -523,7 +602,7 @@ export default function WorkflowScreen({
     };
 
     // 乐观更新：立即在界面上添加用户消息和一个待生成的 AI 消息，提升交互流畅度；后续再根据后端响应替换 AI 消息内容。
-    const pendingAIBlock = buildPendingAIBlock(userMsg.id, trimmed);
+    const pendingAIBlock = buildPendingAIBlock(userMsg.id, trimmed, submitAttachments);
     const optimisticBlocks = [...blocks, userMsg, pendingAIBlock];
 
     let sessionId = currentSessionId;
@@ -558,6 +637,7 @@ export default function WorkflowScreen({
         const userId = await getLoggedInUserId();
         const aiMessageCount = blocks.filter(m => m.role === 'ai').length;
         let latestBlocks = optimisticBlocks;
+        let fallbackAttachments = submitAttachments;
 
         try {
           if (!userId) {
@@ -572,6 +652,7 @@ export default function WorkflowScreen({
             attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
             fileRef: primaryFileRef,
           };
+          fallbackAttachments = uploadedAttachments;
           const backendContextBlocks = [...blocks, hydratedUserBlock];
           const blocksWithUploadedAttachments = replaceBlockById(
             optimisticBlocks,
@@ -600,7 +681,10 @@ export default function WorkflowScreen({
           setBlocks((prev) => replaceBlockById(prev, pendingAIBlock.id, backendAIBlock));
           persistSessionBlocks(currentSessionIdForSync, successBlocks);
         } catch {
-          const fallbackAIBlock = buildMockAIBlock(trimmed, userMsg.id, aiMessageCount);
+          const fallbackAIBlock = await attachLocalMockExportIfNeeded(
+            buildMockAIBlock(trimmed, userMsg.id, aiMessageCount, fallbackAttachments),
+            trimmed
+          );
           const fallbackBlocks = replaceBlockById(latestBlocks, pendingAIBlock.id, fallbackAIBlock);
 
           setBlocks((prev) => replaceBlockById(prev, pendingAIBlock.id, fallbackAIBlock));
@@ -611,7 +695,10 @@ export default function WorkflowScreen({
     }
 
     const aiMessageCount = blocks.filter(m => m.role === 'ai').length;
-    const fallbackAIBlock = buildMockAIBlock(trimmed, userMsg.id, aiMessageCount);
+    const fallbackAIBlock = await attachLocalMockExportIfNeeded(
+      buildMockAIBlock(trimmed, userMsg.id, aiMessageCount, submitAttachments),
+      trimmed
+    );
     const fallbackBlocks = optimisticBlocks.map((block) => (
       block.id === pendingAIBlock.id ? fallbackAIBlock : block
     ));
@@ -621,6 +708,7 @@ export default function WorkflowScreen({
     }
   }, [
     blocks,
+    attachLocalMockExportIfNeeded,
     buildMockAIBlock,
     buildEnhancedFirstTurnText,  // 首轮输入增强文本构建
     buildPendingAIBlock,
@@ -897,10 +985,15 @@ export default function WorkflowScreen({
         const aiSequenceIndex = linkedAiIndex >= 0
           ? Math.max(0, blocks.slice(0, linkedAiIndex + 1).filter((candidate) => candidate.role === 'ai').length - 1)
           : blocks.filter((candidate) => candidate.role === 'ai').length;
-        const fallbackAIBlock = buildMockAIBlock(newContent, block.id, aiSequenceIndex);
-        setBlocks((prev) => prev.map((candidate) => (
-          candidate.id === pendingRegeneratedAIBlock.id ? fallbackAIBlock : candidate
-        )));
+        void (async () => {
+          const fallbackAIBlock = await attachLocalMockExportIfNeeded(
+            buildMockAIBlock(newContent, block.id, aiSequenceIndex),
+            newContent
+          );
+          setBlocks((prev) => prev.map((candidate) => (
+            candidate.id === pendingRegeneratedAIBlock.id ? fallbackAIBlock : candidate
+          )));
+        })();
         return;
       }
 
@@ -929,7 +1022,10 @@ export default function WorkflowScreen({
             candidate.id === pendingRegeneratedAIBlock.id ? hydratedAIBlock : candidate
           )));
         } catch {
-          const fallbackAIBlock = buildMockAIBlock(newContent, block.id, aiSequenceIndex);
+          const fallbackAIBlock = await attachLocalMockExportIfNeeded(
+            buildMockAIBlock(newContent, block.id, aiSequenceIndex),
+            newContent
+          );
           setBlocks((prev) => prev.map((candidate) => (
             candidate.id === pendingRegeneratedAIBlock.id ? fallbackAIBlock : candidate
           )));
@@ -938,6 +1034,7 @@ export default function WorkflowScreen({
     }
   }, [
     blocks,
+    attachLocalMockExportIfNeeded,
     buildBackendAIBlock,
     buildMockAIBlock,
     buildPendingAIBlock,
